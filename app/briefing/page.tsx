@@ -19,11 +19,11 @@ function asOfLabel(iso: string): string {
 }
 
 export default async function BriefingPage() {
-  const report = getAmReport();
-  // Names sitting under 8.5% of the selected account — the Brief green-flags any
-  // CSP-board row that's also underweight (the same overlap the Portfolio page marks).
   const snap = await getSnapshot();
   const { data } = await getSelectedAccount(snap);
+  const report = getAmReport(snap.meta.source === "example");
+  // Names sitting under 8.5% of the selected account — the Brief green-flags any
+  // CSP-board row that's also underweight (the same overlap the Portfolio page marks).
   const underweight = underweightTickers(computeHoldings(data));
   // Everything you already hold in any form (stock or option) — used to spot
   // high-conviction board names you DON'T own yet.

@@ -48,7 +48,8 @@ export default async function HomePage() {
   const { id, data } = await getSelectedAccount(snap);
   const { summary, equities, options, valueHistory } = data;
 
-  const vixSnap = getVixSnapshot();
+  const example = meta.source === "example";
+  const vixSnap = getVixSnapshot(example);
   const vix = vixSnap ? assessVix(vixSnap) : null;
 
   // Allocation by capital deployed — break "Options" into its strategies. LEAP &
@@ -100,7 +101,7 @@ export default async function HomePage() {
   // CSP-board tickers from the Brief, so the Holdings table can green-flag names
   // that are both underweight (<8.5%) and a live wheel candidate. Array (not Set)
   // to cross the server→client boundary; the table rebuilds a Set for lookups.
-  const cspBoard = (getAmReport()?.board ?? []).map((r) => r.sym.toUpperCase());
+  const cspBoard = (getAmReport(example)?.board ?? []).map((r) => r.sym.toUpperCase());
 
   const equityPnlTotal = equities.reduce((s, e) => s + equityPnl(e), 0);
   const optionsPnlTotal = options.reduce((s, o) => s + optionPnl(o), 0);

@@ -4,10 +4,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { AmReport } from "./am-report-types";
+import { exampleAmReport } from "./example-brief";
 
 export const AM_REPORT_PATH = path.join(process.cwd(), "data", "am_report.json");
 
-export function getAmReport(): AmReport | null {
+export function getAmReport(example = false): AmReport | null {
+  if (example) return exampleAmReport;
   try {
     const raw = fs.readFileSync(AM_REPORT_PATH, "utf8");
     const parsed = JSON.parse(raw) as AmReport;

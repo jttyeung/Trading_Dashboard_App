@@ -3,10 +3,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { VixSnapshot } from "./vix";
+import { exampleVix } from "./example-vix";
 
 export const VIX_PATH = path.join(process.cwd(), "data", "vix.json");
 
-export function getVixSnapshot(): VixSnapshot | null {
+export function getVixSnapshot(example = false): VixSnapshot | null {
+  if (example) return exampleVix;
   try {
     const raw = fs.readFileSync(VIX_PATH, "utf8");
     const parsed = JSON.parse(raw) as VixSnapshot;

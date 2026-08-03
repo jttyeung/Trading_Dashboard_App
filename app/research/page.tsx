@@ -71,8 +71,8 @@ export default async function ResearchPage({
 }) {
   const { vehicle } = await searchParams;
   const initialVehicle = vehicle && VEHICLE_KEYS.has(vehicle) ? vehicle : undefined;
-  const data = getResearch();
   const snap = await getSnapshot();
+  const data = getResearch(snap.meta.source === "example");
   const holdings = aggregateHoldings(snap.data);
   const approved = getApproved();
   const sortedApproved = [...approved].sort((a, b) => a.localeCompare(b));

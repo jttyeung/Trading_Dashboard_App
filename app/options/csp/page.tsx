@@ -30,13 +30,13 @@ export default async function OptionsCspPage({
   const { mode: closedMode, months: closedMonths } = parseClosedWindow(range, months);
   const snap = await getSnapshot();
   const { id, data } = await getSelectedAccount(snap);
-  const earnings = getEarnings();
+  const earnings = getEarnings(snap.meta.source === "example");
   const sym = symbol?.toUpperCase();
   const allCsps = data.options.filter(isCsp);
   const tickers = [...new Set(allCsps.map((o) => o.symbol.toUpperCase()))].sort();
   const open = allCsps
     .filter((o) => !sym || o.symbol.toUpperCase() === sym)
-    .map((o) => ({ ...o, erDate: earnings[o.symbol.toUpperCase()] ?? null }));
+    .map((o) => ({ ...o, erDate: earnings[o.symbol.toUpperCase()] ?? o.erDate ?? null }));
   const closedCsps = (await getClosedCsps()).closed.filter((c) => !sym || c.symbol.toUpperCase() === sym);
   const closedLeaps = (await getClosedLeaps()).closed.filter((c) => !sym || c.symbol.toUpperCase() === sym);
 

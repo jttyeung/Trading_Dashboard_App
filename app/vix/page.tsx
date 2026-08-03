@@ -25,7 +25,7 @@ const BANDS: { label: string; lo: number; hi: number; regime: Regime }[] = [
 export default async function VixPage() {
   const snap = await getSnapshot();
   const { id, data } = await getSelectedAccount(snap);
-  const vix = getVixSnapshot();
+  const vix = getVixSnapshot(snap.meta.source === "example");
 
   return (
     <main className="px-4">
