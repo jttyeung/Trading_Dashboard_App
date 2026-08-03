@@ -174,6 +174,11 @@ export function StocksView({ equities, closed, initialStatus = "open", statusFro
                   const ccInfo = ccBySym.get(e.symbol.toUpperCase());
                   const ccN = ccInfo?.contracts ?? 0;
                   const ccFully = ccN > 0 && ccN * 100 >= e.qty;
+                  // Green "write a call" flag: no CC written on these shares yet, and the
+                  // ~30Δ ladder has at least one strike above your cost basis with a real
+                  // premium — a call you could sell that locks in a gain if assigned.
+                  const ccOpportunity =
+                    ccN === 0 && (e.coveredCalls ?? []).some((cc) => cc.strike > e.avgCost && cc.mark > 0);
                   const isOpen = has(e.symbol);
                   return (
                     <Fragment key={e.symbol}>
@@ -183,9 +188,17 @@ export function StocksView({ equities, closed, initialStatus = "open", statusFro
                         aria-expanded={isOpen}
                         className={`grid ${COLS} w-full items-center gap-1.5 px-2 py-2.5 text-left text-[12px] active:bg-surface-2`}
                       >
-                        <span className="flex items-center gap-1 truncate font-semibold">
+                        <span className={`flex items-center gap-1 truncate font-semibold ${ccOpportunity ? "text-emerald-300" : ""}`}>
                           <span className="text-[9px] text-muted">{isOpen ? "▾" : "▸"}</span>
                           {e.symbol}
+                          {ccOpportunity && (
+                            <span
+                              title="A covered call above your cost basis is available and none is written yet"
+                              className="shrink-0 rounded bg-emerald-500/20 px-1 py-0.5 text-[8px] font-bold uppercase tracking-wide text-emerald-300"
+                            >
+                              CC
+                            </span>
+                          )}
                         </span>
                         <span className="tabular text-center text-muted">{e.qty.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
                         <span className="tabular text-center">
