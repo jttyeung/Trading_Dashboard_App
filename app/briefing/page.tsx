@@ -25,6 +25,11 @@ export default async function BriefingPage() {
   const snap = await getSnapshot();
   const { data } = await getSelectedAccount(snap);
   const underweight = underweightTickers(computeHoldings(data));
+  // Everything you already hold in any form (stock or option) — used to spot
+  // high-conviction board names you DON'T own yet.
+  const book = Array.from(
+    new Set([...data.equities.map((e) => e.symbol.toUpperCase()), ...data.options.map((o) => o.symbol.toUpperCase())]),
+  );
 
   return (
     <main className="px-4">
@@ -43,7 +48,7 @@ export default async function BriefingPage() {
         right={report ? <BriefingRefresh /> : undefined}
       />
       {report ? (
-        <AmReportView report={report} underweight={underweight} />
+        <AmReportView report={report} underweight={underweight} book={book} />
       ) : (
         <Card className="mt-3 px-4 py-4 text-[12px] leading-relaxed text-muted">
           No briefing yet. Run <span className="font-mono">python am_report.py</span> (or add it to auto_push) to

@@ -295,12 +295,27 @@ function Movers({ movers }: { movers: NonNullable<AmReport["movers"]> }) {
   );
 }
 
-export function AmReportView({ report, underweight }: { report: AmReport; underweight?: string[] }) {
+export function AmReportView({
+  report,
+  underweight,
+  book,
+}: {
+  report: AmReport;
+  underweight?: string[];
+  book?: string[];
+}) {
   const [showSteer, setShowSteer] = usePersistentState("am-showsteer", false);
   const sample = report.meta.source === "sample";
-  // Board names that are also underweight (<8.5%) in the book — green-flagged as
-  // room to add. Set is rebuilt here since a Set can't cross the RSC boundary.
+  // A board row is green-flagged when it's an actionable CSP candidate: either
+  // already underweight (<8.5%) in the book — room to add — OR a high-conviction
+  // setup (score > 80) you don't hold at all yet. Sets are rebuilt here since a
+  // Set can't cross the RSC boundary.
   const underweightSet = useMemo(() => new Set(underweight ?? []), [underweight]);
+  const bookSet = useMemo(() => new Set(book ?? []), [book]);
+  const isFlagged = (row: AmBoardRow) => {
+    const sym = row.sym.toUpperCase();
+    return underweightSet.has(sym) || (row.score > 80 && !bookSet.has(sym));
+  };
 
   return (
     <div>
@@ -319,7 +334,7 @@ export function AmReportView({ report, underweight }: { report: AmReport; underw
       <h3 className="mb-2 mt-5 px-1 text-sm font-semibold">CSP Board</h3>
       <p className="mb-2 px-1 text-[10px] text-muted">
         Approved names past the wheel gates · ranked by tier then setup score · tap a row for the ladder ·{" "}
-        <span className="text-emerald-300">green</span> = also underweight (&lt;8.5%) in your book
+        <span className="text-emerald-300">green</span> = underweight (&lt;8.5%) in your book, or a high-conviction setup (score &gt;80) you don&apos;t hold yet
         {report.meta.ladderAsOf && (
           <>
             {" · premiums "}
@@ -356,7 +371,7 @@ export function AmReportView({ report, underweight }: { report: AmReport; underw
             <span className="w-14 shrink-0 text-right">P-Wall</span>
           </div>
           {report.board.map((row) => (
-            <BoardRow key={row.sym} row={row} highlight={underweightSet.has(row.sym.toUpperCase())} />
+            <BoardRow key={row.sym} row={row} highlight={isFlagged(row)} />
           ))}
         </Card>
       )}
