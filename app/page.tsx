@@ -301,8 +301,9 @@ export default async function HomePage() {
 
       {/* Holdings by ticker */}
       <p className="mb-2 mt-3 px-1 text-[11px] text-muted">
-        Capital per ticker (stocks + CSPs + LEAPs + spreads) — <span className="font-medium text-orange-300">over 10%</span> is heavy;{" "}
-        <span className="font-medium text-emerald-300">under 8.5% &amp; on the CSP board</span> is room to add.
+        Capital per ticker (stocks + CSPs + LEAPs + spreads) — <span className="font-medium text-orange-300">over 10%</span> and{" "}
+        <span className="font-medium text-emerald-300">under 5%</span> highlighted; a{" "}
+        <span className="font-medium text-emerald-300">CSP</span> tag marks names under 8.5% that are also on the CSP board.
       </p>
       <HoldingsTable rows={holdings} cspBoard={cspBoard} />
 

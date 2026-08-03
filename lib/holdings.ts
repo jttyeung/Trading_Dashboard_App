@@ -26,8 +26,9 @@ export interface HoldingRow {
 }
 
 // Concentration thresholds, as a share of total account value.
-export const HEAVY_PCT = 0.1; // > 10% — over-concentrated (orange)
-export const UNDERWEIGHT_PCT = 0.085; // < 8.5% — room to add (green when also a live CSP candidate)
+export const HEAVY_PCT = 0.1; // > 10% — over-concentrated (orange row)
+export const LIGHT_PCT = 0.05; // < 5% — lightly held (green row, concentration signal)
+export const UNDERWEIGHT_PCT = 0.085; // < 8.5% — "room to add"; drives the CSP overlap tag + the Brief's green flag
 
 // Per-strategy label + drill-in route for the expandable breakout rows.
 const STRAT_META: Record<string, { label: string; route: string }> = {

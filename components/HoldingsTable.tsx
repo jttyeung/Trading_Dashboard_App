@@ -4,7 +4,7 @@ import { Fragment, useMemo } from "react";
 import Link from "next/link";
 import { Amt } from "@/components/privacy";
 import { fmtMoney } from "@/lib/calc";
-import { HEAVY_PCT, UNDERWEIGHT_PCT, type HoldingRow } from "@/lib/holdings";
+import { HEAVY_PCT, LIGHT_PCT, UNDERWEIGHT_PCT, type HoldingRow } from "@/lib/holdings";
 import { usePersistentSet } from "@/lib/view-state";
 
 export type { HoldingBreakout, HoldingRow } from "@/lib/holdings";
@@ -17,12 +17,11 @@ const ACCENT: Record<string, string> = {
   spread: "bg-amber-400",
 };
 
-// Row coloring: >10% orange (over-concentrated). Green is reserved for the
-// cross-signal — a name that's both underweight (<8.5%) AND on the Brief's CSP
-// board, i.e. room to add via a live wheel candidate. Everything else neutral.
-function tone(pct: number, onBoard: boolean): { row: string; text: string } {
+// Concentration coloring: >10% orange (heavy), <5% green (light), 5–10% neutral.
+// (Independent of the CSP board — that overlap drives only the "CSP" tag below.)
+function tone(pct: number): { row: string; text: string } {
   if (pct > HEAVY_PCT) return { row: "bg-orange-500/10", text: "text-orange-300" };
-  if (pct < UNDERWEIGHT_PCT && onBoard) return { row: "bg-emerald-500/10", text: "text-emerald-300" };
+  if (pct < LIGHT_PCT) return { row: "bg-emerald-500/10", text: "text-emerald-300" };
   return { row: "", text: "text-text" };
 }
 
@@ -46,7 +45,7 @@ export function HoldingsTable({ rows, cspBoard }: { rows: HoldingRow[]; cspBoard
         <tbody className="divide-y divide-border">
           {rows.map((r) => {
             const overlap = r.pct < UNDERWEIGHT_PCT && board.has(r.symbol.toUpperCase());
-            const t = tone(r.pct, board.has(r.symbol.toUpperCase()));
+            const t = tone(r.pct);
             const isOpen = has(r.symbol);
             const expandable = r.breakout.length > 0;
             return (
