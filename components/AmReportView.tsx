@@ -3,7 +3,7 @@
 // Briefing tab — renders data/am_report.json: the regime gate up top, the ranked
 // CSP board (tap a row for the full read), the VRP heat map by group, and a
 // collapsible steer-clear list of names that failed the gates.
-import { Fragment } from "react";
+import { Fragment, useMemo } from "react";
 import { usePersistentState } from "@/lib/view-state";
 import { Card } from "@/components/ui";
 import { DataRefresh } from "@/components/DataRefresh";
@@ -152,17 +152,17 @@ function RegimeBanner({ r }: { r: AmReport["regime"] }) {
   );
 }
 
-function BoardRow({ row }: { row: AmBoardRow }) {
+function BoardRow({ row, highlight = false }: { row: AmBoardRow; highlight?: boolean }) {
   const [open, setOpen] = usePersistentState(`amboard:${row.sym}`, false);
   const g = row.gamma;
   const c = row.chain;
   return (
-    <div className="px-3 py-2.5">
+    <div className={`px-3 py-2.5 ${highlight ? "bg-emerald-500/10" : ""}`}>
       <button onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-2 text-left">
         <span className={`tabular w-7 shrink-0 rounded px-1 py-0.5 text-center text-[11px] font-bold ring-1 ring-inset ${TIER_STYLE[row.tier]}`}>
           {row.tier}
         </span>
-        <span className="w-12 shrink-0 text-sm font-semibold">{row.sym}</span>
+        <span className={`w-12 shrink-0 text-sm font-semibold ${highlight ? "text-emerald-300" : ""}`}>{row.sym}</span>
         <span className="tabular w-7 shrink-0 text-[11px] text-muted">{Math.round(row.score)}</span>
         <span className={`w-8 shrink-0 text-[11px] font-medium ${VRP_STYLE[row.vrp]}`}>{row.vrp}</span>
         <span className="flex-1" />
@@ -295,9 +295,12 @@ function Movers({ movers }: { movers: NonNullable<AmReport["movers"]> }) {
   );
 }
 
-export function AmReportView({ report }: { report: AmReport }) {
+export function AmReportView({ report, underweight }: { report: AmReport; underweight?: string[] }) {
   const [showSteer, setShowSteer] = usePersistentState("am-showsteer", false);
   const sample = report.meta.source === "sample";
+  // Board names that are also underweight (<8.5%) in the book — green-flagged as
+  // room to add. Set is rebuilt here since a Set can't cross the RSC boundary.
+  const underweightSet = useMemo(() => new Set(underweight ?? []), [underweight]);
 
   return (
     <div>
@@ -315,7 +318,8 @@ export function AmReportView({ report }: { report: AmReport }) {
 
       <h3 className="mb-2 mt-5 px-1 text-sm font-semibold">CSP Board</h3>
       <p className="mb-2 px-1 text-[10px] text-muted">
-        Approved names past the wheel gates · ranked by tier then setup score · tap a row for the ladder
+        Approved names past the wheel gates · ranked by tier then setup score · tap a row for the ladder ·{" "}
+        <span className="text-emerald-300">green</span> = also underweight (&lt;8.5%) in your book
         {report.meta.ladderAsOf && (
           <>
             {" · premiums "}
@@ -352,7 +356,7 @@ export function AmReportView({ report }: { report: AmReport }) {
             <span className="w-14 shrink-0 text-right">P-Wall</span>
           </div>
           {report.board.map((row) => (
-            <BoardRow key={row.sym} row={row} />
+            <BoardRow key={row.sym} row={row} highlight={underweightSet.has(row.sym.toUpperCase())} />
           ))}
         </Card>
       )}

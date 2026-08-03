@@ -1,24 +1,13 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, useMemo } from "react";
 import Link from "next/link";
 import { Amt } from "@/components/privacy";
 import { fmtMoney } from "@/lib/calc";
+import { HEAVY_PCT, UNDERWEIGHT_PCT, type HoldingRow } from "@/lib/holdings";
 import { usePersistentSet } from "@/lib/view-state";
 
-export interface HoldingBreakout {
-  key: string;
-  label: string;
-  value: number;
-  route: string;
-}
-
-export interface HoldingRow {
-  symbol: string;
-  value: number;
-  pct: number; // 0..1, share of the stock sleeve
-  breakout: HoldingBreakout[];
-}
+export type { HoldingBreakout, HoldingRow } from "@/lib/holdings";
 
 // Strategy accent dots — match the colors used elsewhere (P&L, options sides).
 const ACCENT: Record<string, string> = {
@@ -28,15 +17,18 @@ const ACCENT: Record<string, string> = {
   spread: "bg-amber-400",
 };
 
-// Concentration coloring: >10% orange (heavy), <5% green (light), 5–10% neutral.
-function tone(pct: number): { row: string; text: string } {
-  if (pct > 0.1) return { row: "bg-orange-500/10", text: "text-orange-300" };
-  if (pct < 0.05) return { row: "bg-emerald-500/10", text: "text-emerald-300" };
+// Row coloring: >10% orange (over-concentrated). Green is reserved for the
+// cross-signal — a name that's both underweight (<8.5%) AND on the Brief's CSP
+// board, i.e. room to add via a live wheel candidate. Everything else neutral.
+function tone(pct: number, onBoard: boolean): { row: string; text: string } {
+  if (pct > HEAVY_PCT) return { row: "bg-orange-500/10", text: "text-orange-300" };
+  if (pct < UNDERWEIGHT_PCT && onBoard) return { row: "bg-emerald-500/10", text: "text-emerald-300" };
   return { row: "", text: "text-text" };
 }
 
-export function HoldingsTable({ rows }: { rows: HoldingRow[] }) {
+export function HoldingsTable({ rows, cspBoard }: { rows: HoldingRow[]; cspBoard?: string[] }) {
   const { has, toggle } = usePersistentSet("holdings");
+  const board = useMemo(() => new Set(cspBoard ?? []), [cspBoard]);
 
   if (rows.length === 0) {
     return <div className="rounded-xl border border-border px-4 py-5 text-center text-[12px] text-muted">No stock holdings.</div>;
@@ -53,7 +45,8 @@ export function HoldingsTable({ rows }: { rows: HoldingRow[] }) {
         </thead>
         <tbody className="divide-y divide-border">
           {rows.map((r) => {
-            const t = tone(r.pct);
+            const overlap = r.pct < UNDERWEIGHT_PCT && board.has(r.symbol.toUpperCase());
+            const t = tone(r.pct, board.has(r.symbol.toUpperCase()));
             const isOpen = has(r.symbol);
             const expandable = r.breakout.length > 0;
             return (
@@ -66,6 +59,11 @@ export function HoldingsTable({ rows }: { rows: HoldingRow[] }) {
                     <span className="inline-flex items-center gap-1.5">
                       {expandable && <span className="text-[9px] text-muted">{isOpen ? "▾" : "▸"}</span>}
                       {r.symbol}
+                      {overlap && (
+                        <span className="rounded bg-emerald-500/20 px-1 py-0.5 text-[8px] font-bold uppercase tracking-wide text-emerald-300">
+                          CSP
+                        </span>
+                      )}
                     </span>
                   </td>
                   <td className="tabular px-3 py-2 text-right">

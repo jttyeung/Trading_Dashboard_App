@@ -1,6 +1,9 @@
 import { PageHeader, Card } from "@/components/ui";
 import { AmReportView } from "@/components/AmReportView";
 import { getAmReport } from "@/lib/am-report";
+import { getSnapshot } from "@/lib/snapshot";
+import { getSelectedAccount } from "@/lib/account";
+import { computeHoldings, underweightTickers } from "@/lib/holdings";
 import { getRefreshStatus } from "@/lib/refresh-status";
 import { DataRefresh } from "@/components/DataRefresh";
 import { BriefingRefresh } from "@/components/BriefingRefresh";
@@ -15,8 +18,13 @@ function asOfLabel(iso: string): string {
   }
 }
 
-export default function BriefingPage() {
+export default async function BriefingPage() {
   const report = getAmReport();
+  // Names sitting under 8.5% of the selected account — the Brief green-flags any
+  // CSP-board row that's also underweight (the same overlap the Portfolio page marks).
+  const snap = await getSnapshot();
+  const { data } = await getSelectedAccount(snap);
+  const underweight = underweightTickers(computeHoldings(data));
 
   return (
     <main className="px-4">
@@ -35,7 +43,7 @@ export default function BriefingPage() {
         right={report ? <BriefingRefresh /> : undefined}
       />
       {report ? (
-        <AmReportView report={report} />
+        <AmReportView report={report} underweight={underweight} />
       ) : (
         <Card className="mt-3 px-4 py-4 text-[12px] leading-relaxed text-muted">
           No briefing yet. Run <span className="font-mono">python am_report.py</span> (or add it to auto_push) to
