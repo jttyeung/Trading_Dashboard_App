@@ -11,7 +11,8 @@ import { Amt } from "@/components/privacy";
 import { ClosedOptions } from "@/components/ClosedOptions";
 import { OpenGroupCard } from "@/components/OpenGroupCard";
 import { CspCashPlan, CASH_BUCKETS, cashBucketIndex } from "@/components/CspCashPlan";
-import { cspCollateral, cspInsight, cspRemainingAnnualized, daysToExpiry, fmtMoney, fmtPct, isCashSettledIndex, optionBasis, optionMarketValue, optionPnl, optionPnlPct } from "@/lib/calc";
+import { cspCollateral, cspInsight, daysToExpiry, fmtMoney, fmtPct, isCashSettledIndex, optionBasis, optionMarketValue, optionPnl } from "@/lib/calc";
+import { CSP_DEFAULT_DIR, LEAP_DEFAULT_DIR, nextSort, sortCsps, sortLeaps, type Sort } from "@/lib/option-sort";
 import type { ClosedCSP, ClosedLeap, OptionPosition } from "@/lib/types";
 import { SimulateControls } from "@/components/SimulateControls";
 import { useIvSkew } from "@/lib/simConfig";
@@ -41,50 +42,6 @@ const CSP_FILTERS: { key: CspFilter; label: string; active: string; idle: string
 
 export type CspSortKey = "ticker" | "bb" | "dte" | "coll" | "plpct" | "pldollar" | "tostrike" | "yr";
 export type LeapSortKey = "ticker" | "dte" | "value" | "plpct" | "pldollar" | "delta";
-type SortDir = "asc" | "desc";
-type Sort = { key: string; dir: SortDir };
-const DEFAULT_DIR: Record<string, SortDir> = {
-  ticker: "asc", dte: "asc", coll: "desc", plpct: "desc", pldollar: "desc", tostrike: "asc", yr: "desc",
-  bb: "asc",
-  value: "desc", delta: "desc",
-};
-function cspSortVal(o: OptionPosition, key: string): number | string {
-  switch (key) {
-    case "ticker": return o.symbol;
-    case "bb": return o.bbSigma ?? Infinity;
-    case "dte": return daysToExpiry(o.expiration);
-    case "coll": return cspCollateral(o);
-    case "plpct": return optionPnlPct(o);
-    case "pldollar": return optionPnl(o);
-    case "tostrike": return o.underlyingPrice && o.underlyingPrice > 0 ? (o.underlyingPrice - o.strike) / o.underlyingPrice : Infinity;
-    case "yr": return cspRemainingAnnualized(o);
-    default: return 0;
-  }
-}
-function leapSortVal(o: OptionPosition, key: string): number | string {
-  switch (key) {
-    case "ticker": return o.symbol;
-    case "dte": return daysToExpiry(o.expiration);
-    case "value": return optionMarketValue(o);
-    case "plpct": return optionPnlPct(o);
-    case "pldollar": return optionPnl(o);
-    case "delta": return o.delta;
-    default: return 0;
-  }
-}
-function sortBy(items: OptionPosition[], sort: Sort, valFn: (o: OptionPosition, key: string) => number | string): OptionPosition[] {
-  return [...items].sort((a, b) => {
-    const va = valFn(a, sort.key);
-    const vb = valFn(b, sort.key);
-    const aMiss = typeof va === "number" && !isFinite(va);
-    const bMiss = typeof vb === "number" && !isFinite(vb);
-    if (aMiss || bMiss) return aMiss === bMiss ? 0 : aMiss ? 1 : -1; // missing values always last
-    const r = typeof va === "string" ? va.localeCompare(vb as string) : (va as number) - (vb as number);
-    return sort.dir === "asc" ? r : -r;
-  });
-}
-const sortCsps = (items: OptionPosition[], sort: Sort) => sortBy(items, sort, cspSortVal);
-const sortLeaps = (items: OptionPosition[], sort: Sort) => sortBy(items, sort, leapSortVal);
 
 export function OptionsTypeView({
   type,
@@ -112,7 +69,7 @@ export function OptionsTypeView({
   const [cashBucket, setCashBucket] = useState<number | null>(null);
   const [sort, setSort] = usePersistentState<Sort>("options-sort", type === "csp" ? { key: "yr", dir: "asc" } : { key: "value", dir: "desc" });
   const onSort = (key: string) => {
-    setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: DEFAULT_DIR[key] ?? "asc" }));
+    setSort((s) => nextSort(s, key, type === "csp" ? CSP_DEFAULT_DIR : LEAP_DEFAULT_DIR));
   };
 
   // After-hours Simulate: re-price every open leg from its underlying's current price.

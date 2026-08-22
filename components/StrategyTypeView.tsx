@@ -13,6 +13,7 @@ import { OpenGroupCard } from "@/components/OpenGroupCard";
 import { SpreadGroupCard } from "@/components/SpreadGroupCard";
 import { ClosedStrategy } from "@/components/ClosedStrategy";
 import { fmtMoney, fmtPct, optionBasis, optionPnl } from "@/lib/calc";
+import { CSP_DEFAULT_DIR, nextSort, sortCsps, type Sort, type SortDir } from "@/lib/option-sort";
 import { buildSpreads, type Spread } from "@/lib/spread";
 import type { ClosedCoveredCall, ClosedSpread, OptionPosition } from "@/lib/types";
 import { SimulateControls } from "@/components/SimulateControls";
@@ -21,8 +22,6 @@ import { simulatePosition, hasSimulatableMove } from "@/lib/simulate";
 import { SimValue } from "@/components/SimValue";
 
 type Status = "open" | "closed";
-type SortDir = "asc" | "desc";
-type Sort = { key: string; dir: SortDir };
 
 const SPREAD_DEFAULT_DIR: Record<string, SortDir> = {
   ticker: "asc", dte: "asc", risk: "desc", plpct: "desc", pldollar: "desc", tostrike: "asc", yr: "desc",
@@ -74,8 +73,10 @@ export function StrategyTypeView({
 }) {
   const [status, setStatus] = usePersistentState<Status>("strategy-status", initialStatus, statusFromUrl);
   const [sort, setSort] = usePersistentState<Sort>("strategy-sort", { key: "yr", dir: "asc" });
+  // Covered calls render the CSP column set, so they sort by the CSP keys;
+  // spreads sort per-vertical on their own keys (risk instead of collateral).
   const onSort = (key: string) =>
-    setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: SPREAD_DEFAULT_DIR[key] ?? "asc" }));
+    setSort((s) => nextSort(s, key, type === "covered" ? CSP_DEFAULT_DIR : SPREAD_DEFAULT_DIR));
 
   // After-hours Simulate: re-price open legs from the live underlying. Spreads rebuild
   // from these legs (buildSpreads below), so the whole view follows.
@@ -151,7 +152,17 @@ export function StrategyTypeView({
                 Projected from the current underlying (after-hours) via Δ/Γ — estimates, not Schwab close values.
               </p>
             )}
-            <OpenGroupCard title="Covered Calls" note="short calls against stock" items={open} variant="csp" action={simToggle} realById={rawById} sim={sim && canSim} />
+            <OpenGroupCard
+              title="Covered Calls"
+              note="short calls against stock · tap a column header to sort"
+              items={sortCsps(open, sort)}
+              variant="csp"
+              action={simToggle}
+              sort={sort}
+              onSort={onSort}
+              realById={rawById}
+              sim={sim && canSim}
+            />
           </>
         ) : (
           <>

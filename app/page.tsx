@@ -16,6 +16,7 @@ import { computeHoldings } from "@/lib/holdings";
 import { dailyThetaBreakdown } from "@/lib/theta";
 import { getSelectedAccount } from "@/lib/account";
 import { getVixSnapshot } from "@/lib/vix-data";
+import { getBtcQuote, fmtBtc } from "@/lib/btc-data";
 import { isRegularSession } from "@/lib/market-hours";
 import { getRefreshStatus } from "@/lib/refresh-status";
 import { DataRefresh } from "@/components/DataRefresh";
@@ -52,6 +53,9 @@ export default async function HomePage() {
   const example = meta.source === "example";
   const vixSnap = getVixSnapshot(example);
   const vix = vixSnap ? assessVix(vixSnap) : null;
+  // Latest BTC spot for the header stat stack. Null (offline / slow / example off)
+  // just drops the line — see lib/btc-data.ts.
+  const btc = await getBtcQuote(example);
 
   // Allocation by capital deployed — break "Options" into its strategies. LEAP &
   // hedge by market value; CSPs by collateral (the cash securing them), carved out
@@ -126,17 +130,43 @@ export default async function HomePage() {
         }
         right={
           <div className="flex flex-col items-center gap-2">
-            {vix?.s5fi != null && (
-              <span className="tabular text-[11px] leading-none text-muted">
-                S5FI:{" "}
-                <span
-                  className={`font-semibold ${
-                    vix.s5fi >= 80 ? "text-red-400" : vix.s5fi >= 75 ? "text-orange-400" : "text-text"
-                  }`}
-                >
-                  {vix.s5fi.toFixed(1)}
-                </span>
-              </span>
+            {/* Market stat stack — BTC spot sits directly above S5FI. Skipped
+                entirely when neither number is available, so the icon row
+                doesn't inherit the stack's gap. */}
+            {(btc || vix?.s5fi != null) && (
+              <div className="flex flex-col items-center gap-1">
+                {btc && (
+                  <span
+                    className="tabular text-[11px] leading-none text-muted"
+                    title={`Bitcoin ${fmtBtc(btc.price)}${
+                      btc.changePct != null
+                        ? ` · ${btc.changePct >= 0 ? "+" : "−"}${(Math.abs(btc.changePct) * 100).toFixed(2)}% today`
+                        : ""
+                    } · ${btc.source}`}
+                  >
+                    BTC:{" "}
+                    <span
+                      className={`font-semibold ${
+                        btc.changePct == null ? "text-text" : btc.changePct >= 0 ? "text-emerald-400" : "text-rose-400"
+                      }`}
+                    >
+                      {fmtBtc(btc.price)}
+                    </span>
+                  </span>
+                )}
+                {vix?.s5fi != null && (
+                  <span className="tabular text-[11px] leading-none text-muted">
+                    S5FI:{" "}
+                    <span
+                      className={`font-semibold ${
+                        vix.s5fi >= 80 ? "text-red-400" : vix.s5fi >= 75 ? "text-orange-400" : "text-text"
+                      }`}
+                    >
+                      {vix.s5fi.toFixed(1)}
+                    </span>
+                  </span>
+                )}
+              </div>
             )}
             <div className="flex items-center gap-2">
               <Link
