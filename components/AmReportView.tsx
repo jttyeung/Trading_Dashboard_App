@@ -162,7 +162,18 @@ function BoardRow({ row, highlight = false }: { row: AmBoardRow; highlight?: boo
         <span className={`tabular w-7 shrink-0 rounded px-1 py-0.5 text-center text-[11px] font-bold ring-1 ring-inset ${TIER_STYLE[row.tier]}`}>
           {row.tier}
         </span>
-        <span className={`w-12 shrink-0 text-sm font-semibold ${highlight ? "text-emerald-300" : ""}`}>{row.sym}</span>
+        {/* Earnings has no column of its own: a put that spans the report tints the
+            ticker amber (with a superscript ER), and the expanded row carries the date. */}
+        <span
+          className={`w-12 shrink-0 text-sm font-semibold ${
+            row.erSpansPut ? "text-amber-300" : highlight ? "text-emerald-300" : ""
+          }`}
+          title={row.erSpansPut ? `Put spans earnings${row.erDays != null ? ` · ${row.erDays}d` : ""}` : undefined}
+        >
+          {row.sym}
+          {row.erSpansPut && <sup className="ml-0.5 text-[7px] font-bold uppercase text-amber-200">ER</sup>}
+        </span>
+        <span className="tabular w-14 shrink-0 text-[11px] text-muted">{row.last != null ? `$${row.last.toFixed(2)}` : "—"}</span>
         <span className="tabular w-7 shrink-0 text-[11px] text-muted">{Math.round(row.score)}</span>
         <span className={`w-8 shrink-0 text-[11px] font-medium ${VRP_STYLE[row.vrp]}`}>{row.vrp}</span>
         <span className="flex-1" />
@@ -363,6 +374,7 @@ export function AmReportView({
           <div className="flex items-center gap-2 px-3 py-1.5 text-[9px] uppercase tracking-wide text-muted">
             <span className="w-7 shrink-0 text-center">Tier</span>
             <span className="w-12 shrink-0">Tkr</span>
+            <span className="w-14 shrink-0">Price</span>
             <span className="w-7 shrink-0">Scr</span>
             <span className="w-8 shrink-0">VRP</span>
             <span className="flex-1" />
