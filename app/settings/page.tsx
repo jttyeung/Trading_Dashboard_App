@@ -1,6 +1,7 @@
 import { BackLink, PageHeader } from "@/components/ui";
 import { SettingsForm } from "@/components/SettingsForm";
 import { BRIDGE_ENV_PATH } from "@/lib/bridge-dir";
+import { bridges } from "@/lib/bridges";
 import { readEnvFile } from "@/lib/env-file";
 import { getSimSkew } from "@/lib/sim-skew";
 
@@ -13,6 +14,7 @@ function secToMin(raw: string | undefined, fallback: number): number {
 
 export default async function SettingsPage() {
   const env = readEnvFile(BRIDGE_ENV_PATH);
+  const bridgeList = bridges().map((b) => ({ id: b.id, label: b.label }));
 
   return (
     <main className="px-4">
@@ -28,6 +30,7 @@ export default async function SettingsPage() {
             amLadderMinutes: secToMin(env.AM_LADDER_PUSH_INTERVAL, 5),
           }}
           initialSkew={getSimSkew()}
+          bridges={bridgeList}
         />
       </div>
     </main>

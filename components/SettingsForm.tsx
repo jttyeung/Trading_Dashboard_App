@@ -192,15 +192,25 @@ function SkewSection({ initialSkew }: { initialSkew: number }) {
 export function SettingsForm({
   initialIntervals,
   initialSkew,
+  bridges = [{ id: "primary", label: "Schwab" }],
 }: {
   initialIntervals: Intervals;
   initialSkew: number;
+  bridges?: { id: string; label: string }[];
 }) {
+  const multi = bridges.length > 1;
   return (
     <div className="space-y-3">
-      <MenuItem title="Schwab connection" subtitle="Set up or reconnect your account" defaultOpen>
-        <SchwabConnect />
-      </MenuItem>
+      {bridges.map((b, i) => (
+        <MenuItem
+          key={b.id}
+          title={multi ? `${b.label} — Schwab connection` : "Schwab connection"}
+          subtitle={multi ? "Set up or reconnect this login" : "Set up or reconnect your account"}
+          defaultOpen={i === 0}
+        >
+          <SchwabConnect bridge={b.id} />
+        </MenuItem>
+      ))}
       <MenuItem title="Refresh intervals" subtitle="How often each data source updates">
         <IntervalsSection initialIntervals={initialIntervals} />
       </MenuItem>

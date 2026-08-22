@@ -1,11 +1,13 @@
-// Deposit the pasted post-login redirect URL for the bridge to exchange for a
-// token. Write-only: the URL (which carries a one-time auth code) is written to
-// reauth_inbox/redirect_url and consumed by the bridge. Never logged.
+// Deposit the pasted post-login redirect URL for a bridge to exchange for a token.
+// Write-only: the URL (which carries a one-time auth code) is written to that
+// bridge's reauth_inbox/redirect_url and consumed by the bridge. Never logged.
 import { submitRedirectUrl } from "@/lib/bridge-files";
+import { bridgeById } from "@/lib/bridges";
 
 export const dynamic = "force-dynamic";
 
 interface SubmitBody {
+  bridge?: string;
   url?: string;
 }
 
@@ -17,6 +19,9 @@ export async function POST(req: Request) {
     return Response.json({ ok: false, error: "Invalid request body." }, { status: 400 });
   }
 
+  const bridge = bridgeById(body.bridge);
+  if (!bridge) return Response.json({ ok: false, error: "unknown bridge" }, { status: 404 });
+
   const url = (body.url || "").trim();
   if (!url || !url.includes("code=")) {
     return Response.json(
@@ -26,7 +31,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    submitRedirectUrl(url);
+    submitRedirectUrl(bridge, url);
   } catch {
     return Response.json({ ok: false, error: "Could not submit the redirect URL." }, { status: 500 });
   }

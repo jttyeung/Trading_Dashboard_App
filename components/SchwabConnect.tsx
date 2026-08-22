@@ -40,7 +40,7 @@ async function postJson(url: string, body?: unknown) {
   return data;
 }
 
-export function SchwabConnect() {
+export function SchwabConnect({ bridge = "primary" }: { bridge?: string }) {
   const [status, setStatus] = useState<Status | null>(null);
   const [appKey, setAppKey] = useState("");
   const [appSecret, setAppSecret] = useState("");
@@ -52,12 +52,12 @@ export function SchwabConnect() {
 
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch("/api/schwab/status", { cache: "no-store" });
+      const res = await fetch(`/api/schwab/status?bridge=${encodeURIComponent(bridge)}`, { cache: "no-store" });
       if (res.ok) setStatus((await res.json()) as Status);
     } catch {
       // status file may not exist yet on a brand-new install — leave as loading
     }
-  }, []);
+  }, [bridge]);
 
   useEffect(() => {
     refresh();
@@ -70,9 +70,9 @@ export function SchwabConnect() {
     setBusy("setup");
     setMsg(null);
     try {
-      await postJson("/api/schwab/setup", { appKey, appSecret, callbackUrl });
+      await postJson("/api/schwab/setup", { bridge, appKey, appSecret, callbackUrl });
       setAppSecret(""); // don't keep the secret around after it's been deposited
-      await postJson("/api/schwab/reauth-start");
+      await postJson("/api/schwab/reauth-start", { bridge });
       setMsg({ kind: "ok", text: "Saved. Generating your Schwab login link…" });
       await refresh();
     } catch (err) {
@@ -86,7 +86,7 @@ export function SchwabConnect() {
     setBusy("start");
     setMsg(null);
     try {
-      await postJson("/api/schwab/reauth-start");
+      await postJson("/api/schwab/reauth-start", { bridge });
       setMsg({ kind: "ok", text: "Generating your Schwab login link…" });
       await refresh();
     } catch (err) {
@@ -101,7 +101,7 @@ export function SchwabConnect() {
     setBusy("submit");
     setMsg(null);
     try {
-      await postJson("/api/schwab/reauth-submit", { url: redirectUrl });
+      await postJson("/api/schwab/reauth-submit", { bridge, url: redirectUrl });
       setRedirectUrl("");
       setMsg({ kind: "ok", text: "Finishing sign-in… data resumes within a minute." });
       await refresh();

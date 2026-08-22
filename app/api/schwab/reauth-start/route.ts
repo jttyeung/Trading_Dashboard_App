@@ -1,14 +1,23 @@
-// Ask the bridge to generate a fresh Schwab login URL. Write-only: this just
-// drops an empty marker into reauth_inbox/. The bridge (auto_push loop) sees it,
+// Ask a bridge to generate a fresh Schwab login URL. Write-only: drops an empty
+// marker into that bridge's reauth_inbox/. The bridge (auto_push loop) sees it,
 // generates the URL, and publishes it back through the app's own data/ folder
-// (read via /api/schwab/status). The app never touches the App Key here.
+// (read via /api/schwab/status?bridge=<id>). The app never touches the App Key here.
 import { requestReauthStart } from "@/lib/bridge-files";
+import { bridgeById } from "@/lib/bridges";
 
 export const dynamic = "force-dynamic";
 
-export async function POST() {
+export async function POST(req: Request) {
+  let id: string | null = null;
   try {
-    requestReauthStart();
+    id = ((await req.json()) as { bridge?: string })?.bridge ?? null;
+  } catch {
+    id = null; // no body → primary bridge
+  }
+  const bridge = bridgeById(id);
+  if (!bridge) return Response.json({ ok: false, error: "unknown bridge" }, { status: 404 });
+  try {
+    requestReauthStart(bridge);
   } catch {
     return Response.json({ ok: false, error: "Could not start re-authentication." }, { status: 500 });
   }

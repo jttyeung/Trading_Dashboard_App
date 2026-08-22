@@ -1,12 +1,14 @@
-// First-run setup: deposit the Schwab App Key + Secret into the bridge's
+// First-run setup: deposit the Schwab App Key + Secret into a bridge's
 // credentials.env (WHOLESALE write — never read back). type=password field on
 // the client; nothing is logged or echoed. This is the app's only write of the
 // secrets, and it never reads them again.
 import { writeCredentials } from "@/lib/bridge-files";
+import { bridgeById } from "@/lib/bridges";
 
 export const dynamic = "force-dynamic";
 
 interface SetupBody {
+  bridge?: string;
   appKey?: string;
   appSecret?: string;
   callbackUrl?: string;
@@ -19,6 +21,9 @@ export async function POST(req: Request) {
   } catch {
     return Response.json({ ok: false, error: "Invalid request body." }, { status: 400 });
   }
+
+  const bridge = bridgeById(body.bridge);
+  if (!bridge) return Response.json({ ok: false, error: "unknown bridge" }, { status: 404 });
 
   const appKey = (body.appKey || "").trim();
   const appSecret = body.appSecret || "";
@@ -38,7 +43,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    writeCredentials(appKey, appSecret, callbackUrl || undefined);
+    writeCredentials(bridge, appKey, appSecret, callbackUrl || undefined);
   } catch {
     // Deliberately generic — never surface a filesystem path that could leak
     // where secrets live.

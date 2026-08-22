@@ -11,20 +11,26 @@
 import fs from "node:fs";
 import path from "node:path";
 import { BRIDGE_DIR } from "@/lib/bridge-dir";
+import type { BridgeInfo } from "@/lib/bridges";
 import { writeEnvUpdates } from "@/lib/env-file";
 
-const CREDENTIALS_PATH = path.join(BRIDGE_DIR, "credentials.env");
-const INBOX_DIR = path.join(BRIDGE_DIR, "reauth_inbox");
-const START_MARKER = path.join(INBOX_DIR, "start");
-const REDIRECT_FILE = path.join(INBOX_DIR, "redirect_url");
-const BRIDGE_ENV_PATH = path.join(BRIDGE_DIR, ".env");
-
-// The bridge writes its status/data here; it's the app's own folder, so reading
-// it is not a "read of the bridge."
-const STATUS_PATH = path.join(process.cwd(), "data", "schwab-auth.json");
-const APP_DATA_DIR = path.join(process.cwd(), "data");
-
 const DEFAULT_CALLBACK = "https://127.0.0.1:8182";
+
+// Per-bridge reauth file locations. The app deposits into the bridge's OWN folder
+// (credentials.env, .env, reauth_inbox/) and reads the sanitized status the bridge
+// publishes into the app's data dir — base data/ for the primary login, data/<sub>/
+// for an extra login. A bridge's APP_DATA_DIR is exactly the folder holding its status.
+function reauthPaths(b: BridgeInfo) {
+  const inbox = path.join(b.dir, "reauth_inbox");
+  return {
+    credentials: path.join(b.dir, "credentials.env"),
+    envFile: path.join(b.dir, ".env"),
+    inbox,
+    start: path.join(inbox, "start"),
+    redirect: path.join(inbox, "redirect_url"),
+    appDataDir: path.dirname(b.statusPath),
+  };
+}
 
 function lockDown(file: string): void {
   try {
@@ -40,7 +46,8 @@ function lockDown(file: string): void {
  * path to the secret and no stale value can linger on rotation. Because the app
  * owns 100% of this file, wholesale write is safe.
  */
-export function writeCredentials(appKey: string, appSecret: string, callbackUrl?: string): void {
+export function writeCredentials(bridge: BridgeInfo, appKey: string, appSecret: string, callbackUrl?: string): void {
+  const p = reauthPaths(bridge);
   const cb = (callbackUrl || "").trim() || DEFAULT_CALLBACK;
   const body =
     "# Written by the Trading Dashboard setup wizard. Do not edit by hand.\n" +
@@ -48,30 +55,32 @@ export function writeCredentials(appKey: string, appSecret: string, callbackUrl?
     `SCHWAB_API_KEY=${appKey.trim()}\n` +
     `SCHWAB_APP_SECRET=${appSecret}\n` +
     `SCHWAB_CALLBACK_URL=${cb}\n`;
-  fs.mkdirSync(BRIDGE_DIR, { recursive: true });
-  fs.writeFileSync(CREDENTIALS_PATH, body, { mode: 0o600 });
-  lockDown(CREDENTIALS_PATH);
+  fs.mkdirSync(bridge.dir, { recursive: true });
+  fs.writeFileSync(p.credentials, body, { mode: 0o600 });
+  lockDown(p.credentials);
 
-  // Non-secret config the bridge needs so it writes data/status into THIS app's
+  // Non-secret config the bridge needs so it writes data/status into THIS bridge's
   // data folder. This touches .env (config, not secrets) via the existing merge
   // helper — credentials themselves never go here.
-  writeEnvUpdates(BRIDGE_ENV_PATH, {
-    APP_DATA_DIR,
+  writeEnvUpdates(p.envFile, {
+    APP_DATA_DIR: p.appDataDir,
     SCHWAB_CALLBACK_URL: cb,
   });
 }
 
-/** Drop the "please generate a login URL" marker. Write-only. */
-export function requestReauthStart(): void {
-  fs.mkdirSync(INBOX_DIR, { recursive: true });
-  fs.writeFileSync(START_MARKER, "");
+/** Drop the "please generate a login URL" marker for this bridge. Write-only. */
+export function requestReauthStart(bridge: BridgeInfo): void {
+  const p = reauthPaths(bridge);
+  fs.mkdirSync(p.inbox, { recursive: true });
+  fs.writeFileSync(p.start, "");
 }
 
-/** Deposit the pasted redirect URL for the bridge to exchange. Write-only. */
-export function submitRedirectUrl(url: string): void {
-  fs.mkdirSync(INBOX_DIR, { recursive: true });
-  fs.writeFileSync(REDIRECT_FILE, url.trim() + "\n", { mode: 0o600 });
-  lockDown(REDIRECT_FILE);
+/** Deposit the pasted redirect URL for this bridge to exchange. Write-only. */
+export function submitRedirectUrl(bridge: BridgeInfo, url: string): void {
+  const p = reauthPaths(bridge);
+  fs.mkdirSync(p.inbox, { recursive: true });
+  fs.writeFileSync(p.redirect, url.trim() + "\n", { mode: 0o600 });
+  lockDown(p.redirect);
 }
 
 export interface SchwabAuthStatus {
@@ -87,7 +96,7 @@ export interface SchwabAuthStatus {
  * Read the bridge-authored status from the app's OWN data/ folder. Never reads
  * the bridge's secret files. Missing file => treat as un-configured.
  */
-export function readAuthStatus(): SchwabAuthStatus {
+export function readAuthStatus(bridge: BridgeInfo): SchwabAuthStatus {
   const fallback: SchwabAuthStatus = {
     configured: false,
     hasToken: false,
@@ -97,7 +106,7 @@ export function readAuthStatus(): SchwabAuthStatus {
     updatedAt: null,
   };
   try {
-    const raw = fs.readFileSync(STATUS_PATH, "utf8");
+    const raw = fs.readFileSync(bridge.statusPath, "utf8");
     const parsed = JSON.parse(raw) as Partial<SchwabAuthStatus>;
     return { ...fallback, ...parsed };
   } catch {
