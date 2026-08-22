@@ -56,6 +56,11 @@ const S5_BRIEF_LABEL: Record<S5fiZone, string> = {
 };
 const S5_BRIEF_ARROW: Record<S5fiTrend, string> = { strength: "↑", sideways: "→", weakness: "↓" };
 
+// Shared column template for the CSP board so the header and every row line up.
+// Fractional units (not fixed widths) so the row always fits its container — no
+// horizontal scroll on a phone, and no numbers spilling past the card border.
+const BOARD_COLS = "grid-cols-[1.6rem_1fr_0.85fr_0.5fr_0.7fr_0.8fr_0.75fr_0.8fr]";
+
 // Slim 0–100 breadth bar (5 zones, white marker) for the regime card — a compact
 // echo of the VIX-tab S5FI scale. Segment widths match the 20/37/58/80 cuts.
 function BreadthBar({ value }: { value: number }) {
@@ -158,26 +163,25 @@ function BoardRow({ row, highlight = false }: { row: AmBoardRow; highlight?: boo
   const c = row.chain;
   return (
     <div className={`px-3 py-2.5 ${highlight ? "bg-emerald-500/10" : ""}`}>
-      <button onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-1.5 text-left">
-        <span className={`tabular w-7 shrink-0 rounded px-1 py-0.5 text-center text-[11px] font-bold ring-1 ring-inset ${TIER_STYLE[row.tier]}`}>
+      <button onClick={() => setOpen((o) => !o)} className={`grid ${BOARD_COLS} w-full items-center gap-1.5 text-left`}>
+        <span className={`tabular rounded px-1 py-0.5 text-center text-[11px] font-bold ring-1 ring-inset ${TIER_STYLE[row.tier]}`}>
           {row.tier}
         </span>
         {/* Earnings has no column of its own: a put that spans the report gets a small
             ER tag on the ticker, and the expanded row carries the date. */}
         <span
-          className={`w-12 shrink-0 text-sm font-semibold ${highlight ? "text-emerald-300" : ""}`}
+          className={`truncate text-sm font-semibold ${highlight ? "text-emerald-300" : ""}`}
           title={row.erSpansPut ? `Put spans earnings${row.erDays != null ? ` · ${row.erDays}d` : ""}` : undefined}
         >
           {row.sym}
           {row.erSpansPut && <sup className="ml-0.5 text-[7px] font-bold uppercase text-muted">ER</sup>}
         </span>
-        <span className="tabular w-12 shrink-0 text-[11px] text-muted">{row.last != null ? `$${row.last.toFixed(0)}` : "—"}</span>
-        <span className="tabular w-7 shrink-0 text-[11px] text-muted">{Math.round(row.score)}</span>
-        <span className={`w-8 shrink-0 text-[11px] font-medium ${VRP_STYLE[row.vrp]}`}>{row.vrp}</span>
-        <span className="flex-1" />
-        <span className="tabular w-10 shrink-0 text-right text-[11px] text-muted">{c ? `${c.premPct.toFixed(1)}%` : "—"}</span>
-        <span className={`tabular w-11 shrink-0 text-right text-[11px] ${annClass(c?.annPct)}`}>{c?.annPct != null ? `${c.annPct.toFixed(0)}%` : "—"}</span>
-        <span className="tabular w-12 shrink-0 text-right text-[11px] text-muted">{g?.putWall != null ? `$${g.putWall}` : "—"}</span>
+        <span className="tabular text-[11px] text-muted">{row.last != null ? `$${row.last.toFixed(0)}` : "—"}</span>
+        <span className="tabular text-[11px] text-muted">{Math.round(row.score)}</span>
+        <span className={`truncate text-[11px] font-medium ${VRP_STYLE[row.vrp]}`}>{row.vrp}</span>
+        <span className="tabular text-right text-[11px] text-muted">{c ? `${c.premPct.toFixed(1)}%` : "—"}</span>
+        <span className={`tabular text-right text-[11px] ${annClass(c?.annPct)}`}>{c?.annPct != null ? `${c.annPct.toFixed(0)}%` : "—"}</span>
+        <span className="tabular text-right text-[11px] text-muted">{g?.putWall != null ? `$${g.putWall}` : "—"}</span>
       </button>
       {open && (
         <div className="mt-2 rounded-lg bg-surface-2/50 px-3 py-2">
@@ -369,16 +373,15 @@ export function AmReportView({
         <Card className="px-4 py-5 text-center text-sm text-muted">No names cleared the gates today.</Card>
       ) : (
         <Card className="divide-y divide-border p-0">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 text-[9px] uppercase tracking-wide text-muted">
-            <span className="w-7 shrink-0 text-center">Tier</span>
-            <span className="w-12 shrink-0">Tkr</span>
-            <span className="w-12 shrink-0">Price</span>
-            <span className="w-7 shrink-0">Scr</span>
-            <span className="w-8 shrink-0">VRP</span>
-            <span className="flex-1" />
-            <span className="w-10 shrink-0 text-right">30D%</span>
-            <span className="w-11 shrink-0 text-right">Ann%</span>
-            <span className="w-12 shrink-0 text-right">P-Wall</span>
+          <div className={`grid ${BOARD_COLS} items-center gap-1.5 px-3 py-1.5 text-[9px] uppercase tracking-wide text-muted`}>
+            <span className="text-center">Tier</span>
+            <span>Tkr</span>
+            <span>Price</span>
+            <span>Scr</span>
+            <span>VRP</span>
+            <span className="text-right">30D%</span>
+            <span className="text-right">Ann%</span>
+            <span className="text-right">P-Wall</span>
           </div>
           {report.board.map((row) => (
             <BoardRow key={row.sym} row={row} highlight={isFlagged(row)} />
