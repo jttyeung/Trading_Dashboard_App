@@ -5,22 +5,47 @@
 // The real snapshot is generated on the host and never ships in the repo.
 import fs from "node:fs";
 import path from "node:path";
-import type { Snapshot } from "./types";
+import type { Account, Snapshot } from "./types";
 import { isExampleMode } from "./example-mode";
 import { exampleSnapshot } from "./example";
+import { readAllJson } from "./data-dirs";
 
 export const SNAPSHOT_PATH = path.join(process.cwd(), "data", "snapshot.json");
 export const REQUEST_PATH = path.join(process.cwd(), "data", "refresh-request.json");
 
-function readSnapshotFile(): Snapshot {
-  try {
-    const raw = fs.readFileSync(SNAPSHOT_PATH, "utf8");
-    const parsed = JSON.parse(raw) as Snapshot;
-    if (parsed?.data && Array.isArray(parsed.accounts)) return parsed;
-  } catch {
-    // file missing or malformed — fall through to the example dataset
+/** Union accounts + per-account data across every bridge's snapshot (base dir plus
+ *  each extra-login subdirectory). meta comes from the most recently generated one,
+ *  and exactly one account is left flagged default. */
+function mergeSnapshots(parts: Snapshot[]): Snapshot {
+  const merged: Snapshot = { meta: parts[0].meta, accounts: [], data: {} };
+  const seen = new Set<string>();
+  for (const s of parts) {
+    if (new Date(s.meta.generatedAt).getTime() > new Date(merged.meta.generatedAt).getTime()) {
+      merged.meta = s.meta;
+    }
+    for (const a of s.accounts as Account[]) {
+      if (seen.has(a.id)) continue; // ignore an accidental duplicate id
+      seen.add(a.id);
+      merged.accounts.push(a);
+    }
+    Object.assign(merged.data, s.data);
   }
-  return exampleSnapshot;
+  // Collapse to a single default: keep the first flagged, else flag the first account.
+  let hasDefault = false;
+  for (const a of merged.accounts) {
+    if (a.isDefault && !hasDefault) hasDefault = true;
+    else a.isDefault = false;
+  }
+  if (!hasDefault && merged.accounts[0]) merged.accounts[0].isDefault = true;
+  return merged;
+}
+
+function readSnapshotFile(): Snapshot {
+  const parts = readAllJson<Snapshot>("snapshot.json").filter(
+    (s) => s?.data && Array.isArray(s.accounts),
+  );
+  if (parts.length === 0) return exampleSnapshot; // none present — fall back to the example dataset
+  return mergeSnapshots(parts);
 }
 
 export async function getSnapshot(): Promise<Snapshot> {
