@@ -10,7 +10,9 @@
 import { Card, SectionTitle } from "@/components/ui";
 import { Amt } from "@/components/privacy";
 import { compactMoney } from "@/components/OptionRow";
-import { equityValue, isCashEquivalent, optionMarketValue } from "@/lib/calc";
+import { equityValue, isCashEquivalent, optionNetValue } from "@/lib/calc";
+import { simulatePosition } from "@/lib/simulate";
+import { useIvSkew } from "@/lib/simConfig";
 import type { Equity, OptionPosition } from "@/lib/types";
 
 type Mover = {
@@ -67,7 +69,16 @@ function Tile({ m }: { m: Mover }) {
   );
 }
 
-export function TopMovers({ equities, options }: { equities: Equity[]; options: OptionPosition[] }) {
+export function TopMovers({
+  equities,
+  options,
+  marketOpen = true,
+}: {
+  equities: Equity[];
+  options: OptionPosition[];
+  marketOpen?: boolean;
+}) {
+  const [ivSkew] = useIvSkew();
   const agg = new Map<string, Mover>();
   const get = (sym: string): Mover => {
     let m = agg.get(sym);
@@ -89,8 +100,14 @@ export function TopMovers({ equities, options }: { equities: Equity[]; options: 
   for (const o of options) {
     if (isCashEquivalent(o.symbol)) continue;
     const m = get(o.symbol);
-    m.dayValue += o.dayValueChange ?? 0;
-    m.netValue += (o.side === "short" ? -1 : 1) * optionMarketValue(o);
+    // In the regular session use Schwab's day P&L (dayValueChange = day_pl, exact).
+    // Once the market closes that figure freezes/zeroes, so instead project the leg's
+    // move from the underlying's drift since the close via the Simulate engine
+    // (Δ/Γ + auto-IV-skew) — ~0 on weekends, live during weeknight extended hours.
+    m.dayValue += marketOpen
+      ? o.dayValueChange ?? 0
+      : optionNetValue(simulatePosition(o, { ivSkew })) - optionNetValue(o);
+    m.netValue += optionNetValue(o);
     if (m.underlyingPrice == null && o.underlyingPrice) m.underlyingPrice = o.underlyingPrice;
     if (m.underlyingChange == null && o.underlyingChange != null) m.underlyingChange = o.underlyingChange;
   }
