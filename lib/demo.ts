@@ -23,6 +23,19 @@ export const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "1";
  * Answers 200 with `ok: false` rather than an error status, so the existing UI
  * surfaces the message inline instead of rendering a failure.
  */
+/**
+ * Client-side check for whether the app is currently showing the bundled example
+ * dataset — either because this build is a pinned demo, or because the viewer has
+ * turned Example mode on. Lets client components pick defaults that suit demo data
+ * (see components/margin-mode.tsx). Returns false during SSR, where there's no
+ * document to read; callers should apply it from an effect.
+ */
+export function isExampleClient(): boolean {
+  if (DEMO_MODE) return true;
+  if (typeof document === "undefined") return false;
+  return document.cookie.split("; ").some((c) => c === "exampleMode=1");
+}
+
 export function demoBlocked(): Response | null {
   if (!DEMO_MODE) return null;
   return Response.json({
