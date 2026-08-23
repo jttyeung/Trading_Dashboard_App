@@ -2,6 +2,7 @@
 // (the purchase predates the ~58-day transaction window). Merged into
 // manual_cost_basis.json in the app's own data/ folder; the bridge reads it on its
 // next rebuild and produces a proper closed-stock round-trip.
+import { demoBlocked } from "@/lib/demo";
 import { saveManualCostBasis } from "@/lib/bridge-files";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +14,8 @@ interface Body {
 }
 
 export async function POST(req: Request) {
+  const blocked = demoBlocked();
+  if (blocked) return blocked;
   let body: Body;
   try {
     body = (await req.json()) as Body;

@@ -1,6 +1,7 @@
 // Deposit the pasted post-login redirect URL for a bridge to exchange for a token.
 // Write-only: the URL (which carries a one-time auth code) is written to that
 // bridge's reauth_inbox/redirect_url and consumed by the bridge. Never logged.
+import { demoBlocked } from "@/lib/demo";
 import { submitRedirectUrl } from "@/lib/bridge-files";
 import { bridgeById } from "@/lib/bridges";
 
@@ -12,6 +13,8 @@ interface SubmitBody {
 }
 
 export async function POST(req: Request) {
+  const blocked = demoBlocked();
+  if (blocked) return blocked;
   let body: SubmitBody;
   try {
     body = (await req.json()) as SubmitBody;

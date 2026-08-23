@@ -7,6 +7,7 @@
 // so server-rendered values swap too.
 import { useEffect, useRef, useState, type ReactNode, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
+import { DEMO_MODE } from "@/lib/demo";
 
 const COOKIE = "exampleMode";
 const EXIT_PIN = "1111"; // PIN required to leave example mode and reveal real data
@@ -39,6 +40,10 @@ export function ExampleButton() {
   const [err, setErr] = useState(false);
   const boxes = useRef<(HTMLInputElement | null)[]>([]);
   useEffect(() => setOn(readCookie()), []);
+
+  // A demo deployment is permanently in example mode — there's no real data on the
+  // host behind it, so a toggle would only ever lead to empty screens.
+  if (DEMO_MODE) return null;
 
   const setMode = (next: boolean) => {
     document.cookie = `${COOKIE}=${next ? "1" : "0"}; path=/; max-age=${next ? 31536000 : 0}; SameSite=Lax`;

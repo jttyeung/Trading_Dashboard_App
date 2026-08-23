@@ -2,6 +2,7 @@
 // *_PUSH_INTERVAL keys in schwab-bridge/.env, which is where auto_push.py
 // reads them from (hot-reloaded every ~5s once the bridge reload patch is in,
 // so a change here takes effect without restarting anything).
+import { demoBlocked } from "@/lib/demo";
 import { BRIDGE_ENV_PATH } from "@/lib/bridge-dir";
 import { readEnvFile, writeEnvUpdates } from "@/lib/env-file";
 
@@ -46,6 +47,8 @@ function isFiniteNonNegative(n: unknown): n is number {
 }
 
 export async function POST(req: Request) {
+  const blocked = demoBlocked();
+  if (blocked) return blocked;
   let body: SettingsBody;
   try {
     body = (await req.json()) as SettingsBody;

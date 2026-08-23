@@ -2,11 +2,14 @@
 // this just drops a marker into the bridge's task_inbox/. The bridge (auto_push
 // loop) runs am_report.main(force=True) and reports progress back through the
 // app's own data/ folder (read via /api/briefing/status).
+import { demoBlocked } from "@/lib/demo";
 import { requestReportRefresh } from "@/lib/bridge-files";
 
 export const dynamic = "force-dynamic";
 
 export async function POST() {
+  const blocked = demoBlocked();
+  if (blocked) return blocked;
   try {
     requestReportRefresh();
   } catch {

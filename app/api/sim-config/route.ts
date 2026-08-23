@@ -2,6 +2,7 @@
 // ({ ivSkew: number }). Writes data/sim-config.json — seeded into the client
 // store on load and read by the after-hours Simulate what-if. Mirrors the
 // approved-stocks editor route.
+import { demoBlocked } from "@/lib/demo";
 import { getSimSkew, saveSimSkew } from "@/lib/sim-skew";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +12,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const blocked = demoBlocked();
+  if (blocked) return blocked;
   let body: { ivSkew?: unknown };
   try {
     body = await req.json();

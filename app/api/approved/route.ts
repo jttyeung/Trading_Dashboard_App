@@ -1,6 +1,7 @@
 // Approved-list editor endpoint. GET returns the current list; POST mutates it
 // ({ action: "add" | "remove" | "set", symbol?, symbols? }) and returns the new
 // list. Writes data/approved-stocks.json, which the app and Python both read.
+import { demoBlocked } from "@/lib/demo";
 import { getApproved, addManyApproved, removeApproved, saveApproved } from "@/lib/approved";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +11,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const blocked = demoBlocked();
+  if (blocked) return blocked;
   let body: { action?: string; symbol?: string; symbols?: string[] };
   try {
     body = await req.json();

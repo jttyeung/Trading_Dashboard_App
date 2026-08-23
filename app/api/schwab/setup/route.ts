@@ -2,6 +2,7 @@
 // credentials.env (WHOLESALE write — never read back). type=password field on
 // the client; nothing is logged or echoed. This is the app's only write of the
 // secrets, and it never reads them again.
+import { demoBlocked } from "@/lib/demo";
 import { writeCredentials } from "@/lib/bridge-files";
 import { bridgeById } from "@/lib/bridges";
 
@@ -15,6 +16,8 @@ interface SetupBody {
 }
 
 export async function POST(req: Request) {
+  const blocked = demoBlocked();
+  if (blocked) return blocked;
   let body: SetupBody;
   try {
     body = (await req.json()) as SetupBody;

@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ScrollArea";
 import { SkewHydrator } from "@/components/SkewHydrator";
 import { PrivacyProvider } from "@/components/privacy";
 import { MarginModeProvider } from "@/components/margin-mode";
+import { DEMO_MODE } from "@/lib/demo";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -52,6 +53,13 @@ export default function RootLayout({
           <PrivacyProvider>
             <MarginModeProvider>
               <SkewHydrator />
+              {/* A public demo shows invented numbers, so say so plainly — with the
+                  Example toggle hidden there's otherwise nothing marking it. */}
+              {DEMO_MODE && (
+                <div className="shrink-0 bg-amber-500/15 px-4 py-1.5 text-center text-[11px] font-medium text-amber-200 ring-1 ring-inset ring-amber-500/30">
+                  Demo — sample portfolio, not real positions
+                </div>
+              )}
               <ScrollArea className="mx-auto min-h-0 w-full max-w-md flex-1 overflow-y-auto pb-[calc(4.75rem_+_env(safe-area-inset-bottom))] sm:pb-6">{children}</ScrollArea>
               <BottomNav />
             </MarginModeProvider>

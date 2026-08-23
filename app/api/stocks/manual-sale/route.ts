@@ -2,6 +2,7 @@
 // bridge's data window, so it never appears as an orphan). Stored in the app's own
 // data/manual_stock_sales.json; the bridge reads it on rebuild and books it as a
 // closed long round-trip with the given acquired/sold dates (→ correct short/long-term).
+import { demoBlocked } from "@/lib/demo";
 import { addManualStockSale, deleteManualStockSale } from "@/lib/bridge-files";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +10,8 @@ export const dynamic = "force-dynamic";
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 export async function POST(req: Request) {
+  const blocked = demoBlocked();
+  if (blocked) return blocked;
   let b: Record<string, unknown>;
   try {
     b = (await req.json()) as Record<string, unknown>;
@@ -51,6 +54,8 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  const blocked = demoBlocked();
+  if (blocked) return blocked;
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return Response.json({ ok: false, error: "Missing id." }, { status: 400 });
   try {
