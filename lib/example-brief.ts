@@ -16,6 +16,12 @@ import type {
   Tier,
 } from "./am-report-types";
 
+// Dates derive from today so the board never reads as stale — expirations stay in
+// the future and the days-to-expiry on every ladder rung stays sensible.
+const DAY_MS = 86_400_000;
+const isoDay = (offsetDays: number) =>
+  new Date(Date.now() + offsetDays * DAY_MS).toISOString().slice(0, 10);
+
 // IV/RV pair per VRP bucket so vrpRatio agrees with the label.
 const VRP_IVRV: Record<Vrp, [number, number]> = {
   rich: [0.42, 0.32],
@@ -28,7 +34,7 @@ function chainFor(last: number): AmChain {
   const strike = Math.round(last * 0.9);
   const mark = +(last * 0.022).toFixed(2);
   const premPct = +((mark / last) * 100).toFixed(2);
-  return { dte: 30, exp: "2026-07-17", strike, delta: -0.3, mark, premPct, annPct: +((premPct * 365) / 30).toFixed(1), oi: 4200, spreadPct: 1.4 };
+  return { dte: 30, exp: isoDay(30), strike, delta: -0.3, mark, premPct, annPct: +((premPct * 365) / 30).toFixed(1), oi: 4200, spreadPct: 1.4 };
 }
 
 function ladderFor(last: number): AmLadderLeg[] {
@@ -39,9 +45,9 @@ function ladderFor(last: number): AmLadderLeg[] {
     return { dTarget, strike, delta: -dAbs, mark, premPct, annPct: +((premPct * 365) / dte).toFixed(1), oi: 3200, spreadPct: 1.5, dte, exp, bbSigma: sigma, pctB: 0.3, bbZone: zone };
   };
   return [
-    leg(16, 0.16, 14, "2026-07-02", -1.9, "lower"),
-    leg(30, 0.3, 30, "2026-07-17", -1.0, "lower-mid"),
-    leg(45, 0.45, 45, "2026-08-01", -0.3, "mid"),
+    leg(16, 0.16, 14, isoDay(14), -1.9, "lower"),
+    leg(30, 0.3, 30, isoDay(30), -1.0, "lower-mid"),
+    leg(45, 0.45, 45, isoDay(45), -0.3, "mid"),
   ];
 }
 
@@ -102,7 +108,7 @@ function mkRow(sym: string, last: number, score: number, tier: Tier, vrp: Vrp, o
 const board: AmBoardRow[] = [
   mkRow("NVDA", 128.4, 88, "S", "rich", { group: "AI / Semis", beta: 1.7, ivr: 58, relVol: 1.4, move: 1.7 }),
   mkRow("AVGO", 285.0, 84, "S", "rich", { group: "AI / Semis", beta: 1.4, ivr: 52, relVol: 1.2, move: 0.9 }),
-  mkRow("TSM", 205.3, 82, "A", "fair", { group: "AI / Semis", beta: 1.1, ivr: 41, relVol: 1.0, move: 2.2, er: { date: "2026-07-17", days: 29, spans: true } }),
+  mkRow("TSM", 205.3, 82, "A", "fair", { group: "AI / Semis", beta: 1.1, ivr: 41, relVol: 1.0, move: 2.2, er: { date: isoDay(29), days: 29, spans: true } }),
   mkRow("MU", 115.2, 76, "A", "rich", { group: "Memory", beta: 1.5, ivr: 61, relVol: 1.6, move: 1.85 }),
   mkRow("LRCX", 98.0, 81, "A", "fair", { group: "Semi Equip", beta: 1.3, ivr: 47, relVol: 1.1, move: 0.6 }),
   mkRow("SOFI", 13.55, 71, "A", "rich", { group: "Fintech", beta: 1.6, ivr: 55, relVol: 1.3, move: 2.1 }),
@@ -133,19 +139,19 @@ const movers: { gainers: AmMover[]; losers: AmMover[] } = {
 
 export const exampleAmReport: AmReport = {
   meta: {
-    asOf: "2026-06-18T13:35:00Z",
+    asOf: new Date().toISOString(),
     source: "example",
     count: 36,
     passed: board.length,
     earningsLoaded: true,
     marketOpen: true,
-    ladderAsOf: "2026-06-18T13:34:00Z",
-    ladderNextAt: "2026-06-18T13:39:00Z",
+    ladderAsOf: new Date(Date.now() - 60_000).toISOString(),
+    ladderNextAt: new Date(Date.now() + 4 * 60_000).toISOString(),
     ladderCadence: "base",
   },
   regime: {
-    vix: 16.2,
-    vix3m: 17.6,
+    vix: 15.13,
+    vix3m: 18.5,
     termStructure: "contango",
     band: "Slight Fear",
     cashRange: "20–25%",
@@ -154,15 +160,15 @@ export const exampleAmReport: AmReport = {
       { sym: "ES", pct: 0.3 },
       { sym: "NQ", pct: 0.52 },
     ],
-    s5fi: 62,
-    s5fiSlopeWk: 1.4,
+    s5fi: 58.1,
+    s5fiSlopeWk: -0.35,
   },
   board,
   movers,
   vrpGroups: [groupOf("AI / Semis"), groupOf("Memory"), groupOf("Semi Equip"), groupOf("Fintech"), groupOf("Semis"), groupOf("Optical")],
   landmines: [
-    { sym: "AMAT", erDate: "2026-06-23", erDays: 5 },
-    { sym: "ADI", erDate: "2026-06-25", erDays: 7 },
+    { sym: "AMAT", erDate: isoDay(5), erDays: 5 },
+    { sym: "ADI", erDate: isoDay(7), erDays: 7 },
   ],
   steerClear: [
     { sym: "CCL", fails: ["below 200DMA", "downtrend"] },

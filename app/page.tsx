@@ -55,7 +55,7 @@ export default async function HomePage() {
   const vix = vixSnap ? assessVix(vixSnap) : null;
   // Latest BTC spot for the header stat stack. Null (offline / slow / example off)
   // just drops the line — see lib/btc-data.ts.
-  const btc = await getBtcQuote(example);
+  const btc = await getBtcQuote();
 
   // Allocation by capital deployed — break "Options" into its strategies. LEAP &
   // hedge by market value; CSPs by collateral (the cash securing them), carved out
