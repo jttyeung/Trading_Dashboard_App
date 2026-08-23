@@ -9,7 +9,6 @@ export const dynamic = "force-dynamic";
 
 const DEFAULT_MINUTES = {
   app: 1, // 60s
-  sheets: 5, // 300s
   history: 1, // 60s
   research: 15, // 900s
   amReport: 30, // 1800s
@@ -26,7 +25,6 @@ export async function GET() {
   return Response.json({
     intervals: {
       appMinutes: secToMin(env.APP_PUSH_INTERVAL, DEFAULT_MINUTES.app),
-      sheetsMinutes: secToMin(env.SHEETS_PUSH_INTERVAL, DEFAULT_MINUTES.sheets),
       historyMinutes: secToMin(env.HISTORY_PUSH_INTERVAL, DEFAULT_MINUTES.history),
       researchMinutes: secToMin(env.RESEARCH_PUSH_INTERVAL, DEFAULT_MINUTES.research),
       amReportMinutes: secToMin(env.AM_REPORT_PUSH_INTERVAL, DEFAULT_MINUTES.amReport),
@@ -37,7 +35,6 @@ export async function GET() {
 
 interface SettingsBody {
   appMinutes?: number;
-  sheetsMinutes?: number;
   historyMinutes?: number;
   researchMinutes?: number;
   amReportMinutes?: number;
@@ -59,7 +56,6 @@ export async function POST(req: Request) {
   const updates: Record<string, string> = {};
   const intervalFields: Array<[keyof SettingsBody, string]> = [
     ["appMinutes", "APP_PUSH_INTERVAL"],
-    ["sheetsMinutes", "SHEETS_PUSH_INTERVAL"],
     ["historyMinutes", "HISTORY_PUSH_INTERVAL"],
     ["researchMinutes", "RESEARCH_PUSH_INTERVAL"],
     ["amReportMinutes", "AM_REPORT_PUSH_INTERVAL"],

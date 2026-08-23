@@ -38,7 +38,6 @@ function MenuItem({
 
 interface Intervals {
   appMinutes: number;
-  sheetsMinutes: number;
   historyMinutes: number;
   researchMinutes: number;
   amReportMinutes: number;
@@ -47,7 +46,6 @@ interface Intervals {
 
 const INTERVAL_FIELDS: Array<{ key: keyof Intervals; label: string; hint: string }> = [
   { key: "appMinutes", label: "Portfolio snapshot", hint: "Positions, balances, LEAPs/CSPs — the main dashboard data." },
-  { key: "sheetsMinutes", label: "Google Sheets", hint: "Push of the summary/positions tabs to your Google Sheet." },
   { key: "historyMinutes", label: "Trade history", hint: "Closed-trade / transaction history sync." },
   { key: "researchMinutes", label: "Research", hint: "Approved-stock screener and signal refresh." },
   { key: "amReportMinutes", label: "Morning Brief", hint: "Full rebuild of the daily brief." },

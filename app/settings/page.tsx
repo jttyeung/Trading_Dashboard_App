@@ -23,7 +23,6 @@ export default async function SettingsPage() {
         <SettingsForm
           initialIntervals={{
             appMinutes: secToMin(env.APP_PUSH_INTERVAL, 1),
-            sheetsMinutes: secToMin(env.SHEETS_PUSH_INTERVAL, 5),
             historyMinutes: secToMin(env.HISTORY_PUSH_INTERVAL, 1),
             researchMinutes: secToMin(env.RESEARCH_PUSH_INTERVAL, 15),
             amReportMinutes: secToMin(env.AM_REPORT_PUSH_INTERVAL, 30),
