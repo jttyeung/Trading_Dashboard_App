@@ -106,14 +106,14 @@ function mkRow(sym: string, last: number, score: number, tier: Tier, vrp: Vrp, o
 }
 
 const board: AmBoardRow[] = [
-  mkRow("NVDA", 128.4, 88, "S", "rich", { group: "AI / Semis", beta: 1.7, ivr: 58, relVol: 1.4, move: 1.7 }),
-  mkRow("AVGO", 285.0, 84, "S", "rich", { group: "AI / Semis", beta: 1.4, ivr: 52, relVol: 1.2, move: 0.9 }),
-  mkRow("TSM", 205.3, 82, "A", "fair", { group: "AI / Semis", beta: 1.1, ivr: 41, relVol: 1.0, move: 2.2, er: { date: isoDay(29), days: 29, spans: true } }),
-  mkRow("MU", 115.2, 76, "A", "rich", { group: "Memory", beta: 1.5, ivr: 61, relVol: 1.6, move: 1.85 }),
-  mkRow("LRCX", 98.0, 81, "A", "fair", { group: "Semi Equip", beta: 1.3, ivr: 47, relVol: 1.1, move: 0.6 }),
-  mkRow("SOFI", 28.4, 71, "A", "rich", { group: "Fintech", beta: 1.6, ivr: 55, relVol: 1.3, move: 2.1 }),
-  mkRow("INTC", 24.1, 58, "B", "fair", { group: "Semis", beta: 1.0, ivr: 38, relVol: 0.9, move: -1.4 }),
-  mkRow("GLW", 52.0, 63, "B", "fair", { group: "Optical", beta: 1.1, ivr: 44, relVol: 1.0, move: 0.4 }),
+  mkRow("NVDA", 214.72, 88, "S", "rich", { group: "AI / Semis", beta: 1.7, ivr: 58, relVol: 1.4, move: 1.7 }),
+  mkRow("AVGO", 368.45, 84, "S", "rich", { group: "AI / Semis", beta: 1.4, ivr: 52, relVol: 1.2, move: 0.9 }),
+  mkRow("TSM", 418.95, 82, "A", "fair", { group: "AI / Semis", beta: 1.1, ivr: 41, relVol: 1.0, move: 2.2, er: { date: isoDay(29), days: 29, spans: true } }),
+  mkRow("MU", 966.78, 76, "A", "rich", { group: "Memory", beta: 1.5, ivr: 61, relVol: 1.6, move: 1.85 }),
+  mkRow("LRCX", 314.0, 81, "A", "fair", { group: "Semi Equip", beta: 1.3, ivr: 47, relVol: 1.1, move: 0.6 }),
+  mkRow("SOFI", 18.91, 71, "A", "rich", { group: "Fintech", beta: 1.6, ivr: 55, relVol: 1.3, move: 2.1 }),
+  mkRow("INTC", 90.07, 58, "B", "fair", { group: "Semis", beta: 1.0, ivr: 38, relVol: 0.9, move: -1.4 }),
+  mkRow("GLW", 149.84, 63, "B", "fair", { group: "Optical", beta: 1.1, ivr: 44, relVol: 1.0, move: 0.4 }),
 ];
 
 function groupOf(group: string): AmVrpGroup {
@@ -127,13 +127,13 @@ function groupOf(group: string): AmVrpGroup {
 
 const movers: { gainers: AmMover[]; losers: AmMover[] } = {
   gainers: [
-    { sym: "TSM", move: 2.2, last: 205.3, vrp: "fair", uptrend: true, gated: false, group: "AI / Semis" },
-    { sym: "SOFI", move: 2.1, last: 28.4, vrp: "rich", uptrend: true, gated: false, group: "Fintech" },
-    { sym: "MU", move: 1.85, last: 115.2, vrp: "rich", uptrend: true, gated: false, group: "Memory" },
+    { sym: "TSM", move: 0.71, last: 418.95, vrp: "fair", uptrend: true, gated: false, group: "AI / Semis" },
+    { sym: "SOFI", move: 5.52, last: 18.91, vrp: "rich", uptrend: true, gated: false, group: "Fintech" },
+    { sym: "MU", move: -0.77, last: 966.78, vrp: "rich", uptrend: true, gated: false, group: "Memory" },
   ],
   losers: [
-    { sym: "INTC", move: -1.4, last: 24.1, vrp: "fair", uptrend: false, gated: false, group: "Semis" },
-    { sym: "CCL", move: -2.6, last: 21.4, vrp: "thin", uptrend: false, gated: true, group: "Travel" },
+    { sym: "INTC", move: -2.24, last: 90.07, vrp: "fair", uptrend: false, gated: false, group: "Semis" },
+    { sym: "CCL", move: 1.42, last: 25.73, vrp: "thin", uptrend: false, gated: true, group: "Travel" },
   ],
 };
 

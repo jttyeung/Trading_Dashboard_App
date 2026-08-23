@@ -62,21 +62,21 @@ function mkTicker(price: number, pctB: number, rsi: number, macdBull: boolean, b
 
 // [price, pctB, rsi, macdBull, bullScore, bearScore]
 const T: Record<string, [number, number, number, boolean, number, number]> = {
-  NVDA: [128.4, 0.62, 61, true, 82, 24],
-  AVGO: [285.0, 0.55, 58, true, 84, 22],
-  TSM: [205.3, 0.48, 55, true, 78, 26],
-  MU: [115.2, 0.66, 63, true, 80, 30],
-  LRCX: [98.0, 0.44, 52, true, 81, 28],
-  AMAT: [178.0, 0.38, 48, true, 66, 34],
-  SOFI: [28.4, 0.7, 64, true, 74, 32],
-  INTC: [24.1, 0.18, 38, false, 44, 58],
-  GLW: [52.0, 0.5, 54, true, 63, 30],
-  CLS: [138.2, 0.92, 74, true, 40, 71],
-  AAPL: [211.3, 0.86, 69, true, 38, 66],
-  GOOGL: [178.4, 0.58, 57, true, 70, 28],
-  AMZN: [205.6, 0.6, 59, true, 69, 27],
-  CEG: [255.0, 0.34, 46, false, 52, 41],
-  IREN: [18.4, 0.28, 42, false, 48, 47],
+  NVDA: [214.72, 0.62, 61, true, 82, 24],
+  AVGO: [368.45, 0.55, 58, true, 84, 22],
+  TSM: [418.95, 0.48, 55, true, 78, 26],
+  MU: [966.78, 0.66, 63, true, 80, 30],
+  LRCX: [314.0, 0.44, 52, true, 81, 28],
+  AMAT: [492.32, 0.38, 48, true, 66, 34],
+  SOFI: [18.91, 0.7, 64, true, 74, 32],
+  INTC: [90.07, 0.18, 38, false, 44, 58],
+  GLW: [149.84, 0.5, 54, true, 63, 30],
+  CLS: [296.55, 0.92, 74, true, 40, 71],
+  AAPL: [309.35, 0.86, 69, true, 38, 66],
+  GOOGL: [344.82, 0.58, 57, true, 70, 28],
+  AMZN: [258.63, 0.6, 59, true, 69, 27],
+  CEG: [272.88, 0.34, 46, false, 52, 41],
+  IREN: [41.88, 0.28, 42, false, 48, 47],
 };
 
 const tickers: ResearchFile["tickers"] = Object.fromEntries(

@@ -41,115 +41,91 @@ export const exampleSnapshot: Snapshot = {
   ],
   data: {
     [ACC]: {
-      // equityValue tracks the holdings below (qty x price); the four buckets sum to
-      // totalValue so the allocation donut and the percentages reconcile.
-      // Cash comfortably covers the CSP collateral below (~168k across thirteen
-      // single-contract puts) — these are cash-secured, so the demo would misrepresent
-      // the strategy if the collateral outran the cash backing it.
+      // equityValue tracks the holdings below (qty x price), and the four buckets sum
+      // to totalValue so the allocation donut reconciles.
+      //
+      // totalValue is set so free cash lands at 18% of the account: the app derives
+      // that slice as total minus everything deployed (equities, LEAP/hedge value, CSP
+      // collateral, spread risk, crypto), which here comes to ~539k. The cash line
+      // itself also covers the ~288k of collateral those thirteen puts secure — a
+      // cash-secured book that showed less cash than collateral would misrepresent it.
       summary: {
-        totalValue: 438010,
-        equityValue: 159410,
-        optionsValue: 6200,
-        cryptoValue: 22400,
-        cash: 250000,
-        buyingPower: 220000,
-        optionsBuyingPower: 300000,
+        totalValue: 657160,
+        equityValue: 212040,
+        optionsValue: 14020,
+        cryptoValue: 25010,
+        cash: 406090,
+        buyingPower: 360000,
+        optionsBuyingPower: 480000,
       },
+      // Prices are a real market reading, so the demo shows plausible levels rather
+      // than invented ones. Cost bases are chosen to give a mix of winners and
+      // losers — SOFI and IREN sit underwater, which the P&L and Stocks pages should
+      // both be able to show.
       equities: [
-        // ≥100 sh with covered-call ladders whose strikes sit ABOVE cost basis and
-        // carry a real premium — so the Stocks "write a call" green flag lights up
-        // for the ones with no CC already written (NVDA, SOFI, CLS, INTC). AAPL has
-        // a covered call open (see options), so it shows the CC count instead.
+        // ≥100 sh carry covered-call ladders whose strikes sit ABOVE cost basis, so
+        // the Stocks "write a call" green flag lights up for the ones with no CC
+        // written yet. AAPL has one open (see options), so it shows a CC count instead.
         {
-          symbol: "NVDA", name: "NVIDIA", qty: 150, avgCost: 80, price: 128.4, dayChange: 2.15, bbSigma: 0.8,
-          priceHistory: [119.0, 121.5, 118.9, 123.2, 125.6, 124.1, 128.4],
-          gamma: { flip: 120, callWall: 135, putWall: 115, net: "pos" },
+          symbol: "AAPL", name: "Apple", qty: 200, avgCost: 240, price: 309.35, dayChange: -1.95, bbSigma: 0.4,
+          priceHistory: [303.2, 306.8, 305.4, 309.9, 312.6, 311.3, 309.35],
+          gamma: { flip: 310, callWall: 330, putWall: 295, net: "pos" },
           coveredCalls: [
-            { targetDte: 14, dte: 14, strike: 135, delta: 0.30, mark: 3.1, premPct: 2.41, annPct: 63, oi: 12400, bbSigma: 1.4 },
-            { targetDte: 21, dte: 21, strike: 138, delta: 0.28, mark: 4.0, premPct: 3.12, annPct: 54, oi: 8900, bbSigma: 1.8 },
-            { targetDte: 30, dte: 30, strike: 140, delta: 0.26, mark: 5.2, premPct: 4.05, annPct: 49, oi: 15200, bbSigma: 2.1 },
+            { targetDte: 14, dte: 14, strike: 320, delta: 0.31, mark: 4.10, premPct: 1.33, annPct: 35, oi: 30100, bbSigma: 1.2 },
+            { targetDte: 21, dte: 21, strike: 325, delta: 0.27, mark: 5.05, premPct: 1.63, annPct: 28, oi: 22400, bbSigma: 1.6 },
+            { targetDte: 30, dte: 30, strike: 330, delta: 0.24, mark: 6.20, premPct: 2.00, annPct: 24, oi: 41800, bbSigma: 2.0 },
           ],
         },
         {
-          symbol: "AAPL", name: "Apple", qty: 200, avgCost: 150, price: 211.3, dayChange: -1.2, bbSigma: 0.4,
-          priceHistory: [206.0, 208.5, 210.1, 213.4, 212.0, 210.8, 211.3],
-          gamma: { flip: 205, callWall: 225, putWall: 200, net: "pos" },
+          // Underwater against a 25 basis — the ladder's strikes still clear cost, so
+          // a call written here would exit at a gain even though the position is red.
+          symbol: "SOFI", name: "SoFi Technologies", qty: 500, avgCost: 25, price: 18.91, dayChange: 0.99, bbSigma: -0.8,
+          priceHistory: [17.4, 17.9, 17.6, 18.2, 18.5, 17.92, 18.91],
+          gamma: { flip: 19, callWall: 22, putWall: 17, net: "pos" },
           coveredCalls: [
-            { targetDte: 14, dte: 14, strike: 220, delta: 0.31, mark: 2.6, premPct: 1.23, annPct: 32, oi: 30100, bbSigma: 1.2 },
-            { targetDte: 21, dte: 21, strike: 225, delta: 0.27, mark: 3.3, premPct: 1.56, annPct: 27, oi: 22400, bbSigma: 1.6 },
-            { targetDte: 30, dte: 30, strike: 230, delta: 0.24, mark: 4.1, premPct: 1.94, annPct: 24, oi: 41800, bbSigma: 2.0 },
+            { targetDte: 14, dte: 14, strike: 26, delta: 0.14, mark: 0.18, premPct: 0.95, annPct: 25, oi: 41200, bbSigma: 2.3 },
+            { targetDte: 21, dte: 21, strike: 27, delta: 0.12, mark: 0.24, premPct: 1.27, annPct: 22, oi: 55800, bbSigma: 2.7 },
+            { targetDte: 30, dte: 30, strike: 28, delta: 0.11, mark: 0.31, premPct: 1.64, annPct: 20, oi: 55800, bbSigma: 3.0 },
           ],
         },
         {
-          symbol: "SOFI", name: "SoFi Technologies", qty: 500, avgCost: 25, price: 28.4, dayChange: 0.42, bbSigma: 1.1,
-          priceHistory: [26.4, 27.1, 26.8, 27.6, 28.1, 27.9, 28.4],
-          gamma: { flip: 28, callWall: 32, putWall: 26, net: "pos" },
+          symbol: "GLW", name: "Corning", qty: 200, avgCost: 118, price: 149.84, dayChange: -1.61, bbSigma: 0.6,
+          priceHistory: [144.8, 147.2, 146.1, 149.9, 152.4, 151.45, 149.84],
+          gamma: { flip: 150, callWall: 165, putWall: 140, net: "pos" },
           coveredCalls: [
-            { targetDte: 14, dte: 14, strike: 30, delta: 0.31, mark: 0.68, premPct: 2.39, annPct: 62, oi: 41200, bbSigma: 0.9 },
-            { targetDte: 21, dte: 21, strike: 31, delta: 0.27, mark: 0.82, premPct: 2.89, annPct: 50, oi: 55800, bbSigma: 1.7 },
-            { targetDte: 30, dte: 30, strike: 32, delta: 0.24, mark: 0.97, premPct: 3.42, annPct: 42, oi: 55800, bbSigma: 1.5 },
+            { targetDte: 14, dte: 14, strike: 155, delta: 0.32, mark: 3.30, premPct: 2.20, annPct: 57, oi: 8400, bbSigma: 1.1 },
+            { targetDte: 21, dte: 21, strike: 160, delta: 0.27, mark: 4.05, premPct: 2.70, annPct: 47, oi: 5100, bbSigma: 1.6 },
+            { targetDte: 30, dte: 30, strike: 165, delta: 0.23, mark: 4.80, premPct: 3.20, annPct: 39, oi: 6700, bbSigma: 2.1 },
           ],
         },
         {
-          symbol: "CLS", name: "Celestica", qty: 120, avgCost: 90, price: 138.2, dayChange: 3.4, bbSigma: 1.6,
-          priceHistory: [126.0, 129.4, 131.0, 134.8, 133.2, 135.9, 138.2],
-          gamma: { flip: 130, callWall: 145, putWall: 125, net: "pos" },
+          // Also underwater — the ladder's strikes above basis are the ones that
+          // matter here, which exercises the "above avg cost" styling.
+          symbol: "IREN", name: "IREN", qty: 400, avgCost: 48, price: 41.88, dayChange: -0.72, bbSigma: -0.9,
+          priceHistory: [40.1, 41.6, 40.9, 42.8, 43.4, 42.60, 41.88],
+          gamma: { flip: 42, callWall: 48, putWall: 38, net: "neg" },
           coveredCalls: [
-            { targetDte: 14, dte: 14, strike: 145, delta: 0.29, mark: 3.6, premPct: 2.60, annPct: 68, oi: 3100, bbSigma: 1.3 },
-            { targetDte: 21, dte: 21, strike: 150, delta: 0.25, mark: 4.4, premPct: 3.18, annPct: 55, oi: 2400, bbSigma: 1.9 },
-            { targetDte: 30, dte: 30, strike: 155, delta: 0.22, mark: 5.1, premPct: 3.69, annPct: 45, oi: 1800, bbSigma: 2.4 },
+            { targetDte: 14, dte: 14, strike: 50, delta: 0.24, mark: 1.10, premPct: 2.63, annPct: 69, oi: 14200, bbSigma: 1.6 },
+            { targetDte: 21, dte: 21, strike: 52.5, delta: 0.20, mark: 1.35, premPct: 3.22, annPct: 56, oi: 9800, bbSigma: 2.0 },
+            { targetDte: 30, dte: 30, strike: 55, delta: 0.17, mark: 1.60, premPct: 3.82, annPct: 46, oi: 7300, bbSigma: 2.4 },
           ],
         },
         {
-          // Small position (~3.8% of the account) → underweight, so if INTC is on the
-          // CSP board it earns the home-screen "CSP" tag. Also has a CC opportunity.
-          symbol: "INTC", name: "Intel", qty: 300, avgCost: 22, price: 24.1, dayChange: -0.35, bbSigma: -0.6,
-          priceHistory: [24.8, 24.5, 24.0, 23.6, 24.2, 24.4, 24.1],
-          gamma: { flip: 24, callWall: 26, putWall: 22, net: "neg" },
+          symbol: "PLTR", name: "Palantir", qty: 200, avgCost: 150, price: 179.94, dayChange: 5.98, bbSigma: 1.4,
+          priceHistory: [168.2, 172.6, 170.8, 175.4, 177.9, 173.96, 179.94],
+          gamma: { flip: 180, callWall: 200, putWall: 165, net: "pos" },
           coveredCalls: [
-            { targetDte: 14, dte: 14, strike: 25, delta: 0.34, mark: 0.42, premPct: 1.74, annPct: 45, oi: 60200, bbSigma: 0.7 },
-            { targetDte: 21, dte: 21, strike: 26, delta: 0.26, mark: 0.51, premPct: 2.12, annPct: 37, oi: 48900, bbSigma: 1.3 },
-            { targetDte: 30, dte: 30, strike: 26, delta: 0.30, mark: 0.68, premPct: 2.82, annPct: 34, oi: 48900, bbSigma: 1.1 },
-          ],
-        },
-        {
-          symbol: "GLW", name: "Corning", qty: 200, avgCost: 41.5, price: 52.0, dayChange: 0.62, bbSigma: 1.0,
-          priceHistory: [49.2, 50.1, 49.6, 50.8, 51.4, 51.1, 52.0],
-          gamma: { flip: 50, callWall: 55, putWall: 48, net: "pos" },
-          coveredCalls: [
-            { targetDte: 14, dte: 14, strike: 55, delta: 0.30, mark: 0.88, premPct: 1.69, annPct: 44, oi: 8400, bbSigma: 1.4 },
-            { targetDte: 21, dte: 21, strike: 57.5, delta: 0.26, mark: 1.02, premPct: 1.96, annPct: 34, oi: 5100, bbSigma: 1.9 },
-            { targetDte: 30, dte: 30, strike: 60, delta: 0.23, mark: 1.24, premPct: 2.38, annPct: 29, oi: 6700, bbSigma: 2.3 },
-          ],
-        },
-        {
-          // Held below cost — the covered-call ladder's strikes above basis are the
-          // ones that matter here, so this exercises that "above avg cost" styling.
-          symbol: "IREN", name: "IREN", qty: 400, avgCost: 21.8, price: 18.4, dayChange: -0.44, bbSigma: -1.4,
-          priceHistory: [19.6, 19.1, 18.8, 19.2, 18.6, 18.8, 18.4],
-          gamma: { flip: 19, callWall: 22, putWall: 17, net: "neg" },
-          coveredCalls: [
-            { targetDte: 14, dte: 14, strike: 20, delta: 0.33, mark: 0.61, premPct: 3.32, annPct: 87, oi: 14200, bbSigma: 0.8 },
-            { targetDte: 21, dte: 21, strike: 22, delta: 0.27, mark: 0.74, premPct: 4.02, annPct: 70, oi: 9800, bbSigma: 1.5 },
-            { targetDte: 30, dte: 30, strike: 23, delta: 0.25, mark: 0.92, premPct: 5.00, annPct: 61, oi: 7300, bbSigma: 1.8 },
-          ],
-        },
-        {
-          symbol: "PLTR", name: "Palantir", qty: 200, avgCost: 150, price: 176.2, dayChange: 2.05, bbSigma: 1.3,
-          priceHistory: [166.5, 170.2, 168.4, 173.1, 175.8, 174.2, 176.2],
-          gamma: { flip: 175, callWall: 200, putWall: 160, net: "pos" },
-          coveredCalls: [
-            { targetDte: 14, dte: 14, strike: 185, delta: 0.30, mark: 4.20, premPct: 2.38, annPct: 62, oi: 22100, bbSigma: 1.5 },
-            { targetDte: 21, dte: 21, strike: 190, delta: 0.27, mark: 5.10, premPct: 2.89, annPct: 50, oi: 31400, bbSigma: 1.9 },
-            { targetDte: 30, dte: 30, strike: 195, delta: 0.24, mark: 6.30, premPct: 3.58, annPct: 44, oi: 18900, bbSigma: 2.2 },
+            { targetDte: 14, dte: 14, strike: 190, delta: 0.30, mark: 4.35, premPct: 2.42, annPct: 63, oi: 22100, bbSigma: 1.5 },
+            { targetDte: 21, dte: 21, strike: 195, delta: 0.27, mark: 5.25, premPct: 2.92, annPct: 51, oi: 31400, bbSigma: 1.9 },
+            { targetDte: 30, dte: 30, strike: 200, delta: 0.24, mark: 6.40, premPct: 3.56, annPct: 43, oi: 18900, bbSigma: 2.2 },
           ],
         },
         // < 100 sh: no covered-call ladder (exercises the "can't write a call" path).
-        { symbol: "MU", name: "Micron Technology", qty: 60, avgCost: 90, price: 115.2, dayChange: 1.85, bbSigma: 0.9, priceHistory: [108.0, 110.3, 109.1, 112.6, 114.0, 113.2, 115.2] },
+        { symbol: "MU", name: "Micron Technology", qty: 60, avgCost: 780, price: 966.78, dayChange: -7.55, bbSigma: 0.8, priceHistory: [938.4, 951.2, 946.8, 962.5, 978.1, 974.33, 966.78] },
       ],
       crypto: [
-        { symbol: "BTC", name: "Bitcoin", qty: 0.25, avgCost: 40000, price: 64000 },
-        { symbol: "ETH", name: "Ethereum", qty: 2, avgCost: 2000, price: 3200 },
+        { symbol: "BTC", name: "Bitcoin", qty: 0.25, avgCost: 52000, price: 77270 },
+        { symbol: "ETH", name: "Ethereum", qty: 2, avgCost: 2100, price: 2846 },
       ],
       // One of every OptionKind. underlyingLive ≠ underlyingClose so Simulate is
       // enabled; dayValueChange + underlyingChange feed Top Movers; shorts carry
@@ -160,13 +136,13 @@ export const exampleSnapshot: Snapshot = {
       //   MU         — through the strike on delta                                 → "Assignment risk"
       //   CDE, INTC, GLW, CLS, TSM — premium still working, well OTM               → "Hold"
       options: [
-        { id: "ex-o1", kind: "csp", symbol: "SOFI", optionType: "put", side: "short", qty: 1, strike: 26, expiration: isoDay(20), entryPerShare: 1.10, mark: 0.22, delta: -0.12, gamma: 0.06, vega: 0.04, theta: 0.02, iv: 0.52, breakeven: 24.90, underlyingPrice: 28.4, underlyingChange: 0.42, underlyingClose: 27.98, underlyingLive: 28.4, dayValueChange: 14.0, bbSigma: -1.2, chanceOfProfitShort: 0.88, openedAt: isoDay(-38), erDate: isoDay(46) },
-        { id: "ex-o2", kind: "csp", symbol: "MU", optionType: "put", side: "short", qty: 1, strike: 118, expiration: isoDay(27), entryPerShare: 3.2, mark: 4.6, delta: -0.56, gamma: 0.01, vega: 0.12, theta: 0.05, iv: 0.44, breakeven: 114.8, underlyingPrice: 115.2, underlyingChange: 1.85, underlyingClose: 113.4, underlyingLive: 115.2, dayValueChange: 22.0, bbSigma: -0.8, chanceOfProfitShort: 0.44, openedAt: isoDay(-43), erDate: isoDay(12) },
-        { id: "ex-o3", kind: "csp", symbol: "CDE", optionType: "put", side: "short", qty: 1, strike: 6, expiration: isoDay(34), entryPerShare: 0.35, mark: 0.28, delta: -0.20, gamma: 0.10, vega: 0.01, theta: 0.004, iv: 0.58, breakeven: 5.65, underlyingPrice: 6.85, underlyingChange: 0.05, underlyingClose: 6.80, underlyingLive: 6.85, dayValueChange: 6.0, bbSigma: -0.4, chanceOfProfitShort: 0.80, openedAt: isoDay(-32), erDate: null },
-        { id: "ex-o11", kind: "csp", symbol: "IREN", optionType: "put", side: "short", qty: 1, strike: 16, expiration: isoDay(13), entryPerShare: 0.62, mark: 0.08, delta: -0.08, gamma: 0.05, vega: 0.02, theta: 0.008, iv: 0.71, breakeven: 15.38, underlyingPrice: 18.4, underlyingChange: -0.44, underlyingClose: 18.84, underlyingLive: 18.4, dayValueChange: 18.0, bbSigma: -1.6, chanceOfProfitShort: 0.92, openedAt: isoDay(-29), erDate: null },
-        { id: "ex-o12", kind: "csp", symbol: "INTC", optionType: "put", side: "short", qty: 1, strike: 23, expiration: isoDay(27), entryPerShare: 0.72, mark: 0.45, delta: -0.28, gamma: 0.07, vega: 0.03, theta: 0.012, iv: 0.49, breakeven: 22.28, underlyingPrice: 24.1, underlyingChange: -0.35, underlyingClose: 24.45, underlyingLive: 24.1, dayValueChange: 24.0, bbSigma: -0.7, chanceOfProfitShort: 0.72, openedAt: isoDay(-19), erDate: isoDay(31) },
-        { id: "ex-o13", kind: "csp", symbol: "GLW", optionType: "put", side: "short", qty: 1, strike: 48, expiration: isoDay(41), entryPerShare: 2.05, mark: 1.60, delta: -0.24, gamma: 0.02, vega: 0.16, theta: 0.028, iv: 0.33, breakeven: 45.95, underlyingPrice: 52.0, underlyingChange: 0.62, underlyingClose: 51.38, underlyingLive: 52.0, dayValueChange: 14.0, bbSigma: -0.6, chanceOfProfitShort: 0.76, openedAt: isoDay(-12), erDate: null },
-        { id: "ex-o14", kind: "csp", symbol: "CLS", optionType: "put", side: "short", qty: 1, strike: 125, expiration: isoDay(34), entryPerShare: 4.10, mark: 3.40, delta: -0.26, gamma: 0.01, vega: 0.29, theta: 0.055, iv: 0.55, breakeven: 120.9, underlyingPrice: 138.2, underlyingChange: 3.4, underlyingClose: 134.8, underlyingLive: 138.2, dayValueChange: 41.0, bbSigma: -0.5, chanceOfProfitShort: 0.74, openedAt: isoDay(-24), erDate: null },
+        { id: "ex-o1", kind: "csp", symbol: "SOFI", optionType: "put", side: "short", qty: 1, strike: 17, expiration: isoDay(20), entryPerShare: 0.74, mark: 0.15, delta: -0.12, gamma: 0.08, vega: 0.03, theta: 0.015, iv: 0.58, breakeven: 16.26, underlyingPrice: 18.91, underlyingChange: 0.99, underlyingClose: 17.92, underlyingLive: 18.91, dayValueChange: 11.0, bbSigma: -1.4, chanceOfProfitShort: 0.88, openedAt: isoDay(-38), erDate: isoDay(46) },
+        { id: "ex-o2", kind: "csp", symbol: "MU", optionType: "put", side: "short", qty: 1, strike: 990, expiration: isoDay(27), entryPerShare: 26.50, mark: 41.80, delta: -0.56, gamma: 0.002, vega: 1.35, theta: 1.10, iv: 0.62, breakeven: 963.50, underlyingPrice: 966.78, underlyingChange: -7.55, underlyingClose: 974.33, underlyingLive: 966.78, dayValueChange: -120.0, bbSigma: -0.9, chanceOfProfitShort: 0.44, openedAt: isoDay(-43), erDate: isoDay(12) },
+        { id: "ex-o3", kind: "csp", symbol: "CDE", optionType: "put", side: "short", qty: 1, strike: 19, expiration: isoDay(34), entryPerShare: 0.78, mark: 0.55, delta: -0.22, gamma: 0.05, vega: 0.04, theta: 0.011, iv: 0.61, breakeven: 18.22, underlyingPrice: 20.97, underlyingChange: -0.14, underlyingClose: 21.11, underlyingLive: 20.97, dayValueChange: 8.0, bbSigma: -0.5, chanceOfProfitShort: 0.78, openedAt: isoDay(-32), erDate: null },
+        { id: "ex-o11", kind: "csp", symbol: "IREN", optionType: "put", side: "short", qty: 1, strike: 38, expiration: isoDay(13), entryPerShare: 1.42, mark: 0.20, delta: -0.09, gamma: 0.02, vega: 0.05, theta: 0.02, iv: 0.74, breakeven: 36.58, underlyingPrice: 41.88, underlyingChange: -0.72, underlyingClose: 42.60, underlyingLive: 41.88, dayValueChange: 14.0, bbSigma: -1.7, chanceOfProfitShort: 0.91, openedAt: isoDay(-29), erDate: null },
+        { id: "ex-o12", kind: "csp", symbol: "INTC", optionType: "put", side: "short", qty: 1, strike: 85, expiration: isoDay(27), entryPerShare: 2.65, mark: 1.90, delta: -0.28, gamma: 0.01, vega: 0.19, theta: 0.06, iv: 0.51, breakeven: 82.35, underlyingPrice: 90.07, underlyingChange: -2.06, underlyingClose: 92.13, underlyingLive: 90.07, dayValueChange: -32.0, bbSigma: -0.7, chanceOfProfitShort: 0.72, openedAt: isoDay(-19), erDate: isoDay(31) },
+        { id: "ex-o13", kind: "csp", symbol: "GLW", optionType: "put", side: "short", qty: 1, strike: 140, expiration: isoDay(41), entryPerShare: 5.80, mark: 4.50, delta: -0.25, gamma: 0.006, vega: 0.34, theta: 0.09, iv: 0.36, breakeven: 134.20, underlyingPrice: 149.84, underlyingChange: -1.61, underlyingClose: 151.45, underlyingLive: 149.84, dayValueChange: -22.0, bbSigma: -0.6, chanceOfProfitShort: 0.75, openedAt: isoDay(-12), erDate: null },
+        { id: "ex-o14", kind: "csp", symbol: "CLS", optionType: "put", side: "short", qty: 1, strike: 270, expiration: isoDay(34), entryPerShare: 10.90, mark: 8.50, delta: -0.27, gamma: 0.004, vega: 0.58, theta: 0.21, iv: 0.57, breakeven: 259.10, underlyingPrice: 296.55, underlyingChange: -5.45, underlyingClose: 302.00, underlyingLive: 296.55, dayValueChange: -95.0, bbSigma: -0.5, chanceOfProfitShort: 0.73, openedAt: isoDay(-24), erDate: null },
         // A second cohort of CSPs on larger-cap names, so the screen shows the range
         // of strike sizes a real book carries rather than only small-dollar tickers.
         { id: "ex-o15", kind: "csp", symbol: "AMAT", optionType: "put", side: "short", qty: 1, strike: 460, expiration: isoDay(28), entryPerShare: 13.85, mark: 15.73, delta: -0.31, gamma: 0.004, vega: 0.62, theta: 0.44, iv: 0.38, breakeven: 446.15, underlyingPrice: 488.61, underlyingChange: -7.60, underlyingClose: 496.21, underlyingLive: 488.61, dayValueChange: -70.0, bbSigma: -0.5, chanceOfProfitShort: 0.69, openedAt: isoDay(-9), erDate: null },
@@ -178,13 +154,17 @@ export const exampleSnapshot: Snapshot = {
         // Most of the premium already harvested — remaining yield annualizes ~22%, so
         // this one reads as Rollable.
         { id: "ex-o20", kind: "csp", symbol: "DRAM", optionType: "put", side: "short", qty: 1, strike: 48, expiration: isoDay(28), entryPerShare: 1.51, mark: 0.82, delta: -0.13, gamma: 0.02, vega: 0.07, theta: 0.04, iv: 0.56, breakeven: 46.49, underlyingPrice: 58.16, underlyingChange: 0.58, underlyingClose: 57.58, underlyingLive: 58.16, dayValueChange: 19.5, bbSigma: -1.3, chanceOfProfitShort: 0.87, openedAt: isoDay(-22), erDate: null },
-        { id: "ex-o4", kind: "leap-call", symbol: "NVDA", optionType: "call", side: "long", qty: 2, strike: 100, expiration: isoDay(146), entryPerShare: 38, mark: 45, delta: 0.72, gamma: 0.01, vega: 0.45, theta: -0.03, iv: 0.50, breakeven: 138, underlyingPrice: 128.4, underlyingChange: 2.15, underlyingClose: 126.25, underlyingLive: 128.4, dayValueChange: 86.0, bbSigma: 0.8, openedAt: isoDay(-194) },
-        { id: "ex-o5", kind: "leap-put-hedge", symbol: "SMH", optionType: "put", side: "long", qty: 1, strike: 240, expiration: isoDay(209), entryPerShare: 14, mark: 11, delta: -0.30, gamma: 0.01, vega: 0.55, theta: -0.02, iv: 0.26, breakeven: 226, underlyingPrice: 258, underlyingChange: 3.1, underlyingClose: 254.9, underlyingLive: 258, dayValueChange: -31.0, bbSigma: 1.0, openedAt: isoDay(-143) },
-        { id: "ex-o6", kind: "covered-call", symbol: "AAPL", optionType: "call", side: "short", qty: 2, strike: 225, expiration: isoDay(20), entryPerShare: 4.2, mark: 3.1, delta: 0.34, gamma: 0.02, vega: 0.18, theta: 0.05, iv: 0.28, breakeven: 229.2, underlyingPrice: 211.3, underlyingChange: -1.2, underlyingClose: 212.5, underlyingLive: 211.3, dayValueChange: 24.0, bbSigma: 1.6, chanceOfProfitShort: 0.66, openedAt: isoDay(-35) },
-        { id: "ex-o7", kind: "put-spread", symbol: "GOOGL", optionType: "put", side: "short", qty: 1, strike: 170, expiration: isoDay(34), entryPerShare: 6, mark: 4.2, delta: -0.30, gamma: 0.02, vega: 0.20, theta: 0.03, iv: 0.30, breakeven: 164, underlyingPrice: 178.4, underlyingChange: 0.9, underlyingClose: 177.5, underlyingLive: 178.4, dayValueChange: 12.0, bbSigma: 0.3, chanceOfProfitShort: 0.70, openedAt: isoDay(-39) },
-        { id: "ex-o8", kind: "put-spread", symbol: "GOOGL", optionType: "put", side: "long", qty: 1, strike: 160, expiration: isoDay(34), entryPerShare: 3, mark: 2, delta: -0.18, gamma: 0.02, vega: 0.15, theta: 0.02, iv: 0.32, breakeven: 157, underlyingPrice: 178.4, underlyingChange: 0.9, underlyingClose: 177.5, underlyingLive: 178.4, dayValueChange: -6.0, bbSigma: -0.1, openedAt: isoDay(-39) },
-        { id: "ex-o9", kind: "call-spread", symbol: "NVDA", optionType: "call", side: "short", qty: 2, strike: 140, expiration: isoDay(34), entryPerShare: 5, mark: 6, delta: 0.40, gamma: 0.02, vega: 0.22, theta: 0.04, iv: 0.48, breakeven: 145, underlyingPrice: 128.4, underlyingChange: 2.15, underlyingClose: 126.25, underlyingLive: 128.4, dayValueChange: -40.0, bbSigma: 0.8, chanceOfProfitShort: 0.62, openedAt: isoDay(-51) },
-        { id: "ex-o10", kind: "call-spread", symbol: "NVDA", optionType: "call", side: "long", qty: 2, strike: 150, expiration: isoDay(34), entryPerShare: 2.5, mark: 3.2, delta: 0.28, gamma: 0.02, vega: 0.18, theta: 0.03, iv: 0.50, breakeven: 152.5, underlyingPrice: 128.4, underlyingChange: 2.15, underlyingClose: 126.25, underlyingLive: 128.4, dayValueChange: 28.0, bbSigma: 0.8, openedAt: isoDay(-51) },
+        // Five contracts against the 500 SOFI shares — fully covered. The strike sits
+        // below the 25 cost basis, so the Stocks page will show it as a call written
+        // under water rather than one that exits at a gain.
+        { id: "ex-o21", kind: "covered-call", symbol: "SOFI", optionType: "call", side: "short", qty: 5, strike: 21, expiration: isoDay(20), entryPerShare: 0.62, mark: 0.41, delta: 0.28, gamma: 0.06, vega: 0.02, theta: 0.012, iv: 0.55, breakeven: 21.62, underlyingPrice: 18.91, underlyingChange: 0.99, underlyingClose: 17.92, underlyingLive: 18.91, dayValueChange: -38.0, bbSigma: 1.9, chanceOfProfitShort: 0.72, openedAt: isoDay(-13) },
+        { id: "ex-o4", kind: "leap-call", symbol: "NVDA", optionType: "call", side: "long", qty: 2, strike: 180, expiration: isoDay(146), entryPerShare: 34.50, mark: 48.20, delta: 0.71, gamma: 0.004, vega: 0.82, theta: -0.09, iv: 0.47, breakeven: 214.50, underlyingPrice: 214.72, underlyingChange: -2.13, underlyingClose: 216.85, underlyingLive: 214.72, dayValueChange: -152.0, bbSigma: 0.7, openedAt: isoDay(-194) },
+        { id: "ex-o5", kind: "leap-put-hedge", symbol: "SMH", optionType: "put", side: "long", qty: 1, strike: 520, expiration: isoDay(209), entryPerShare: 31.00, mark: 24.60, delta: -0.31, gamma: 0.002, vega: 1.42, theta: -0.11, iv: 0.29, breakeven: 489.00, underlyingPrice: 560.42, underlyingChange: -2.23, underlyingClose: 562.65, underlyingLive: 560.42, dayValueChange: 68.0, bbSigma: 0.9, openedAt: isoDay(-143) },
+        { id: "ex-o6", kind: "covered-call", symbol: "AAPL", optionType: "call", side: "short", qty: 2, strike: 320, expiration: isoDay(20), entryPerShare: 6.10, mark: 4.35, delta: 0.32, gamma: 0.008, vega: 0.41, theta: 0.12, iv: 0.26, breakeven: 326.10, underlyingPrice: 309.35, underlyingChange: -1.95, underlyingClose: 311.30, underlyingLive: 309.35, dayValueChange: 62.0, bbSigma: 1.5, chanceOfProfitShort: 0.68, openedAt: isoDay(-35) },
+        { id: "ex-o7", kind: "put-spread", symbol: "GOOGL", optionType: "put", side: "short", qty: 1, strike: 330, expiration: isoDay(34), entryPerShare: 11.40, mark: 8.05, delta: -0.31, gamma: 0.005, vega: 0.62, theta: 0.17, iv: 0.31, breakeven: 318.60, underlyingPrice: 344.82, underlyingChange: 4.15, underlyingClose: 340.67, underlyingLive: 344.82, dayValueChange: 55.0, bbSigma: 0.4, chanceOfProfitShort: 0.69, openedAt: isoDay(-39) },
+        { id: "ex-o8", kind: "put-spread", symbol: "GOOGL", optionType: "put", side: "long", qty: 1, strike: 320, expiration: isoDay(34), entryPerShare: 7.20, mark: 4.90, delta: -0.19, gamma: 0.004, vega: 0.48, theta: -0.11, iv: 0.33, breakeven: 312.80, underlyingPrice: 344.82, underlyingChange: 4.15, underlyingClose: 340.67, underlyingLive: 344.82, dayValueChange: -34.0, bbSigma: 0.1, openedAt: isoDay(-39) },
+        { id: "ex-o9", kind: "call-spread", symbol: "NVDA", optionType: "call", side: "short", qty: 2, strike: 230, expiration: isoDay(34), entryPerShare: 8.40, mark: 6.90, delta: 0.38, gamma: 0.006, vega: 0.55, theta: 0.14, iv: 0.45, breakeven: 238.40, underlyingPrice: 214.72, underlyingChange: -2.13, underlyingClose: 216.85, underlyingLive: 214.72, dayValueChange: 96.0, bbSigma: 0.7, chanceOfProfitShort: 0.62, openedAt: isoDay(-51) },
+        { id: "ex-o10", kind: "call-spread", symbol: "NVDA", optionType: "call", side: "long", qty: 2, strike: 240, expiration: isoDay(34), entryPerShare: 5.10, mark: 4.05, delta: 0.27, gamma: 0.005, vega: 0.47, theta: -0.10, iv: 0.47, breakeven: 245.10, underlyingPrice: 214.72, underlyingChange: -2.13, underlyingClose: 216.85, underlyingLive: 214.72, dayValueChange: -64.0, bbSigma: 0.7, openedAt: isoDay(-51) },
       ],
       valueHistory: [
         { label: "Jul", value: 150000 },
@@ -212,11 +192,11 @@ export const exampleSnapshot: Snapshot = {
         optionsBuyingPower: 16500,
       },
       equities: [
-        { symbol: "GOOGL", name: "Alphabet", qty: 100, avgCost: 140, price: 178.4, dayChange: 0.9, bbSigma: 0.3, priceHistory: [172.0, 174.5, 173.1, 176.8, 177.9, 177.2, 178.4], gamma: { flip: 175, callWall: 185, putWall: 170, net: "pos" }, coveredCalls: [ { targetDte: 21, dte: 21, strike: 185, delta: 0.28, mark: 3.4, premPct: 1.91, annPct: 33, oi: 12800, bbSigma: 1.5 } ] },
-        { symbol: "AMZN", name: "Amazon", qty: 60, avgCost: 170, price: 205.6, dayChange: 1.4, bbSigma: 0.7, priceHistory: [197.0, 199.4, 198.2, 202.6, 204.1, 203.5, 205.6] },
+        { symbol: "GOOGL", name: "Alphabet", qty: 100, avgCost: 258, price: 344.82, dayChange: 4.15, bbSigma: 0.4, priceHistory: [332.6, 337.4, 335.1, 341.8, 344.2, 340.67, 344.82], gamma: { flip: 345, callWall: 365, putWall: 325, net: "pos" }, coveredCalls: [ { targetDte: 21, dte: 21, strike: 365, delta: 0.28, mark: 6.10, premPct: 1.77, annPct: 31, oi: 12800, bbSigma: 1.5 } ] },
+        { symbol: "AMZN", name: "Amazon", qty: 60, avgCost: 196, price: 258.63, dayChange: -1.48, bbSigma: 0.5, priceHistory: [251.2, 254.8, 253.1, 257.4, 261.0, 260.11, 258.63] },
       ],
       options: [
-        { id: "ex-ira1", kind: "csp", symbol: "TSM", optionType: "put", side: "short", qty: 1, strike: 190, expiration: isoDay(27), entryPerShare: 5.0, mark: 3.4, delta: -0.25, gamma: 0.01, vega: 0.30, theta: 0.06, iv: 0.34, breakeven: 185, underlyingPrice: 205.3, underlyingChange: 2.2, underlyingClose: 203.1, underlyingLive: 205.3, dayValueChange: 16.0, bbSigma: -0.5, chanceOfProfitShort: 0.76, openedAt: isoDay(-36), erDate: isoDay(25) },
+        { id: "ex-ira1", kind: "csp", symbol: "TSM", optionType: "put", side: "short", qty: 1, strike: 390, expiration: isoDay(27), entryPerShare: 11.80, mark: 9.50, delta: -0.26, gamma: 0.003, vega: 0.71, theta: 0.24, iv: 0.37, breakeven: 378.20, underlyingPrice: 418.95, underlyingChange: 2.95, underlyingClose: 416.00, underlyingLive: 418.95, dayValueChange: 42.0, bbSigma: -0.4, chanceOfProfitShort: 0.74, openedAt: isoDay(-36), erDate: isoDay(25) },
       ],
       valueHistory: [
         { label: "Jan", value: 41000 },
