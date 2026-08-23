@@ -7,6 +7,7 @@ import { SkewHydrator } from "@/components/SkewHydrator";
 import { PrivacyProvider } from "@/components/privacy";
 import { MarginModeProvider } from "@/components/margin-mode";
 import { DEMO_MODE } from "@/lib/demo";
+import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -62,6 +63,9 @@ export default function RootLayout({
               )}
               <ScrollArea className="mx-auto min-h-0 w-full max-w-md flex-1 overflow-y-auto pb-[calc(4.75rem_+_env(safe-area-inset-bottom))] sm:pb-6">{children}</ScrollArea>
               <BottomNav />
+              {/* Visitor counts for the public demo only. A self-hosted instance is
+                  someone's private trading dashboard — it shouldn't report anywhere. */}
+              {DEMO_MODE && <Analytics />}
             </MarginModeProvider>
           </PrivacyProvider>
         </div>
