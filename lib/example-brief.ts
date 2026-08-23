@@ -111,7 +111,7 @@ const board: AmBoardRow[] = [
   mkRow("TSM", 205.3, 82, "A", "fair", { group: "AI / Semis", beta: 1.1, ivr: 41, relVol: 1.0, move: 2.2, er: { date: isoDay(29), days: 29, spans: true } }),
   mkRow("MU", 115.2, 76, "A", "rich", { group: "Memory", beta: 1.5, ivr: 61, relVol: 1.6, move: 1.85 }),
   mkRow("LRCX", 98.0, 81, "A", "fair", { group: "Semi Equip", beta: 1.3, ivr: 47, relVol: 1.1, move: 0.6 }),
-  mkRow("SOFI", 13.55, 71, "A", "rich", { group: "Fintech", beta: 1.6, ivr: 55, relVol: 1.3, move: 2.1 }),
+  mkRow("SOFI", 28.4, 71, "A", "rich", { group: "Fintech", beta: 1.6, ivr: 55, relVol: 1.3, move: 2.1 }),
   mkRow("INTC", 24.1, 58, "B", "fair", { group: "Semis", beta: 1.0, ivr: 38, relVol: 0.9, move: -1.4 }),
   mkRow("GLW", 52.0, 63, "B", "fair", { group: "Optical", beta: 1.1, ivr: 44, relVol: 1.0, move: 0.4 }),
 ];
@@ -128,7 +128,7 @@ function groupOf(group: string): AmVrpGroup {
 const movers: { gainers: AmMover[]; losers: AmMover[] } = {
   gainers: [
     { sym: "TSM", move: 2.2, last: 205.3, vrp: "fair", uptrend: true, gated: false, group: "AI / Semis" },
-    { sym: "SOFI", move: 2.1, last: 13.55, vrp: "rich", uptrend: true, gated: false, group: "Fintech" },
+    { sym: "SOFI", move: 2.1, last: 28.4, vrp: "rich", uptrend: true, gated: false, group: "Fintech" },
     { sym: "MU", move: 1.85, last: 115.2, vrp: "rich", uptrend: true, gated: false, group: "Memory" },
   ],
   losers: [

@@ -68,7 +68,7 @@ const T: Record<string, [number, number, number, boolean, number, number]> = {
   MU: [115.2, 0.66, 63, true, 80, 30],
   LRCX: [98.0, 0.44, 52, true, 81, 28],
   AMAT: [178.0, 0.38, 48, true, 66, 34],
-  SOFI: [13.55, 0.7, 64, true, 74, 32],
+  SOFI: [28.4, 0.7, 64, true, 74, 32],
   INTC: [24.1, 0.18, 38, false, 44, 58],
   GLW: [52.0, 0.5, 54, true, 63, 30],
   CLS: [138.2, 0.92, 74, true, 40, 71],

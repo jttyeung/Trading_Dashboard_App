@@ -44,8 +44,8 @@ export const exampleSnapshot: Snapshot = {
       // equityValue tracks the holdings below (qty x price); the four buckets sum to
       // totalValue so the allocation donut and the percentages reconcile.
       summary: {
-        totalValue: 244650,
-        equityValue: 156050,
+        totalValue: 248010,
+        equityValue: 159410,
         optionsValue: 6200,
         cryptoValue: 22400,
         cash: 60000,
@@ -78,13 +78,13 @@ export const exampleSnapshot: Snapshot = {
           ],
         },
         {
-          symbol: "SOFI", name: "SoFi Technologies", qty: 800, avgCost: 9, price: 13.55, dayChange: 0.28, bbSigma: 1.1,
-          priceHistory: [12.6, 12.9, 12.7, 13.1, 13.4, 13.2, 13.55],
-          gamma: { flip: 13, callWall: 14, putWall: 12, net: "pos" },
+          symbol: "SOFI", name: "SoFi Technologies", qty: 500, avgCost: 25, price: 28.4, dayChange: 0.42, bbSigma: 1.1,
+          priceHistory: [26.4, 27.1, 26.8, 27.6, 28.1, 27.9, 28.4],
+          gamma: { flip: 28, callWall: 32, putWall: 26, net: "pos" },
           coveredCalls: [
-            { targetDte: 14, dte: 14, strike: 14, delta: 0.33, mark: 0.32, premPct: 2.36, annPct: 62, oi: 41200, bbSigma: 0.9 },
-            { targetDte: 21, dte: 21, strike: 15, delta: 0.24, mark: 0.28, premPct: 2.07, annPct: 36, oi: 55800, bbSigma: 1.7 },
-            { targetDte: 30, dte: 30, strike: 15, delta: 0.28, mark: 0.41, premPct: 3.03, annPct: 37, oi: 55800, bbSigma: 1.5 },
+            { targetDte: 14, dte: 14, strike: 30, delta: 0.31, mark: 0.68, premPct: 2.39, annPct: 62, oi: 41200, bbSigma: 0.9 },
+            { targetDte: 21, dte: 21, strike: 31, delta: 0.27, mark: 0.82, premPct: 2.89, annPct: 50, oi: 55800, bbSigma: 1.7 },
+            { targetDte: 30, dte: 30, strike: 32, delta: 0.24, mark: 0.97, premPct: 3.42, annPct: 42, oi: 55800, bbSigma: 1.5 },
           ],
         },
         {
@@ -157,7 +157,7 @@ export const exampleSnapshot: Snapshot = {
       //   MU         — through the strike on delta                                 → "Assignment risk"
       //   CDE, INTC, GLW, CLS, TSM — premium still working, well OTM               → "Hold"
       options: [
-        { id: "ex-o1", kind: "csp", symbol: "SOFI", optionType: "put", side: "short", qty: 2, strike: 12, expiration: isoDay(20), entryPerShare: 0.55, mark: 0.10, delta: -0.12, gamma: 0.06, vega: 0.02, theta: 0.01, iv: 0.52, breakeven: 11.45, underlyingPrice: 13.55, underlyingChange: 0.28, underlyingClose: 13.30, underlyingLive: 13.55, dayValueChange: 9.0, bbSigma: -1.2, chanceOfProfitShort: 0.88, openedAt: isoDay(-38), erDate: isoDay(46) },
+        { id: "ex-o1", kind: "csp", symbol: "SOFI", optionType: "put", side: "short", qty: 2, strike: 26, expiration: isoDay(20), entryPerShare: 1.10, mark: 0.22, delta: -0.12, gamma: 0.06, vega: 0.04, theta: 0.02, iv: 0.52, breakeven: 24.90, underlyingPrice: 28.4, underlyingChange: 0.42, underlyingClose: 27.98, underlyingLive: 28.4, dayValueChange: 14.0, bbSigma: -1.2, chanceOfProfitShort: 0.88, openedAt: isoDay(-38), erDate: isoDay(46) },
         { id: "ex-o2", kind: "csp", symbol: "MU", optionType: "put", side: "short", qty: 1, strike: 118, expiration: isoDay(27), entryPerShare: 3.2, mark: 4.6, delta: -0.56, gamma: 0.01, vega: 0.12, theta: 0.05, iv: 0.44, breakeven: 114.8, underlyingPrice: 115.2, underlyingChange: 1.85, underlyingClose: 113.4, underlyingLive: 115.2, dayValueChange: 22.0, bbSigma: -0.8, chanceOfProfitShort: 0.44, openedAt: isoDay(-43), erDate: isoDay(12) },
         { id: "ex-o3", kind: "csp", symbol: "CDE", optionType: "put", side: "short", qty: 3, strike: 6, expiration: isoDay(34), entryPerShare: 0.35, mark: 0.28, delta: -0.20, gamma: 0.10, vega: 0.01, theta: 0.004, iv: 0.58, breakeven: 5.65, underlyingPrice: 6.85, underlyingChange: 0.05, underlyingClose: 6.80, underlyingLive: 6.85, dayValueChange: 6.0, bbSigma: -0.4, chanceOfProfitShort: 0.80, openedAt: isoDay(-32), erDate: null },
         { id: "ex-o11", kind: "csp", symbol: "IREN", optionType: "put", side: "short", qty: 4, strike: 16, expiration: isoDay(13), entryPerShare: 0.62, mark: 0.08, delta: -0.08, gamma: 0.05, vega: 0.02, theta: 0.008, iv: 0.71, breakeven: 15.38, underlyingPrice: 18.4, underlyingChange: -0.44, underlyingClose: 18.84, underlyingLive: 18.4, dayValueChange: 18.0, bbSigma: -1.6, chanceOfProfitShort: 0.92, openedAt: isoDay(-29), erDate: null },
@@ -221,10 +221,10 @@ const META = { generatedAt: NOW_ISO, source: "example" as const };
 export const exampleCspFile: ClosedCSPFile = {
   meta: META,
   closed: [
-    { id: "ex-c1", symbol: "SOFI", name: "SoFi Technologies", strike: 11, expiration: isoDay(-8), openedAt: isoDay(-53), closedAt: isoDay(-8), contracts: 2, creditPerShare: 0.48, creditReceived: 96, costToClose: 0, realizedPnl: 96, outcome: "expired", daysHeld: 45, collateral: 2200, returnOnCollateral: 0.0436, annualized: 0.354 },
+    { id: "ex-c1", symbol: "SOFI", name: "SoFi Technologies", strike: 24, expiration: isoDay(-8), openedAt: isoDay(-53), closedAt: isoDay(-8), contracts: 2, creditPerShare: 0.95, creditReceived: 190, costToClose: 0, realizedPnl: 190, outcome: "expired", daysHeld: 45, collateral: 4800, returnOnCollateral: 0.0396, annualized: 0.354 },
     { id: "ex-c2", symbol: "MU", name: "Micron Technology", strike: 95, expiration: isoDay(-12), openedAt: isoDay(-57), closedAt: isoDay(-19), contracts: 1, creditPerShare: 3.0, creditReceived: 300, costToClose: 80, realizedPnl: 220, outcome: "closed_profit", daysHeld: 38, collateral: 9500, returnOnCollateral: 0.0232, annualized: 0.223 },
     { id: "ex-c3", symbol: "NVDA", name: "NVIDIA", strike: 95, expiration: isoDay(-34), openedAt: isoDay(-77), closedAt: isoDay(-34), contracts: 1, creditPerShare: 2.4, creditReceived: 240, costToClose: 0, realizedPnl: 240, outcome: "expired", daysHeld: 43, collateral: 9500, returnOnCollateral: 0.0253, annualized: 0.214 },
-    { id: "ex-c4", symbol: "SOFI", name: "SoFi Technologies", strike: 12, expiration: isoDay(-61), openedAt: isoDay(-96), closedAt: isoDay(-61), contracts: 3, creditPerShare: 0.6, creditReceived: 180, costToClose: 0, realizedPnl: 180, outcome: "expired", daysHeld: 35, collateral: 3600, returnOnCollateral: 0.05, annualized: 0.521 },
+    { id: "ex-c4", symbol: "SOFI", name: "SoFi Technologies", strike: 26, expiration: isoDay(-61), openedAt: isoDay(-96), closedAt: isoDay(-61), contracts: 3, creditPerShare: 1.15, creditReceived: 345, costToClose: 0, realizedPnl: 345, outcome: "expired", daysHeld: 35, collateral: 7800, returnOnCollateral: 0.0442, annualized: 0.521 },
     { id: "ex-c5", symbol: "CLS", name: "Celestica", strike: 120, expiration: isoDay(-89), openedAt: isoDay(-120), closedAt: isoDay(-96), contracts: 1, creditPerShare: 3.5, creditReceived: 350, costToClose: 520, realizedPnl: -170, outcome: "closed_loss", daysHeld: 24, collateral: 12000, returnOnCollateral: -0.0142, annualized: -0.215 },
     { id: "ex-c6", symbol: "INTC", name: "Intel", strike: 22, expiration: isoDay(-3), openedAt: isoDay(-31), closedAt: isoDay(-3), contracts: 4, creditPerShare: 0.55, creditReceived: 220, costToClose: 0, realizedPnl: 220, outcome: "expired", daysHeld: 28, collateral: 8800, returnOnCollateral: 0.025, annualized: 0.326 },
     { id: "ex-c7", symbol: "IREN", name: "IREN", strike: 15, expiration: isoDay(-24), openedAt: isoDay(-45), closedAt: isoDay(-15), contracts: 3, creditPerShare: 0.71, creditReceived: 213, costToClose: 42, realizedPnl: 171, outcome: "closed_profit", daysHeld: 30, collateral: 4500, returnOnCollateral: 0.038, annualized: 0.462 },
@@ -266,7 +266,7 @@ export const exampleStockFile: ClosedStockFile = {
     { id: "ex-st1", symbol: "NVDA", name: "NVIDIA", side: "long", shares: 100, avgOpen: 95, avgClose: 128, costBasis: 9500, proceeds: 12800, realizedPnl: 3300, outcome: "closed_profit", openedAt: isoDay(-131), closedAt: isoDay(-36), daysHeld: 95, returnPct: 0.347, annualized: 1.33 },
     { id: "ex-st2", symbol: "MU", name: "Micron Technology", side: "long", shares: 100, avgOpen: 100, avgClose: 92, costBasis: 10000, proceeds: 9200, realizedPnl: -800, outcome: "closed_loss", openedAt: isoDay(-95), closedAt: isoDay(-57), daysHeld: 38, returnPct: -0.08, annualized: -0.77 },
     { id: "ex-st3", symbol: "AAPL", name: "Apple", side: "long", shares: 50, avgOpen: 175, avgClose: 205, costBasis: 8750, proceeds: 10250, realizedPnl: 1500, outcome: "closed_profit", openedAt: isoDay(-121), closedAt: isoDay(-11), daysHeld: 110, returnPct: 0.171, annualized: 0.568 },
-    { id: "ex-st4", symbol: "SOFI", name: "SoFi Technologies", side: "long", shares: 500, avgOpen: 9.5, avgClose: 13, costBasis: 4750, proceeds: 6500, realizedPnl: 1750, outcome: "closed_profit", openedAt: isoDay(-109), closedAt: isoDay(-5), daysHeld: 120, returnPct: 0.368, annualized: 1.12 },
+    { id: "ex-st4", symbol: "SOFI", name: "SoFi Technologies", side: "long", shares: 300, avgOpen: 22.4, avgClose: 27.8, costBasis: 6720, proceeds: 8340, realizedPnl: 1620, outcome: "closed_profit", openedAt: isoDay(-109), closedAt: isoDay(-5), daysHeld: 120, returnPct: 0.368, annualized: 1.12 },
     { id: "ex-st5", symbol: "CLS", name: "Celestica", side: "long", shares: 60, avgOpen: 115, avgClose: 108, costBasis: 6900, proceeds: 6480, realizedPnl: -420, outcome: "closed_loss", openedAt: isoDay(-72), closedAt: isoDay(-46), daysHeld: 26, returnPct: -0.0609, annualized: -0.85 },
   ],
 };
