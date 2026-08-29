@@ -2,8 +2,9 @@
 
 // The Research workspace. Top: vehicle tabs (CSPs / LEAPs / Bull Puts / Bear
 // Calls / Covered) listing the strongest candidates for each. Bottom: the full
-// approved roster, tinted by each name's dominant signal, with an Edit mode to
-// add/remove tickers (persisted via /api/approved; both app and Python read it).
+// watchlist, tinted by each name's dominant signal. `symbols` is the real
+// Google-Sheets-driven watchlist (research.json's own ticker keys) — there's
+// no separate curated/editable list; edit the sheet to change what's screened.
 import { useState } from "react";
 import { VEHICLES, topCandidates, coveredCandidates, dominant, hasData } from "@/lib/research-types";
 import type { ResearchFile, TickerData, Holding } from "@/lib/research-types";
@@ -45,92 +46,16 @@ export function ResearchView({
 }) {
   const [vehicle, setVehicle] = useState<string>(initialVehicle ?? VEHICLES[0].key);
   const [q, setQ] = useState("");
-  const [approved, setApproved] = useState<string[]>([...symbols]);
-  const [editing, setEditing] = useState(false);
-  const [addInput, setAddInput] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
-
-  async function post(body: Record<string, unknown>) {
-    setBusy(true);
-    setErr("");
-    try {
-      const res = await fetch("/api/approved", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const json = await res.json();
-      if (Array.isArray(json.symbols)) setApproved(json.symbols);
-      else setErr(json.error || "Update failed");
-    } catch {
-      setErr("Couldn't reach the server");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  const onAdd = async () => {
-    if (busy) return;
-    // Accept one or many tickers, comma- and/or whitespace-separated
-    // (e.g. "NVDA, AMD TSM"). Invalid ones are dropped server-side.
-    const parsed = addInput
-      .split(/[\s,]+/)
-      .map((s) => s.trim().toUpperCase())
-      .filter(Boolean);
-    const toAdd = [...new Set(parsed)].filter((u) => !approved.includes(u));
-    if (toAdd.length === 0) {
-      setAddInput("");
-      return;
-    }
-    await post({ action: "add", symbols: toAdd });
-    setAddInput("");
-  };
 
   const query = q.trim().toUpperCase();
-  const sortedApproved = [...approved].sort((a, b) => a.localeCompare(b));
-  const gridSyms = query ? sortedApproved.filter((s) => s.includes(query)) : sortedApproved;
+  const gridSyms = query ? symbols.filter((s) => s.includes(query)) : symbols;
 
   const approvedSection = (
     <>
       <div className="mt-5 mb-2 flex items-center justify-between px-1">
-        <h3 className="text-sm font-semibold">All approved</h3>
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] text-muted">{approved.length} names</span>
-          <button
-            onClick={() => setEditing((e) => !e)}
-            className={`rounded-lg px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset transition-colors ${
-              editing ? "bg-sky-500/20 text-sky-200 ring-sky-500/40" : "text-muted ring-border active:bg-surface-2/60"
-            }`}
-          >
-            {editing ? "Done" : "Edit"}
-          </button>
-        </div>
+        <h3 className="text-sm font-semibold">Watchlist</h3>
+        <span className="text-[11px] text-muted">{symbols.length} names</span>
       </div>
-
-      {editing && (
-        <div className="mb-2">
-          <div className="flex items-center gap-2">
-            <input
-              value={addInput}
-              onChange={(e) => setAddInput(e.target.value.toUpperCase())}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") onAdd();
-              }}
-              placeholder="Add tickers (e.g. NVDA, AMD, TSM)"
-              className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm uppercase text-text placeholder:normal-case placeholder:text-muted focus:outline-none"
-            />
-            <button
-              onClick={onAdd}
-              disabled={busy || !addInput.trim()}
-              className="rounded-lg bg-sky-500/20 px-3 py-2 text-sm font-medium text-sky-200 ring-1 ring-inset ring-sky-500/40 active:bg-sky-500/30 disabled:opacity-50"
-            >
-              Add
-            </button>
-          </div>
-          {err && <p className="mt-1 px-1 text-[10px] text-rose-400">{err}</p>}
-        </div>
-      )}
 
       <div className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-sm">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="shrink-0 text-muted">
@@ -140,7 +65,7 @@ export function ResearchView({
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Filter approved tickers…"
+          placeholder="Filter watchlist tickers…"
           className="w-full bg-transparent text-text placeholder:text-muted focus:outline-none"
         />
         {q && <button onClick={() => setQ("")} className="shrink-0 text-muted active:opacity-60">✕</button>}
@@ -156,16 +81,6 @@ export function ResearchView({
               key={s}
               className={`relative flex flex-col items-center justify-center rounded-lg border px-2 py-2 ${ok ? chipTint(t) : "border-border bg-surface"}`}
             >
-              {editing && (
-                <button
-                  onClick={() => post({ action: "remove", symbol: s })}
-                  disabled={busy}
-                  aria-label={`Remove ${s}`}
-                  className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500/90 text-[9px] text-white active:bg-rose-600 disabled:opacity-50"
-                >
-                  ✕
-                </button>
-              )}
               <span className="text-sm font-semibold">{s}</span>
               <span className="tabular text-[9px] text-muted">
                 {ok && d ? (d.direction === "bullish" ? `▲ ${d.score}` : `▼ ${d.score}`) : "—"}
@@ -175,9 +90,8 @@ export function ResearchView({
         })}
       </div>
       <p className="mt-2 px-1 text-[10px] text-muted">
-        {editing
-          ? "Tap ✕ to remove · newly added names get scored on the next research sync."
-          : "Chip tint = dominant signal (green bullish / red bearish), number = score. Tap a vehicle above for its ranked list."}
+        Driven by your Google Sheets watchlist — edit the sheet to change what's screened here. Chip tint = dominant
+        signal (green bullish / red bearish), number = score. Tap a vehicle above for its ranked list.
       </p>
     </>
   );
@@ -186,8 +100,7 @@ export function ResearchView({
     return (
       <div>
         <p className="mt-3 rounded-xl border border-border bg-surface px-3 py-3 text-[12px] leading-relaxed text-muted">
-          No research data yet. Run <span className="font-mono">python research_sync.py</span> (or let auto_push refresh)
-          to compute the indicator scores. You can still curate the approved list below.
+          No research data yet — waiting on the next sync.
         </p>
         {approvedSection}
       </div>

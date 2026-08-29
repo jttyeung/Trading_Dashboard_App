@@ -1,6 +1,5 @@
 import { Card, PageHeader, SectionTitle, Pill } from "@/components/ui";
 import { ResearchView } from "@/components/ResearchView";
-import { getApproved } from "@/lib/approved";
 import { getResearch } from "@/lib/research";
 import { getSnapshot } from "@/lib/snapshot";
 import type { Holding } from "@/lib/research-types";
@@ -74,17 +73,21 @@ export default async function ResearchPage({
   const snap = await getSnapshot();
   const data = getResearch(snap.meta.source === "example");
   const holdings = aggregateHoldings(snap.data);
-  const approved = getApproved();
-  const sortedApproved = [...approved].sort((a, b) => a.localeCompare(b));
+  // The screened universe is your Google Sheets watchlist (wheel +
+  // safe_haven) — research.json's own ticker keys are exactly that list,
+  // since OptionsEvaluator only ever computes indicators for watchlist
+  // names. No separate curated list; edit the sheet to change what's
+  // screened here.
+  const universe = data ? Object.keys(data.tickers).sort((a, b) => a.localeCompare(b)) : [];
 
   return (
     <main className="px-4">
       <PageHeader
         title="Research"
-        subtitle={`Approved universe · ${approved.length} names${data ? "" : " · sync pending"}`}
+        subtitle={`Watchlist universe · ${universe.length} names${data ? "" : " · sync pending"}`}
       />
 
-      <ResearchView data={data} symbols={sortedApproved} holdings={holdings} initialVehicle={initialVehicle} />
+      <ResearchView data={data} symbols={universe} holdings={holdings} initialVehicle={initialVehicle} />
 
       <SectionTitle>Screening playbook</SectionTitle>
       <div className="space-y-3">
