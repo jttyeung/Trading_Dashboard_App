@@ -549,17 +549,27 @@ function CumulativeChart({
   );
 }
 
+// Diverging bar: green fills right of center for profit, red fills left for
+// loss, width scaled against the largest |P&L| among the bars shown
+// alongside it — so a single bucket (nothing to compare against) fills all
+// the way to its edge, and reads as "the whole bar," not "0-100% of a
+// total." The center tick and −/+ flanks exist so that reads as $0, not
+// just a decorative divider.
 function DivergingBar({ pnl, maxAbs }: { pnl: number; maxAbs: number }) {
   const frac = maxAbs > 0 ? Math.min(1, Math.abs(pnl) / maxAbs) : 0;
   const w = frac * 50;
   const pos = pnl >= 0;
   return (
-    <div className="relative h-2 w-full overflow-hidden rounded-full bg-surface-2">
-      <div className="absolute inset-y-0 left-1/2 w-px bg-border" />
-      <div
-        className={`absolute inset-y-0 ${pos ? "rounded-r-full bg-emerald-500/70" : "rounded-l-full bg-rose-500/70"}`}
-        style={pos ? { left: "50%", width: `${w}%` } : { right: "50%", width: `${w}%` }}
-      />
+    <div className="flex items-center gap-1.5">
+      <span className="shrink-0 text-[9px] leading-none text-muted">−</span>
+      <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
+        <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-text/50" />
+        <div
+          className={`absolute inset-y-0 ${pos ? "rounded-r-full bg-emerald-500/70" : "rounded-l-full bg-rose-500/70"}`}
+          style={pos ? { left: "50%", width: `${w}%` } : { right: "50%", width: `${w}%` }}
+        />
+      </div>
+      <span className="shrink-0 text-[9px] leading-none text-muted">+</span>
     </div>
   );
 }
