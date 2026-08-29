@@ -80,14 +80,7 @@ export default async function ResearchPage({
   return (
     <main className="px-4">
       <PageHeader
-        title={
-          <>
-            Research{" "}
-            <span className="ml-1 align-middle text-xs font-medium text-yellow-400">
-              Incomplete Development
-            </span>
-          </>
-        }
+        title="Research"
         subtitle={`Approved universe · ${approved.length} names${data ? "" : " · sync pending"}`}
       />
 
