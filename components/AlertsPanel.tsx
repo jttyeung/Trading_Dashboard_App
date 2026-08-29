@@ -4,14 +4,17 @@ import type { Alert } from "@/lib/types";
 const ACTION_STYLE: Record<Alert["action"], { label: string; chip: string }> = {
   close: { label: "Close", chip: "bg-rose-500/15 text-rose-300 ring-rose-500/30" },
   roll: { label: "Roll", chip: "bg-amber-500/15 text-amber-300 ring-amber-500/30" },
+  watch: { label: "Watch", chip: "bg-violet-500/15 text-violet-300 ring-violet-500/30" },
   monitor: { label: "Monitor", chip: "bg-sky-500/15 text-sky-300 ring-sky-500/30" },
 };
 
-// Position alerts (close/roll/monitor) — always the tracker's current full
-// set, not history (position_alerts is wiped and rewritten each cycle).
-// Sorted with close first, then roll, then monitor, since that's roughly
-// urgency order; ties broken by DTE (soonest first).
-const ACTION_RANK: Record<Alert["action"], number> = { close: 0, roll: 1, monitor: 2 };
+// Position alerts (close/roll/watch/monitor) — always the tracker's current
+// full set, not history (position_alerts is wiped and rewritten each
+// cycle). Sorted with close first, then roll (already ITM), then watch
+// (still OTM but delta rising — a proactive early warning, not yet urgent),
+// then monitor, since that's roughly urgency order; ties broken by DTE
+// (soonest first).
+const ACTION_RANK: Record<Alert["action"], number> = { close: 0, roll: 1, watch: 2, monitor: 3 };
 
 export function AlertsPanel({ alerts }: { alerts: Alert[] }) {
   if (alerts.length === 0) return null;
