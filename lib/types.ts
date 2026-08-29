@@ -459,6 +459,7 @@ export interface RiskView {
   thetaMaxPct: number;
   sectorValues: Record<string, number>;
   maxSectorAllocationPct: number;
+  portfolioValue: number; // the liquidation value sectorValues/thetaPct were each computed against
 }
 
 export interface AccountRiskView extends RiskView {

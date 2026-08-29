@@ -17,6 +17,7 @@ const EMPTY: PortfolioRiskFile = {
     thetaMaxPct: 0,
     sectorValues: {},
     maxSectorAllocationPct: 0,
+    portfolioValue: 0,
   },
   perAccount: [],
 };
