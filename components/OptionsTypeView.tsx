@@ -18,8 +18,11 @@ import { SimulateControls } from "@/components/SimulateControls";
 import { useIvSkew } from "@/lib/simConfig";
 import { simulatePosition, hasSimulatableMove } from "@/lib/simulate";
 import { SimValue } from "@/components/SimValue";
+import { SingleLegScreener } from "@/components/SingleLegScreener";
+import { CspScreener } from "@/components/CspScreener";
+import type { CSPCandidate, SingleLegCandidate } from "@/lib/types";
 
-type Status = "open" | "closed";
+type Status = "open" | "closed" | "candidates";
 
 export type CspFilter = "atrisk" | "rollable" | "hold";
 
@@ -48,6 +51,8 @@ export function OptionsTypeView({
   open: rawOpen,
   closedCsps,
   closedLeaps,
+  cspCandidates,
+  singleLegCandidates,
   initialCspFilter,
   initialStatus = "open",
   statusFromUrl = false,
@@ -58,8 +63,10 @@ export function OptionsTypeView({
   open: OptionPosition[];
   closedCsps: ClosedCSP[];
   closedLeaps: ClosedLeap[];
+  cspCandidates?: CSPCandidate[]; // csp only
+  singleLegCandidates?: SingleLegCandidate[]; // leap only (LEAPS/LONG_PUT strategies)
   initialCspFilter?: CspFilter; // deep-link from the home action center
-  initialStatus?: Status; // deep-link straight to Open or Closed
+  initialStatus?: Status; // deep-link straight to Open, Closed, or Candidates
   statusFromUrl?: boolean; // true when ?view= set it — then it wins over persisted
   closedMode?: "all" | "ytd" | "months" | "today"; // carry the P&L time window in
   closedMonths?: number;
@@ -195,11 +202,12 @@ export function OptionsTypeView({
 
   return (
     <div>
-      {/* Open | Closed */}
+      {/* Open | Closed | Candidates */}
       <div className="mt-4 flex gap-1 rounded-xl border border-border bg-surface p-1">
         {([
           { key: "open" as const, label: `Open · ${open.length}` },
           { key: "closed" as const, label: `Closed · ${closedCount}` },
+          { key: "candidates" as const, label: `Candidates · ${type === "csp" ? (cspCandidates?.length ?? 0) : (singleLegCandidates?.length ?? 0)}` },
         ]).map((s) => (
           <button
             key={s.key}
@@ -272,8 +280,16 @@ export function OptionsTypeView({
             {type === "csp" && <CspCashPlan csps={open} selected={cashBucket} onSelect={setCashBucket} />}
           </>
         )
-      ) : (
+      ) : status === "closed" ? (
         <ClosedOptions csps={closedCsps} leaps={closedLeaps} initialType={type} lockType initialMode={closedMode} initialMonths={closedMonths} />
+      ) : type === "csp" ? (
+        <div className="mt-3">
+          <CspScreener candidates={cspCandidates ?? []} />
+        </div>
+      ) : (
+        <div className="mt-3">
+          <SingleLegScreener candidates={singleLegCandidates ?? []} />
+        </div>
       )}
 
       {/* Find new — jumps to the matching Research vehicle */}

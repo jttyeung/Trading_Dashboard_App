@@ -160,6 +160,7 @@ export interface CSPCandidate {
     earningsBeforeExp: boolean | null; // null = unverified (no earnings feed)
     exDivBeforeExp: boolean | null;
   };
+  washSaleWarning: string | null; // RULE-014 heuristic, not tax advice — see the message itself for the specific prior loss
   source?: "holding" | "discovered"; // how the name entered the screen
   instrumentId?: string;
 }
@@ -338,4 +339,167 @@ export interface Snapshot {
   meta: SnapshotMeta;
   accounts: Account[];
   data: Record<string, AccountData>;
+}
+
+// ---------------------------------------------------------------------------
+// Single-leg candidates (LEAPS / CC / LONG_PUT / BEAR_MKT_PUT) — the raw
+// qualifying universe, same design as CSPCandidate above, from
+// data/single-leg-candidates.json. Note rorPercent/annualizedRorPercent mean
+// "cost as % of buying the stock outright" for LEAPS/LONG_PUT (long,
+// bought positions) — NOT a yield the way CSPCandidate's numbers are.
+// ---------------------------------------------------------------------------
+export interface SingleLegCandidate {
+  id: string;
+  strategy: "LEAPS" | "CC" | "LONG_PUT" | "BEAR_MKT_PUT";
+  putCall: "PUT" | "CALL";
+  symbol: string;
+  name: string;
+  sector: string;
+  underlyingPrice: number;
+  strike: number;
+  expiration: string;
+  dte: number;
+  bid: number;
+  ask: number;
+  mark: number;
+  delta: number;
+  theta: number;
+  iv: number;
+  openInterest: number;
+  volume: number;
+  rorPercent: number | null;
+  annualizedRorPercent: number | null;
+  fundamentals: {
+    largeCap: boolean | null;
+    sp500: boolean | null;
+    profitable: boolean | null;
+  };
+  ivRank: number | null;
+  technical: {
+    aboveSma50: boolean | null;
+    rsi: number | null;
+    strikeBelowSupport: boolean | null;
+  };
+  flags: {
+    earningsBeforeExp: boolean | null;
+    exDivBeforeExp: boolean | null;
+  };
+  washSaleWarning: string | null;
+  source?: "holding" | "discovered";
+}
+
+export interface SingleLegCandidatesFile {
+  meta: {
+    generatedAt: string;
+    pricesAsOf: string;
+    dteBasis: string;
+    universe: string;
+    note?: string;
+  };
+  candidates: SingleLegCandidate[];
+}
+
+// ---------------------------------------------------------------------------
+// Spread candidates (BULL_PUT / BEAR_CALL / IRON_CONDOR / BULL_CALL /
+// BEAR_PUT / PMCC) from data/spread-candidates.json. Whichever strike pair
+// a strategy doesn't use is null (e.g. a bull put spread only populates
+// putShortStrike/putLongStrike). PMCC is the one shape with two distinct
+// expirations — longExpiration/longDte is its LEAPS leg.
+// ---------------------------------------------------------------------------
+export type SpreadStrategy = "BULL_PUT" | "BEAR_CALL" | "IRON_CONDOR" | "BULL_CALL" | "BEAR_PUT" | "PMCC";
+
+export interface SpreadCandidate {
+  id: string;
+  strategy: SpreadStrategy;
+  symbol: string;
+  name: string;
+  sector: string;
+  underlyingPrice: number;
+  expiration: string; // the short-dated leg's expiration
+  dte: number;
+  longExpiration: string | null; // PMCC only
+  longDte: number | null;
+  putShortStrike: number | null;
+  putLongStrike: number | null;
+  callShortStrike: number | null;
+  callLongStrike: number | null;
+  netPremium: number;
+  isCredit: boolean;
+  width: number | null;
+  maxProfit: number | null;
+  maxLoss: number | null;
+  rorPercent: number | null;
+  breakeven: number | null; // iron condor: lower breakeven only — the upper one isn't persisted upstream
+  washSaleWarning: string | null;
+  source?: "holding" | "discovered";
+}
+
+export interface SpreadCandidatesFile {
+  meta: {
+    generatedAt: string;
+    pricesAsOf: string;
+    dteBasis: string;
+    universe: string;
+    note?: string;
+  };
+  candidates: SpreadCandidate[];
+}
+
+// ---------------------------------------------------------------------------
+// Portfolio risk (RULE-006 theta ceiling, RULE-011 sector cap) from
+// data/portfolio-risk.json. Thresholds ship alongside the values so the UI
+// never hardcodes RULE-006/011's numbers itself.
+// ---------------------------------------------------------------------------
+export interface RiskView {
+  thetaToday: number;
+  thetaPct: number;
+  thetaStatus: "below_target" | "on_target" | "above_target_below_ceiling" | "over_ceiling" | "unknown";
+  thetaMinPct: number;
+  thetaTargetMaxPct: number;
+  thetaMaxPct: number;
+  sectorValues: Record<string, number>;
+  maxSectorAllocationPct: number;
+}
+
+export interface AccountRiskView extends RiskView {
+  accountLabel: string; // always masked/labeled server-side — never a raw account number
+}
+
+export interface PortfolioRiskFile {
+  meta: { generatedAt: string };
+  overall: RiskView;
+  perAccount: AccountRiskView[];
+}
+
+// ---------------------------------------------------------------------------
+// Active position alerts (close/roll/monitor) from data/alerts.json —
+// always the tracker's current full set, not history (see position_alerts'
+// own doc comment on the Go side).
+// ---------------------------------------------------------------------------
+export interface Alert {
+  ticker: string;
+  putCall: "PUT" | "CALL";
+  contractSymbol: string;
+  strike: number;
+  expirationDate: string;
+  dte: number;
+  entryCredit: number;
+  currentValue: number;
+  profitLoss: number;
+  profitPct: number;
+  underlyingPrice: number;
+  action: "close" | "roll" | "monitor";
+  rationale: string;
+  rollToSymbol: string | null;
+  rollToStrike: number | null;
+  rollToExpirationDate: string | null;
+  rollToDte: number | null;
+  rollToDelta: number | null;
+  rollToNetCredit: number | null;
+  evaluatedAt: string;
+}
+
+export interface AlertsFile {
+  meta: { generatedAt: string };
+  alerts: Alert[];
 }

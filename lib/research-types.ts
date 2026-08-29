@@ -1,6 +1,13 @@
 // Shapes for research.json (written by the Python research_sync) plus pure
 // ranking helpers. No filesystem access here, so client components can import it.
 
+export interface GammaView {
+  flip: number | null;
+  callWall: number | null;
+  putWall: number | null;
+  net: number | null;
+}
+
 export interface IndicatorSnapshot {
   price: number;
   sma20: number;
@@ -16,6 +23,7 @@ export interface IndicatorSnapshot {
   macdBearish: boolean;
   freshBullCross: boolean;
   freshBearCross: boolean;
+  gamma?: GammaView;
 }
 
 export interface SetupSignal {

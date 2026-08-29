@@ -9,12 +9,17 @@ import { getSnapshot } from "@/lib/snapshot";
 import { getSelectedAccount } from "@/lib/account";
 import { getClosedCsps } from "@/lib/csp-closed";
 import { getClosedLeaps } from "@/lib/leaps-closed";
+import { getSingleLegCandidates } from "@/lib/single-leg-candidates";
 import { parseClosedWindow } from "@/lib/date-range";
 import type { OptionPosition } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 const isLeap = (o: OptionPosition) => o.kind === "leap-call" || o.kind === "leap-put-hedge";
+
+function toStatus(v: string | undefined): "open" | "closed" | "candidates" {
+  return v === "closed" || v === "candidates" ? v : "open";
+}
 
 export default async function OptionsLeapPage({ searchParams }: { searchParams: Promise<{ view?: string; range?: string; months?: string; symbol?: string }> }) {
   const { view, range, months, symbol } = await searchParams;
@@ -27,6 +32,11 @@ export default async function OptionsLeapPage({ searchParams }: { searchParams: 
   const open = allLeaps.filter((o) => !sym || o.symbol.toUpperCase() === sym);
   const closedCsps = (await getClosedCsps()).closed.filter((c) => !sym || c.symbol.toUpperCase() === sym);
   const closedLeaps = (await getClosedLeaps()).closed.filter((c) => !sym || c.symbol.toUpperCase() === sym);
+  // CC candidates live on the Covered Calls page instead — this page mirrors
+  // the leap-call/leap-put-hedge open-position kinds it already shows.
+  const singleLegCandidates = getSingleLegCandidates().candidates.filter(
+    (c) => c.strategy !== "CC" && (!sym || c.symbol.toUpperCase() === sym),
+  );
 
   return (
     <main className="px-4">
@@ -43,7 +53,17 @@ export default async function OptionsLeapPage({ searchParams }: { searchParams: 
           right={<BackLink />}
         />
         <TickerBar tickers={tickers} active={sym} base="/options/leap" />
-        <OptionsTypeView type="leap" open={open} closedCsps={closedCsps} closedLeaps={closedLeaps} initialStatus={view === "closed" ? "closed" : "open"} statusFromUrl={view === "open" || view === "closed"} closedMode={closedMode} closedMonths={closedMonths} />
+        <OptionsTypeView
+          type="leap"
+          open={open}
+          closedCsps={closedCsps}
+          closedLeaps={closedLeaps}
+          singleLegCandidates={singleLegCandidates}
+          initialStatus={toStatus(view)}
+          statusFromUrl={view === "open" || view === "closed" || view === "candidates"}
+          closedMode={closedMode}
+          closedMonths={closedMonths}
+        />
       </ShowAmounts>
     </main>
   );

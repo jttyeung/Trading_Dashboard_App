@@ -10,6 +10,7 @@ import { getSelectedAccount } from "@/lib/account";
 import { getEarnings } from "@/lib/earnings";
 import { getClosedCsps } from "@/lib/csp-closed";
 import { getClosedLeaps } from "@/lib/leaps-closed";
+import { getCspCandidates } from "@/lib/csp-candidates";
 import { parseClosedWindow } from "@/lib/date-range";
 import type { OptionPosition } from "@/lib/types";
 
@@ -19,6 +20,10 @@ const isCsp = (o: OptionPosition) => o.kind === "csp";
 
 function toCspFilter(v: string | undefined): CspFilter | undefined {
   return v === "atrisk" || v === "rollable" || v === "hold" ? v : undefined;
+}
+
+function toStatus(v: string | undefined): "open" | "closed" | "candidates" {
+  return v === "closed" || v === "candidates" ? v : "open";
 }
 
 export default async function OptionsCspPage({
@@ -39,6 +44,7 @@ export default async function OptionsCspPage({
     .map((o) => ({ ...o, erDate: earnings[o.symbol.toUpperCase()] ?? o.erDate ?? null }));
   const closedCsps = (await getClosedCsps()).closed.filter((c) => !sym || c.symbol.toUpperCase() === sym);
   const closedLeaps = (await getClosedLeaps()).closed.filter((c) => !sym || c.symbol.toUpperCase() === sym);
+  const cspCandidates = getCspCandidates().candidates.filter((c) => !sym || c.symbol.toUpperCase() === sym);
 
   return (
     <main className="px-4">
@@ -60,9 +66,10 @@ export default async function OptionsCspPage({
           open={open}
           closedCsps={closedCsps}
           closedLeaps={closedLeaps}
+          cspCandidates={cspCandidates}
           initialCspFilter={toCspFilter(filter)}
-          initialStatus={view === "closed" ? "closed" : "open"}
-          statusFromUrl={view === "open" || view === "closed"}
+          initialStatus={toStatus(view)}
+          statusFromUrl={view === "open" || view === "closed" || view === "candidates"}
           closedMode={closedMode}
           closedMonths={closedMonths}
         />
