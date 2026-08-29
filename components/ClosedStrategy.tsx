@@ -286,6 +286,11 @@ function CoveredRows({ c }: { c: ClosedCoveredCall }) {
         }
       />
       <Row k="Return on notional" v={`${(c.returnOnNotional * 100).toFixed(2)}% · ${fmtPct(c.annualized, 0)} annualized`} />
+      {c.washSaleWarning && (
+        <div className="mt-1.5 flex items-start gap-2 rounded-lg bg-amber-500/10 p-2 text-[11px] text-amber-200 ring-1 ring-inset ring-amber-500/20">
+          <span>⚠️ {c.washSaleWarning}</span>
+        </div>
+      )}
     </dl>
   );
 }

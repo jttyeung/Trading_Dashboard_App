@@ -195,6 +195,7 @@ export interface ClosedCSP {
   collateral: number;
   returnOnCollateral: number; // decimal
   annualized: number; // decimal
+  washSaleWarning: string | null;
 }
 
 export interface ClosedCSPFile {
@@ -221,6 +222,7 @@ export interface ClosedLeap {
   daysHeld: number;
   returnPct: number; // realizedPnl ÷ costBasis (decimal)
   annualized: number; // decimal
+  washSaleWarning: string | null;
 }
 
 export interface ClosedLeapFile {
@@ -246,6 +248,7 @@ export interface ClosedCoveredCall {
   daysHeld: number;
   returnOnNotional: number; // realizedPnl ÷ (strike × 100 × contracts), decimal
   annualized: number; // decimal
+  washSaleWarning: string | null;
 }
 
 export interface ClosedCoveredFile {

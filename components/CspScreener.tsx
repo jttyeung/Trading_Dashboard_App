@@ -241,6 +241,12 @@ export function CspScreener({ candidates }: { candidates: CSPCandidate[] }) {
                           ))}
                         </div>
 
+                        {c.washSaleWarning && (
+                          <div className="mt-3 flex items-start gap-2 rounded-lg bg-amber-500/10 p-2 text-[11px] text-amber-200 ring-1 ring-inset ring-amber-500/20">
+                            <span>⚠️ {c.washSaleWarning}</span>
+                          </div>
+                        )}
+
                         <div className="mt-3 flex items-start gap-2 rounded-lg bg-sky-500/10 p-2 text-[11px] text-sky-200 ring-1 ring-inset ring-sky-500/20">
                           <span>
                             <span className="font-semibold">Entry: </span>

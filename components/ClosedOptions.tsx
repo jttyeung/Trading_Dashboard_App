@@ -385,6 +385,11 @@ function CspRows({ c }: { c: ClosedCSP }) {
       <Row k="Collateral" v={<Amt>{fmtMoney(c.collateral)}</Amt>} />
       <Row k="Realized P/L" v={c.outcome === "assigned" ? <span className="text-sky-300">$0 <span className="text-muted">— premium folded into share cost basis</span></span> : <span className={c.realizedPnl >= 0 ? "text-emerald-400" : "text-rose-400"}><Amt>{`${c.realizedPnl >= 0 ? "+" : "−"}${fmtMoney(Math.abs(c.realizedPnl), { cents: true })}`}</Amt></span>} />
       <Row k="Return on collateral" v={`${(c.returnOnCollateral * 100).toFixed(2)}% · ${fmtPct(c.annualized, 0)} annualized`} />
+      {c.washSaleWarning && (
+        <div className="mt-1.5 flex items-start gap-2 rounded-lg bg-amber-500/10 p-2 text-[11px] text-amber-200 ring-1 ring-inset ring-amber-500/20">
+          <span>⚠️ {c.washSaleWarning}</span>
+        </div>
+      )}
     </dl>
   );
 }
@@ -398,6 +403,11 @@ function LeapRows({ l }: { l: ClosedLeap }) {
       <Row k="Proceeds" v={l.outcome === "expired" ? "$0 (expired worthless)" : <Amt>{fmtMoney(l.proceeds, { cents: true })}</Amt>} />
       <Row k="Realized P/L" v={<span className={l.realizedPnl >= 0 ? "text-emerald-400" : "text-rose-400"}><Amt>{`${l.realizedPnl >= 0 ? "+" : "−"}${fmtMoney(Math.abs(l.realizedPnl), { cents: true })}`}</Amt></span>} />
       <Row k="Return" v={`${(l.returnPct * 100).toFixed(1)}% · ${fmtPct(l.annualized, 0)} annualized`} />
+      {l.washSaleWarning && (
+        <div className="mt-1.5 flex items-start gap-2 rounded-lg bg-amber-500/10 p-2 text-[11px] text-amber-200 ring-1 ring-inset ring-amber-500/20">
+          <span>⚠️ {l.washSaleWarning}</span>
+        </div>
+      )}
     </dl>
   );
 }

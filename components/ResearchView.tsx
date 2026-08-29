@@ -288,6 +288,14 @@ export function ResearchView({
                       <div className="tabular mt-0.5 text-[10px] text-muted">
                         %B {Math.round(t.pctB * 100)} · RSI {Math.round(t.rsi)} · MACD {macdOk ? "▲" : "▼"} · ${t.price}
                       </div>
+                      {t.gamma && (t.gamma.putWall != null || t.gamma.callWall != null) && (
+                        <div className="tabular mt-0.5 text-[10px] text-muted">
+                          {t.gamma.putWall != null && <>PW ${t.gamma.putWall.toFixed(0)}</>}
+                          {t.gamma.putWall != null && t.gamma.callWall != null && " · "}
+                          {t.gamma.callWall != null && <>CW ${t.gamma.callWall.toFixed(0)}</>}
+                          {t.gamma.flip != null && <> · Flip ${t.gamma.flip.toFixed(0)}</>}
+                        </div>
+                      )}
                     </div>
                     <div className="flex shrink-0 gap-1">
                       <Crit ok={bull ? !!side.bbLow : !!side.bbHigh} dir={dir}>BB</Crit>
