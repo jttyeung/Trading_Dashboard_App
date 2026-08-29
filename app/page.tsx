@@ -10,6 +10,8 @@ import { AccountSwitcher } from "@/components/AccountSwitcher";
 import { PortfolioFit } from "@/components/PortfolioFit";
 import { BuyingPowerStat } from "@/components/BuyingPowerStat";
 import { AvailableCash } from "@/components/AvailableCash";
+import { AlertsPanel } from "@/components/AlertsPanel";
+import { getAlerts } from "@/lib/alerts";
 import { getSnapshot } from "@/lib/snapshot";
 import { getAmReport } from "@/lib/am-report";
 import { computeHoldings } from "@/lib/holdings";
@@ -46,6 +48,7 @@ function fmtDataStamp(pricesAsOf: string): string {
 
 export default async function HomePage() {
   const snap = await getSnapshot();
+  const alerts = getAlerts().alerts;
   const { accounts, meta } = snap;
   const { id, data } = await getSelectedAccount(snap);
   const { summary, equities, options, valueHistory } = data;
@@ -238,6 +241,10 @@ export default async function HomePage() {
           }
         />
       </div>
+
+      {/* Active tracker alerts — what needs attention right now, ahead of the
+          static quick-access cards below. */}
+      <AlertsPanel alerts={alerts} />
 
       {/* Quick access — CSPs are the core strategy, so surface them up top. */}
       <Link href="/options/csp" className="mt-3 block active:opacity-80">
