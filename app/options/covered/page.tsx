@@ -7,12 +7,17 @@ import { getSnapshot } from "@/lib/snapshot";
 import { getSelectedAccount } from "@/lib/account";
 import { getClosedCovered } from "@/lib/covered-closed";
 import { getClosedSpreads } from "@/lib/spreads-closed";
+import { getSingleLegCandidates } from "@/lib/single-leg-candidates";
 import { parseClosedWindow } from "@/lib/date-range";
 import type { OptionPosition } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 const isCovered = (o: OptionPosition) => o.kind === "covered-call";
+
+function toStatus(v: string | undefined): "open" | "closed" | "candidates" {
+  return v === "closed" || v === "candidates" ? v : "open";
+}
 
 export default async function OptionsCoveredPage({ searchParams }: { searchParams: Promise<{ view?: string; range?: string; months?: string; symbol?: string }> }) {
   const { view, range, months, symbol } = await searchParams;
@@ -25,6 +30,9 @@ export default async function OptionsCoveredPage({ searchParams }: { searchParam
   const open = allCovered.filter((o) => !sym || o.symbol.toUpperCase() === sym);
   const closedCovered = (await getClosedCovered()).closed.filter((c) => !sym || c.symbol.toUpperCase() === sym);
   const closedSpreads = (await getClosedSpreads()).closed.filter((c) => !sym || c.symbol.toUpperCase() === sym);
+  const ccCandidates = getSingleLegCandidates().candidates.filter(
+    (c) => c.strategy === "CC" && (!sym || c.symbol.toUpperCase() === sym),
+  );
 
   return (
     <main className="px-4">
@@ -45,8 +53,9 @@ export default async function OptionsCoveredPage({ searchParams }: { searchParam
           open={open}
           closedCovered={closedCovered}
           closedSpreads={closedSpreads}
-          initialStatus={view === "closed" ? "closed" : "open"}
-          statusFromUrl={view === "open" || view === "closed"}
+          ccCandidates={ccCandidates}
+          initialStatus={toStatus(view)}
+          statusFromUrl={view === "open" || view === "closed" || view === "candidates"}
           closedMode={closedMode}
           closedMonths={closedMonths}
         />

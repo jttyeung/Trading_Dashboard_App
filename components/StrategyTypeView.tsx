@@ -15,13 +15,15 @@ import { ClosedStrategy } from "@/components/ClosedStrategy";
 import { fmtMoney, fmtPct, optionBasis, optionPnl } from "@/lib/calc";
 import { CSP_DEFAULT_DIR, nextSort, sortCsps, type Sort, type SortDir } from "@/lib/option-sort";
 import { buildSpreads, type Spread } from "@/lib/spread";
-import type { ClosedCoveredCall, ClosedSpread, OptionPosition } from "@/lib/types";
+import type { ClosedCoveredCall, ClosedSpread, OptionPosition, SingleLegCandidate, SpreadCandidate } from "@/lib/types";
 import { SimulateControls } from "@/components/SimulateControls";
 import { useIvSkew } from "@/lib/simConfig";
 import { simulatePosition, hasSimulatableMove } from "@/lib/simulate";
 import { SimValue } from "@/components/SimValue";
+import { SingleLegScreener } from "@/components/SingleLegScreener";
+import { SpreadScreener } from "@/components/SpreadScreener";
 
-type Status = "open" | "closed";
+type Status = "open" | "closed" | "candidates";
 
 const SPREAD_DEFAULT_DIR: Record<string, SortDir> = {
   ticker: "asc", dte: "asc", risk: "desc", plpct: "desc", pldollar: "desc", tostrike: "asc", yr: "desc",
@@ -57,6 +59,8 @@ export function StrategyTypeView({
   open: rawOpen,
   closedCovered,
   closedSpreads,
+  ccCandidates,
+  spreadCandidates,
   initialStatus = "open",
   statusFromUrl = false,
   closedMode,
@@ -66,6 +70,8 @@ export function StrategyTypeView({
   open: OptionPosition[];
   closedCovered: ClosedCoveredCall[];
   closedSpreads: ClosedSpread[];
+  ccCandidates?: SingleLegCandidate[]; // covered only
+  spreadCandidates?: SpreadCandidate[]; // spread only
   initialStatus?: Status;
   statusFromUrl?: boolean; // true when ?view= set it — then it wins over persisted
   closedMode?: "all" | "ytd" | "months" | "today";
@@ -124,6 +130,7 @@ export function StrategyTypeView({
           [
             { key: "open" as const, label: `Open · ${open.length}` },
             { key: "closed" as const, label: `Closed · ${closedCount}` },
+            { key: "candidates" as const, label: `Candidates · ${type === "covered" ? (ccCandidates?.length ?? 0) : (spreadCandidates?.length ?? 0)}` },
           ]
         ).map((s) => (
           <button
@@ -188,8 +195,16 @@ export function StrategyTypeView({
             )}
           </>
         )
-      ) : (
+      ) : status === "closed" ? (
         <ClosedStrategy kind={type} items={type === "covered" ? closedCovered : closedSpreads} initialMode={closedMode} initialMonths={closedMonths} />
+      ) : type === "covered" ? (
+        <div className="mt-3">
+          <SingleLegScreener candidates={ccCandidates ?? []} />
+        </div>
+      ) : (
+        <div className="mt-3">
+          <SpreadScreener candidates={spreadCandidates ?? []} />
+        </div>
       )}
 
       {/* Find new — jumps to the matching Research vehicle */}

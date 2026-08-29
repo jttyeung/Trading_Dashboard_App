@@ -9,12 +9,17 @@ import { getSnapshot } from "@/lib/snapshot";
 import { getSelectedAccount } from "@/lib/account";
 import { getClosedCovered } from "@/lib/covered-closed";
 import { getClosedSpreads } from "@/lib/spreads-closed";
+import { getSpreadCandidates } from "@/lib/spread-candidates";
 import { parseClosedWindow } from "@/lib/date-range";
 import type { OptionPosition } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 const isSpread = (o: OptionPosition) => o.kind === "put-spread" || o.kind === "call-spread";
+
+function toStatus(v: string | undefined): "open" | "closed" | "candidates" {
+  return v === "closed" || v === "candidates" ? v : "open";
+}
 
 export default async function OptionsSpreadPage({ searchParams }: { searchParams: Promise<{ view?: string; range?: string; months?: string; symbol?: string }> }) {
   const { view, range, months, symbol } = await searchParams;
@@ -27,6 +32,9 @@ export default async function OptionsSpreadPage({ searchParams }: { searchParams
   const allSpreads = data.options.filter(isSpread);
   const tickers = [...new Set(allSpreads.map((o) => o.symbol.toUpperCase()))].sort();
   const open = allSpreads.filter((o) => !sym || o.symbol.toUpperCase() === sym);
+  // All 6 spread/PMCC strategies here (not just vertical put-spread/call-spread
+  // open-position kinds) — this is the only page for multi-leg candidates.
+  const spreadCandidates = getSpreadCandidates().candidates.filter((c) => !sym || c.symbol.toUpperCase() === sym);
 
   return (
     <main className="px-4">
@@ -48,8 +56,9 @@ export default async function OptionsSpreadPage({ searchParams }: { searchParams
           open={open}
           closedCovered={closedCovered}
           closedSpreads={closedSpreads}
-          initialStatus={view === "closed" ? "closed" : "open"}
-          statusFromUrl={view === "open" || view === "closed"}
+          spreadCandidates={spreadCandidates}
+          initialStatus={toStatus(view)}
+          statusFromUrl={view === "open" || view === "closed" || view === "candidates"}
           closedMode={closedMode}
           closedMonths={closedMonths}
         />
