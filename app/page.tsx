@@ -269,6 +269,16 @@ export default async function HomePage() {
         </Card>
       </Link>
 
+      <Link href="/benchmark" className="mt-2 block active:opacity-80">
+        <Card className="flex items-center justify-between gap-3 bg-teal-500/5 px-4 py-3 ring-1 ring-inset ring-teal-500/25">
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-teal-200">Frozen vs. S&amp;P 500</div>
+            <div className="text-[11px] text-muted">What if you'd never traded again since the cutoff?</div>
+          </div>
+          <span className="shrink-0 text-sm font-medium text-teal-300">View ›</span>
+        </Card>
+      </Link>
+
       {/* Top movers — day's change in net market value per ticker. Off-hours the
           option day P&L is frozen, so TopMovers projects it via Simulate instead. */}
       <TopMovers equities={equities} options={options} marketOpen={isRegularSession()} />

@@ -537,3 +537,28 @@ export interface SuggestionPerformanceFile {
   meta: { generatedAt: string; totalSuggestions: number };
   matched: MatchedSuggestion[];
 }
+
+// ---------------------------------------------------------------------------
+// Frozen-portfolio counterfactual vs. S&P 500 (data/benchmark.json). "Frozen"
+// and "spy" are full historical series from cutoffDate to today (real
+// historical prices — no options involved, so these are honestly
+// reconstructable). "actualToday" is the account's real, exact value right
+// now; "actualGrowing" only starts accumulating from whenever this feature
+// first ran, since there's no reliable way to reconstruct the real
+// portfolio's own historical options mark-to-market for arbitrary past dates.
+// ---------------------------------------------------------------------------
+export interface BenchmarkMeta {
+  generatedAt: string;
+  cutoffDate: string;
+  frozenHoldings: Record<string, number>; // ticker -> shares, includes cash-equivalents
+  frozenCash: number;
+  note: string;
+}
+
+export interface BenchmarkFile {
+  meta: BenchmarkMeta;
+  frozen: ValuePoint[];
+  spy: ValuePoint[];
+  actualToday: number;
+  actualGrowing: ValuePoint[];
+}
