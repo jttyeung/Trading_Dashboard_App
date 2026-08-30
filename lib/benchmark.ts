@@ -1,4 +1,4 @@
-// Server-side loader for the frozen-portfolio-vs-S&P-500 comparison
+// Server-side loader for the Pre-OTU-vs-S&P-500-vs-actual comparison
 // (data/benchmark.json), written by the data bridge.
 import fs from "node:fs";
 import path from "node:path";
@@ -12,8 +12,8 @@ const EMPTY: BenchmarkFile = {
   meta: { generatedAt: "", cutoffDate: "", frozenHoldings: {}, frozenCash: 0, note: "" },
   frozen: [],
   spy: [],
+  actual: [],
   actualToday: 0,
-  actualGrowing: [],
 };
 
 export async function getBenchmark(): Promise<BenchmarkFile> {

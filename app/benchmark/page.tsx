@@ -11,7 +11,7 @@ export default async function BenchmarkPage() {
   return (
     <main className="px-4">
       <ShowAmounts>
-        <PageHeader title="Frozen vs. S&P 500" subtitle="What if you'd never traded again since the cutoff?" right={<BackLink />} />
+        <PageHeader title="Pre-OTU vs. S&P 500" subtitle="What if you'd never traded again since the cutoff?" right={<BackLink />} />
         <BenchmarkView benchmark={benchmark} />
       </ShowAmounts>
     </main>

@@ -707,13 +707,16 @@ export const exampleSuggestionPerformanceFile: SuggestionPerformanceFile = {
   ],
 };
 
-// Frozen-portfolio counterfactual vs. S&P 500 (data/benchmark.json). frozen/
-// spy are a deterministic sine-based walk (not Math.random) so a rebuild
-// doesn't reshuffle the demo chart between deploys — same "invented but
-// internally consistent" spirit as the rest of this file. actualToday
-// noticeably beats the frozen basket's own ending value, matching the real
-// account's own story (two months of options income outperforming a
-// same-holdings buy-and-hold baseline) rather than an arbitrary number.
+// Pre-OTU portfolio counterfactual vs. S&P 500 vs. actual (data/benchmark.json).
+// All three are a deterministic sine-based walk (not Math.random) so a
+// rebuild doesn't reshuffle the demo chart between deploys — same "invented
+// but internally consistent" spirit as the rest of this file. Mirrors the
+// real backend's own guarantees: actual's first point exactly equals
+// frozen's first point (both are the same cutoff-day snapshot by
+// construction), and actual's last point exactly equals actualToday
+// (today's exact value, not an approximation). actual noticeably beats
+// frozen's own ending value, matching the real account's own story (options
+// income outperforming a same-holdings buy-and-hold baseline).
 const BENCHMARK_DAYS = 60;
 function benchmarkWalk(startValue: number, dailyDriftPct: number, noiseAmplitude: number, seedOffset: number): number[] {
   const values: number[] = [];
@@ -728,6 +731,10 @@ function benchmarkWalk(startValue: number, dailyDriftPct: number, noiseAmplitude
 
 const frozenWalk = benchmarkWalk(60200, 0.0006, 120, 3);
 const spyWalk = benchmarkWalk(745, 0.0007, 1.8, 11);
+const actualWalk = benchmarkWalk(60200, 0.0016, 140, 19);
+const ACTUAL_TODAY = 68420.5;
+actualWalk[0] = frozenWalk[0];
+actualWalk[actualWalk.length - 1] = ACTUAL_TODAY;
 const benchmarkDates = Array.from({ length: BENCHMARK_DAYS + 1 }, (_, i) => isoDay(i - BENCHMARK_DAYS));
 
 export const exampleBenchmarkFile: BenchmarkFile = {
@@ -736,16 +743,10 @@ export const exampleBenchmarkFile: BenchmarkFile = {
     cutoffDate: benchmarkDates[0],
     frozenHoldings: { AAPL: 40, SOFI: 300, GLW: 150, IREN: 200, MU: 50, SWVXX: 8000 },
     frozenCash: 2500,
-    note: "Frozen holds the cutoff-date basket static — no reinvestment of dividends/interest — so it's a conservative lower bound on a true buy-and-hold. Actual is today's real, exact account value; actualGrowing only starts accumulating from when this feature first ran, since there's no reliable way to reconstruct historical options mark-to-market for arbitrary past dates.",
+    note: "Pre-OTU holds the cutoff-date basket static — no reinvestment of dividends/interest — so it's a conservative lower bound on a true buy-and-hold. Actual reconstructs real, changing holdings + cash day by day since the cutoff — it captures real cash flows from options trading, but not the unrealized value of any option position that was still open on a given past date, so treat it as a close approximation everywhere except its very last point, which is today's exact, options-inclusive account value.",
   },
   frozen: benchmarkDates.map((label, i) => ({ label, value: frozenWalk[i] })),
   spy: benchmarkDates.map((label, i) => ({ label, value: spyWalk[i] })),
-  actualToday: 68420.5,
-  actualGrowing: [
-    { label: isoDay(-4), value: 68010.2 },
-    { label: isoDay(-3), value: 68155.8 },
-    { label: isoDay(-2), value: 67980.4 },
-    { label: isoDay(-1), value: 68300.1 },
-    { label: isoDay(0), value: 68420.5 },
-  ],
+  actual: benchmarkDates.map((label, i) => ({ label, value: actualWalk[i] })),
+  actualToday: ACTUAL_TODAY,
 };

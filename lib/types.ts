@@ -539,13 +539,14 @@ export interface SuggestionPerformanceFile {
 }
 
 // ---------------------------------------------------------------------------
-// Frozen-portfolio counterfactual vs. S&P 500 (data/benchmark.json). "Frozen"
-// and "spy" are full historical series from cutoffDate to today (real
-// historical prices — no options involved, so these are honestly
-// reconstructable). "actualToday" is the account's real, exact value right
-// now; "actualGrowing" only starts accumulating from whenever this feature
-// first ran, since there's no reliable way to reconstruct the real
-// portfolio's own historical options mark-to-market for arbitrary past dates.
+// Pre-OTU portfolio counterfactual vs. S&P 500 vs. actual (data/benchmark.json).
+// All three are full historical series from cutoffDate to today, plotted on
+// the same axis. "frozen" and "spy" are exactly reconstructable (real
+// historical prices, no options involved). "actual" reconstructs the
+// account's real, changing holdings + cash day by day — a close
+// approximation everywhere except its own last point, which is
+// "actualToday" exactly (today's real, options-inclusive account value) —
+// see meta.note for what it can't capture.
 // ---------------------------------------------------------------------------
 export interface BenchmarkMeta {
   generatedAt: string;
@@ -559,6 +560,6 @@ export interface BenchmarkFile {
   meta: BenchmarkMeta;
   frozen: ValuePoint[];
   spy: ValuePoint[];
+  actual: ValuePoint[];
   actualToday: number;
-  actualGrowing: ValuePoint[];
 }

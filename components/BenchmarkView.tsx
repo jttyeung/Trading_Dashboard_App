@@ -1,24 +1,29 @@
 "use client";
 
-// Frozen-portfolio-vs-S&P-500 screen: a static Frozen-vs-SPY chart (both
-// fully reconstructable historical series, normalized to "% since cutoff"),
-// a direct today's-dollar-value comparison (frozen basket vs. your real
-// account), and a short forward-only "actual" tail that fills in over time.
-// Actual isn't overlaid on the normalized chart — its own first data point
-// is from whenever this feature started collecting, not from cutoffDate, so
-// plotting it on the same 0%-at-cutoff axis as Frozen/SPY would misleadingly
-// show it starting flat. See lib/types.ts's BenchmarkFile doc comment.
+// Pre-OTU-vs-S&P-500-vs-actual screen: one chart with all three series over
+// the same cutoff-to-today window (Pre-OTU and S&P 500 are exactly
+// reconstructable; Actual is a close approximation of the account's real
+// activity — see lib/types.ts's BenchmarkFile doc comment for what it can
+// and can't capture), plus a direct today's-dollar comparison.
 import { Card, SectionTitle, Delta } from "@/components/ui";
 import { Amt } from "@/components/privacy";
 import { fmtMoney } from "@/lib/calc";
 import { BenchmarkChart } from "@/components/BenchmarkChart";
-import { InteractiveSparkline } from "@/components/InteractiveSparkline";
 import type { BenchmarkFile } from "@/lib/types";
 
-const ACTUAL_GROWING_MIN_POINTS = 5;
+const PRE_OTU_COLOR = "#60a5fa";
+const SPY_COLOR = "#a3a3a3";
+const ACTUAL_COLOR = "#34d399";
+
+function pctReturn(points: { value: number }[]): number {
+  if (points.length === 0) return 0;
+  const first = points[0].value;
+  const last = points[points.length - 1].value;
+  return first ? (last - first) / first : 0;
+}
 
 export function BenchmarkView({ benchmark }: { benchmark: BenchmarkFile }) {
-  const { meta, frozen, spy, actualToday, actualGrowing } = benchmark;
+  const { meta, frozen, spy, actual, actualToday } = benchmark;
 
   if (frozen.length === 0 || spy.length === 0) {
     return (
@@ -29,11 +34,12 @@ export function BenchmarkView({ benchmark }: { benchmark: BenchmarkFile }) {
     );
   }
 
-  const frozenToday = frozen[frozen.length - 1].value;
-  const frozenReturn = (frozenToday - frozen[0].value) / frozen[0].value;
-  const spyReturn = (spy[spy.length - 1].value - spy[0].value) / spy[0].value;
-  const gapVsFrozen = actualToday - frozenToday;
-  const gapVsFrozenPct = frozenToday > 0 ? gapVsFrozen / frozenToday : 0;
+  const preOtuToday = frozen[frozen.length - 1].value;
+  const preOtuReturn = pctReturn(frozen);
+  const spyReturn = pctReturn(spy);
+  const actualReturn = pctReturn(actual);
+  const gapVsPreOtu = actualToday - preOtuToday;
+  const gapVsPreOtuPct = preOtuToday > 0 ? gapVsPreOtu / preOtuToday : 0;
 
   const holdingCount = Object.keys(meta.frozenHoldings).length;
 
@@ -41,8 +47,8 @@ export function BenchmarkView({ benchmark }: { benchmark: BenchmarkFile }) {
     <div>
       <p className="mt-3 px-1 text-[11px] leading-relaxed text-muted">
         If you'd frozen every account exactly as it stood on <span className="font-medium text-text">{meta.cutoffDate}</span> —{" "}
-        {holdingCount} holdings + cash, no more trades, no options, ever — here's what that basket would be worth
-        today, tracked against the S&amp;P 500 and your real, actively-traded account.
+        {holdingCount} holdings + cash, no more trades, no options, ever — here's what that basket (Pre-OTU) would be
+        worth today, tracked against the S&amp;P 500 and your real, actively-traded account.
       </p>
 
       <Card className="mt-3 px-4 py-4">
@@ -52,32 +58,37 @@ export function BenchmarkView({ benchmark }: { benchmark: BenchmarkFile }) {
         <div className="mt-2">
           <BenchmarkChart
             series={[
-              { label: "Frozen basket", points: frozen, color: "#60a5fa" },
-              { label: "S&P 500", points: spy, color: "#a3a3a3" },
+              { label: "Pre-OTU", points: frozen, color: PRE_OTU_COLOR },
+              { label: "S&P 500", points: spy, color: SPY_COLOR },
+              { label: "Actual", points: actual, color: ACTUAL_COLOR },
             ]}
           />
         </div>
-        <div className="mt-3 flex items-center gap-4 text-[12px]">
+        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12px]">
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "#60a5fa" }} />
-            Frozen basket <Delta value={frozenToday - frozen[0].value} pct={frozenReturn} />
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: PRE_OTU_COLOR }} />
+            Pre-OTU <Delta value={preOtuToday - frozen[0].value} pct={preOtuReturn} />
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "#a3a3a3" }} />
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: SPY_COLOR }} />
             S&amp;P 500 <span className={`tabular font-medium ${spyReturn >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
               {spyReturn >= 0 ? "+" : "−"}
               {Math.abs(spyReturn * 100).toFixed(1)}%
             </span>
           </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: ACTUAL_COLOR }} />
+            Actual <Delta value={actualToday - (actual[0]?.value ?? actualToday)} pct={actualReturn} />
+          </span>
         </div>
       </Card>
 
-      <SectionTitle>Frozen vs. actual, today</SectionTitle>
+      <SectionTitle>Pre-OTU vs. actual, today</SectionTitle>
       <Card className="grid grid-cols-2 divide-x divide-border">
         <div className="px-4 py-3">
-          <div className="text-[10px] uppercase tracking-wide text-muted">Frozen basket</div>
+          <div className="text-[10px] uppercase tracking-wide text-muted">Pre-OTU</div>
           <div className="tabular mt-1 text-lg font-bold">
-            <Amt>{fmtMoney(frozenToday)}</Amt>
+            <Amt>{fmtMoney(preOtuToday)}</Amt>
           </div>
           <div className="mt-0.5 text-[10px] text-muted">untouched since {meta.cutoffDate}</div>
         </div>
@@ -87,33 +98,12 @@ export function BenchmarkView({ benchmark }: { benchmark: BenchmarkFile }) {
             <Amt>{fmtMoney(actualToday)}</Amt>
           </div>
           <div className="mt-0.5 text-[10px]">
-            <Delta value={gapVsFrozen} pct={gapVsFrozenPct} />
-            <span className="ml-1 text-muted">vs. frozen</span>
+            <Delta value={gapVsPreOtu} pct={gapVsPreOtuPct} />
+            <span className="ml-1 text-muted">vs. Pre-OTU</span>
           </div>
         </div>
       </Card>
       <p className="mt-1.5 px-1 text-[10px] leading-relaxed text-muted">{meta.note}</p>
-
-      <SectionTitle>Actual portfolio, tracked forward</SectionTitle>
-      <Card className="px-4 py-3">
-        {actualGrowing.length >= ACTUAL_GROWING_MIN_POINTS ? (
-          <>
-            <div className="flex items-center justify-between text-[11px] text-muted">
-              <span>Since {actualGrowing[0].label}</span>
-              <span>{actualGrowing.length} days recorded</span>
-            </div>
-            <div className="mt-2">
-              <InteractiveSparkline data={actualGrowing} positive={actualGrowing[actualGrowing.length - 1].value >= actualGrowing[0].value} />
-            </div>
-          </>
-        ) : (
-          <p className="text-[11px] text-muted">
-            Building — {actualGrowing.length} of {ACTUAL_GROWING_MIN_POINTS} days recorded so far. Real options
-            positions can't be reconstructed historically, so this line only starts from when this feature began
-            tracking, not from {meta.cutoffDate}.
-          </p>
-        )}
-      </Card>
     </div>
   );
 }
