@@ -184,6 +184,9 @@ export function SpreadScreener({ candidates }: { candidates: SpreadCandidate[] }
                               {c.strategy === "PMCC" && c.longExpiration && (
                                 <span className="ml-1 text-[10px] text-muted">→ {fmtExp(c.longExpiration)}</span>
                               )}
+                              {c.washSaleWarning && (
+                                <span className="ml-1 text-amber-400" title="Possible wash sale — see details">⚠️</span>
+                              )}
                             </span>
                             <span className="tabular text-right text-xs">
                               {c.isCredit ? "+" : "−"}

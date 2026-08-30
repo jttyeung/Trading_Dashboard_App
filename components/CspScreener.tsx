@@ -202,7 +202,12 @@ export function CspScreener({ candidates }: { candidates: CSPCandidate[] }) {
                       onClick={() => setOpenId(open ? null : c.id)}
                       className="grid w-full grid-cols-[1.2fr_0.6fr_1fr_1.1fr_0.8fr_1.3fr] items-center gap-1 px-4 py-2.5 text-left active:bg-surface-2"
                     >
-                      <span className="tabular text-sm font-medium">${c.strike}</span>
+                      <span className="tabular text-sm font-medium">
+                        ${c.strike}
+                        {c.washSaleWarning && (
+                          <span className="ml-1 text-amber-400" title="Possible wash sale — see details">⚠️</span>
+                        )}
+                      </span>
                       <span className="tabular text-right text-xs text-muted">{c.delta.toFixed(2)}</span>
                       <span className="tabular text-right text-xs">{fmtMoney(premium(c), { cents: true })}</span>
                       <span className="tabular text-right text-sm font-semibold text-emerald-400">{yld.toFixed(2)}%</span>

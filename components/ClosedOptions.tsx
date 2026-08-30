@@ -282,6 +282,9 @@ export function ClosedOptions({
                     <span className="min-w-0">
                       <span className="text-sm font-medium">
                         {d.symbol} ${d.strike}{optType}{d.contracts > 1 ? ` ×${d.contracts}` : ""}
+                        {d.washSaleWarning && (
+                          <span className="ml-1 text-amber-400" title="Possible wash sale — see details">⚠️</span>
+                        )}
                       </span>
                       <span className="block text-[10px] text-muted">
                         {d.closedAt} · {it.kind === "csp" ? "CSP" : "LEAP"}

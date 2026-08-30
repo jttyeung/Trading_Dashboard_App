@@ -211,6 +211,9 @@ export function ClosedStrategy({
                       <span className="text-sm font-medium">
                         {label}
                         {it.contracts > 1 ? ` ×${it.contracts}` : ""}
+                        {kind === "covered" && (it as ClosedCoveredCall).washSaleWarning && (
+                          <span className="ml-1 text-amber-400" title="Possible wash sale — see details">⚠️</span>
+                        )}
                       </span>
                       <span className="block text-[10px] text-muted">
                         {it.closedAt} · {sub}
