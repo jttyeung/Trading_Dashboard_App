@@ -263,7 +263,7 @@ export default async function HomePage() {
         <Card className="flex items-center justify-between gap-3 bg-violet-500/5 px-4 py-3 ring-1 ring-inset ring-violet-500/25">
           <div className="min-w-0">
             <div className="text-sm font-semibold text-violet-200">Portfolio risk</div>
-            <div className="text-[11px] text-muted">Theta ceiling &amp; sector concentration (RULE-006/011)</div>
+            <div className="text-[11px] text-muted">Theta ceiling &amp; sector concentration</div>
           </div>
           <span className="shrink-0 text-sm font-medium text-violet-300">View ›</span>
         </Card>

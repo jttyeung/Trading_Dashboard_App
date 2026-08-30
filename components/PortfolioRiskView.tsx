@@ -24,7 +24,7 @@ function ThetaGauge({ risk }: { risk: RiskView }) {
     <div>
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-[10px] uppercase tracking-wide text-muted">Theta today (RULE-006)</div>
+          <div className="text-[10px] uppercase tracking-wide text-muted">Theta today</div>
           <div className="tabular text-lg font-bold leading-tight">
             <Amt>{`${risk.thetaToday >= 0 ? "+" : "−"}${fmtMoney(Math.abs(risk.thetaToday))}`}</Amt>/day
           </div>
@@ -83,7 +83,7 @@ function SectorBars({ risk, portfolioValue }: { risk: RiskView; portfolioValue: 
           </div>
         );
       })}
-      <p className="pt-1 text-[10px] text-muted">RULE-011 cap: {(risk.maxSectorAllocationPct * 100).toFixed(0)}% per sector</p>
+      <p className="pt-1 text-[10px] text-muted">Sector cap: {(risk.maxSectorAllocationPct * 100).toFixed(0)}% per sector</p>
     </div>
   );
 }

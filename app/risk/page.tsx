@@ -17,7 +17,7 @@ export default async function RiskPage() {
           title="Portfolio Risk"
           subtitle={
             <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-              <span>RULE-006 theta ceiling · RULE-011 sector cap</span>
+              <span>Theta ceiling · sector concentration cap</span>
               <DataRefresh nextAt={getRefreshStatus().app?.nextAt} />
             </span>
           }
