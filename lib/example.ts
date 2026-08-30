@@ -14,6 +14,7 @@ import type {
   ClosedCoveredFile,
   ClosedSpreadFile,
   ClosedStockFile,
+  PortfolioRiskFile,
 } from "./types";
 
 const ACC = "EX000000"; // primary margin account
@@ -220,6 +221,10 @@ export const exampleCspFile: ClosedCSPFile = {
     { id: "ex-c3", symbol: "NVDA", name: "NVIDIA", strike: 95, expiration: isoDay(-34), openedAt: isoDay(-77), closedAt: isoDay(-34), contracts: 1, creditPerShare: 2.4, creditReceived: 240, costToClose: 0, realizedPnl: 240, outcome: "expired", daysHeld: 43, collateral: 9500, returnOnCollateral: 0.0253, annualized: 0.214, washSaleWarning: null },
     { id: "ex-c4", symbol: "SOFI", name: "SoFi Technologies", strike: 26, expiration: isoDay(-61), openedAt: isoDay(-96), closedAt: isoDay(-61), contracts: 3, creditPerShare: 1.15, creditReceived: 345, costToClose: 0, realizedPnl: 345, outcome: "expired", daysHeld: 35, collateral: 7800, returnOnCollateral: 0.0442, annualized: 0.521, washSaleWarning: null },
     { id: "ex-c5", symbol: "CLS", name: "Celestica", strike: 120, expiration: isoDay(-89), openedAt: isoDay(-120), closedAt: isoDay(-96), contracts: 1, creditPerShare: 3.5, creditReceived: 350, costToClose: 520, realizedPnl: -170, outcome: "closed_loss", daysHeld: 24, collateral: 12000, returnOnCollateral: -0.0142, annualized: -0.215, washSaleWarning: null },
+    // Reopened 11 days after ex-c5's loss closed — inside RULE-014's 30-day window on the
+    // same underlying + option type, so it carries the same wash-sale warning text
+    // internal/pnl/washsale.go's FormatWashSaleWarning would actually produce.
+    { id: "ex-c9", symbol: "CLS", name: "Celestica", strike: 115, expiration: isoDay(-50), openedAt: isoDay(-85), closedAt: isoDay(-50), contracts: 1, creditPerShare: 2.1, creditReceived: 210, costToClose: 0, realizedPnl: 210, outcome: "expired", daysHeld: 35, collateral: 11500, returnOnCollateral: 0.0183, annualized: 0.191, washSaleWarning: `possible wash sale: a PUT loss on CLS closed ${isoDay(-96)} — reopening this may disallow that loss for tax purposes (not tax advice, verify with a preparer)` },
     { id: "ex-c6", symbol: "INTC", name: "Intel", strike: 22, expiration: isoDay(-3), openedAt: isoDay(-31), closedAt: isoDay(-3), contracts: 4, creditPerShare: 0.55, creditReceived: 220, costToClose: 0, realizedPnl: 220, outcome: "expired", daysHeld: 28, collateral: 8800, returnOnCollateral: 0.025, annualized: 0.326, washSaleWarning: null },
     { id: "ex-c7", symbol: "IREN", name: "IREN", strike: 15, expiration: isoDay(-24), openedAt: isoDay(-45), closedAt: isoDay(-15), contracts: 3, creditPerShare: 0.71, creditReceived: 213, costToClose: 42, realizedPnl: 171, outcome: "closed_profit", daysHeld: 30, collateral: 4500, returnOnCollateral: 0.038, annualized: 0.462, washSaleWarning: null },
     { id: "ex-c8", symbol: "GLW", name: "Corning", strike: 45, expiration: isoDay(-6), openedAt: isoDay(-40), closedAt: isoDay(-6), contracts: 2, creditPerShare: 1.35, creditReceived: 270, costToClose: 0, realizedPnl: 270, outcome: "expired", daysHeld: 34, collateral: 9000, returnOnCollateral: 0.03, annualized: 0.322, washSaleWarning: null },
@@ -262,5 +267,73 @@ export const exampleStockFile: ClosedStockFile = {
     { id: "ex-st3", symbol: "AAPL", name: "Apple", side: "long", shares: 50, avgOpen: 175, avgClose: 205, costBasis: 8750, proceeds: 10250, realizedPnl: 1500, outcome: "closed_profit", openedAt: isoDay(-121), closedAt: isoDay(-11), daysHeld: 110, returnPct: 0.171, annualized: 0.568 },
     { id: "ex-st4", symbol: "SOFI", name: "SoFi Technologies", side: "long", shares: 300, avgOpen: 22.4, avgClose: 27.8, costBasis: 6720, proceeds: 8340, realizedPnl: 1620, outcome: "closed_profit", openedAt: isoDay(-109), closedAt: isoDay(-5), daysHeld: 120, returnPct: 0.368, annualized: 1.12 },
     { id: "ex-st5", symbol: "CLS", name: "Celestica", side: "long", shares: 60, avgOpen: 115, avgClose: 108, costBasis: 6900, proceeds: 6480, realizedPnl: -420, outcome: "closed_loss", openedAt: isoDay(-72), closedAt: isoDay(-46), daysHeld: 26, returnPct: -0.0609, annualized: -0.85 },
+  ],
+};
+
+// RULE-006/011 portfolio risk — reuses the same "Individual"/"Roth IRA" labels
+// as exampleSnapshot's accounts so the demo stays consistent across screens.
+// Technology intentionally sits above maxSectorAllocationPct so the sector
+// table's "over cap" state has something real to show, not an all-green screen.
+export const examplePortfolioRiskFile: PortfolioRiskFile = {
+  meta: { generatedAt: NOW_ISO },
+  overall: {
+    thetaToday: 38.5,
+    thetaPct: 0.016,
+    thetaStatus: "on_target",
+    thetaMinPct: 0.01,
+    thetaTargetMaxPct: 0.02,
+    thetaMaxPct: 0.03,
+    sectorValues: {
+      Technology: 21000,
+      Financials: 9800,
+      "Consumer Discretionary": 8200,
+      Healthcare: 6500,
+      "Communication Services": 5100,
+      Energy: 4200,
+      Industrials: 3600,
+    },
+    maxSectorAllocationPct: 0.3,
+    portfolioValue: 58400,
+  },
+  perAccount: [
+    {
+      accountLabel: "Individual",
+      thetaToday: 25.0,
+      thetaPct: 0.018,
+      thetaStatus: "on_target",
+      thetaMinPct: 0.01,
+      thetaTargetMaxPct: 0.02,
+      thetaMaxPct: 0.03,
+      sectorValues: {
+        Technology: 15000,
+        Financials: 6000,
+        "Consumer Discretionary": 5000,
+        Healthcare: 4000,
+        "Communication Services": 3000,
+        Energy: 2500,
+      },
+      maxSectorAllocationPct: 0.3,
+      portfolioValue: 35500,
+    },
+    {
+      accountLabel: "Roth IRA",
+      thetaToday: 13.5,
+      thetaPct: 0.013,
+      thetaStatus: "on_target",
+      thetaMinPct: 0.01,
+      thetaTargetMaxPct: 0.02,
+      thetaMaxPct: 0.03,
+      sectorValues: {
+        Technology: 6000,
+        Financials: 3800,
+        "Consumer Discretionary": 3200,
+        Healthcare: 2500,
+        "Communication Services": 2100,
+        Industrials: 3600,
+        Energy: 1700,
+      },
+      maxSectorAllocationPct: 0.3,
+      portfolioValue: 22900,
+    },
   ],
 };

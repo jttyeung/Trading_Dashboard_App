@@ -3,6 +3,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { PortfolioRiskFile } from "./types";
+import { isExampleMode } from "./example-mode";
+import { examplePortfolioRiskFile } from "./example";
 
 export const PORTFOLIO_RISK_PATH = path.join(process.cwd(), "data", "portfolio-risk.json");
 
@@ -22,7 +24,8 @@ const EMPTY: PortfolioRiskFile = {
   perAccount: [],
 };
 
-export function getPortfolioRisk(): PortfolioRiskFile {
+export async function getPortfolioRisk(): Promise<PortfolioRiskFile> {
+  if (await isExampleMode()) return examplePortfolioRiskFile;
   try {
     const raw = fs.readFileSync(PORTFOLIO_RISK_PATH, "utf8");
     const parsed = JSON.parse(raw) as PortfolioRiskFile;
