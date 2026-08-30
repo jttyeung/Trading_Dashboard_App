@@ -555,7 +555,7 @@ function CumulativeChart({
 // the way to its edge, and reads as "the whole bar," not "0-100% of a
 // total." The center tick and −/+ flanks exist so that reads as $0, not
 // just a decorative divider.
-function DivergingBar({ pnl, maxAbs }: { pnl: number; maxAbs: number }) {
+export function DivergingBar({ pnl, maxAbs }: { pnl: number; maxAbs: number }) {
   const frac = maxAbs > 0 ? Math.min(1, Math.abs(pnl) / maxAbs) : 0;
   const w = frac * 50;
   const pos = pnl >= 0;

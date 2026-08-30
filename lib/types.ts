@@ -507,3 +507,33 @@ export interface AlertsFile {
   meta: { generatedAt: string };
   alerts: Alert[];
 }
+
+// ---------------------------------------------------------------------------
+// Suggestion-vs-actual-performance scorecard from data/suggestion-performance.json
+// — a mirror for spotting your own patterns (e.g. "0.25-delta CSPs closed at
+// 82% win rate, 0.30-delta at 65%"), not a self-tuning input. Only
+// suggestions actually traded appear here; grouping/win-rate math happens
+// client-side, same as lib closed-trade data already does for the P&L page.
+// ---------------------------------------------------------------------------
+export interface MatchedSuggestion {
+  ticker: string;
+  strategy: string;
+  contractSymbol: string;
+  strike: number | null;
+  delta: number | null;
+  dte: number | null;
+  rorPercent: number | null;
+  annualizedRorPercent: number | null;
+  rank: number | null;
+  timesSuggested: number;
+  firstSuggestedAt: string;
+  openDate: string;
+  closeDate: string;
+  realizedPnl: number;
+  closeReason: string;
+}
+
+export interface SuggestionPerformanceFile {
+  meta: { generatedAt: string; totalSuggestions: number };
+  matched: MatchedSuggestion[];
+}
