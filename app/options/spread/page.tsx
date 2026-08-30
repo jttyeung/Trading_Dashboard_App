@@ -34,7 +34,7 @@ export default async function OptionsSpreadPage({ searchParams }: { searchParams
   const open = allSpreads.filter((o) => !sym || o.symbol.toUpperCase() === sym);
   // All 6 spread/PMCC strategies here (not just vertical put-spread/call-spread
   // open-position kinds) — this is the only page for multi-leg candidates.
-  const spreadCandidates = getSpreadCandidates().candidates.filter((c) => !sym || c.symbol.toUpperCase() === sym);
+  const spreadCandidates = (await getSpreadCandidates()).candidates.filter((c) => !sym || c.symbol.toUpperCase() === sym);
 
   return (
     <main className="px-4">

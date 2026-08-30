@@ -3,6 +3,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { AlertsFile } from "./types";
+import { isExampleMode } from "./example-mode";
+import { exampleAlertsFile } from "./example";
 
 export const ALERTS_PATH = path.join(process.cwd(), "data", "alerts.json");
 
@@ -11,7 +13,8 @@ const EMPTY: AlertsFile = {
   alerts: [],
 };
 
-export function getAlerts(): AlertsFile {
+export async function getAlerts(): Promise<AlertsFile> {
+  if (await isExampleMode()) return exampleAlertsFile;
   try {
     const raw = fs.readFileSync(ALERTS_PATH, "utf8");
     const parsed = JSON.parse(raw) as AlertsFile;

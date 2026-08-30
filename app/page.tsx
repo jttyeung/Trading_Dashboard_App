@@ -48,7 +48,7 @@ function fmtDataStamp(pricesAsOf: string): string {
 
 export default async function HomePage() {
   const snap = await getSnapshot();
-  const alerts = getAlerts().alerts;
+  const alerts = (await getAlerts()).alerts;
   const { accounts, meta } = snap;
   const { id, data } = await getSelectedAccount(snap);
   const { summary, equities, options, valueHistory } = data;

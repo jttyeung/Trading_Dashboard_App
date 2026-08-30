@@ -30,7 +30,7 @@ export default async function OptionsCoveredPage({ searchParams }: { searchParam
   const open = allCovered.filter((o) => !sym || o.symbol.toUpperCase() === sym);
   const closedCovered = (await getClosedCovered()).closed.filter((c) => !sym || c.symbol.toUpperCase() === sym);
   const closedSpreads = (await getClosedSpreads()).closed.filter((c) => !sym || c.symbol.toUpperCase() === sym);
-  const ccCandidates = getSingleLegCandidates().candidates.filter(
+  const ccCandidates = (await getSingleLegCandidates()).candidates.filter(
     (c) => c.strategy === "CC" && (!sym || c.symbol.toUpperCase() === sym),
   );
 

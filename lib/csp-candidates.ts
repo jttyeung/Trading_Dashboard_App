@@ -3,6 +3,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { CSPCandidatesFile } from "./types";
+import { isExampleMode } from "./example-mode";
+import { exampleCspCandidatesFile } from "./example";
 
 export const CSP_CANDIDATES_PATH = path.join(process.cwd(), "data", "csp-candidates.json");
 
@@ -11,7 +13,8 @@ const EMPTY: CSPCandidatesFile = {
   candidates: [],
 };
 
-export function getCspCandidates(): CSPCandidatesFile {
+export async function getCspCandidates(): Promise<CSPCandidatesFile> {
+  if (await isExampleMode()) return exampleCspCandidatesFile;
   try {
     const raw = fs.readFileSync(CSP_CANDIDATES_PATH, "utf8");
     const parsed = JSON.parse(raw) as CSPCandidatesFile;

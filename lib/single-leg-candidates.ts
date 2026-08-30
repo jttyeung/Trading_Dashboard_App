@@ -3,6 +3,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { SingleLegCandidatesFile } from "./types";
+import { isExampleMode } from "./example-mode";
+import { exampleSingleLegCandidatesFile } from "./example";
 
 export const SINGLE_LEG_CANDIDATES_PATH = path.join(process.cwd(), "data", "single-leg-candidates.json");
 
@@ -11,7 +13,8 @@ const EMPTY: SingleLegCandidatesFile = {
   candidates: [],
 };
 
-export function getSingleLegCandidates(): SingleLegCandidatesFile {
+export async function getSingleLegCandidates(): Promise<SingleLegCandidatesFile> {
+  if (await isExampleMode()) return exampleSingleLegCandidatesFile;
   try {
     const raw = fs.readFileSync(SINGLE_LEG_CANDIDATES_PATH, "utf8");
     const parsed = JSON.parse(raw) as SingleLegCandidatesFile;

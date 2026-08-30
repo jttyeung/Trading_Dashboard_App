@@ -6,7 +6,7 @@ import { getSuggestionPerformance } from "@/lib/suggestion-performance";
 export const dynamic = "force-dynamic";
 
 export default async function ScorecardPage() {
-  const { matched, meta } = getSuggestionPerformance();
+  const { matched, meta } = await getSuggestionPerformance();
 
   return (
     <main className="px-4">

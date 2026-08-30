@@ -3,6 +3,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { SpreadCandidatesFile } from "./types";
+import { isExampleMode } from "./example-mode";
+import { exampleSpreadCandidatesFile } from "./example";
 
 export const SPREAD_CANDIDATES_PATH = path.join(process.cwd(), "data", "spread-candidates.json");
 
@@ -11,7 +13,8 @@ const EMPTY: SpreadCandidatesFile = {
   candidates: [],
 };
 
-export function getSpreadCandidates(): SpreadCandidatesFile {
+export async function getSpreadCandidates(): Promise<SpreadCandidatesFile> {
+  if (await isExampleMode()) return exampleSpreadCandidatesFile;
   try {
     const raw = fs.readFileSync(SPREAD_CANDIDATES_PATH, "utf8");
     const parsed = JSON.parse(raw) as SpreadCandidatesFile;

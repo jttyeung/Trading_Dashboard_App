@@ -3,6 +3,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { SuggestionPerformanceFile } from "./types";
+import { isExampleMode } from "./example-mode";
+import { exampleSuggestionPerformanceFile } from "./example";
 
 export const SUGGESTION_PERFORMANCE_PATH = path.join(process.cwd(), "data", "suggestion-performance.json");
 
@@ -11,7 +13,8 @@ const EMPTY: SuggestionPerformanceFile = {
   matched: [],
 };
 
-export function getSuggestionPerformance(): SuggestionPerformanceFile {
+export async function getSuggestionPerformance(): Promise<SuggestionPerformanceFile> {
+  if (await isExampleMode()) return exampleSuggestionPerformanceFile;
   try {
     const raw = fs.readFileSync(SUGGESTION_PERFORMANCE_PATH, "utf8");
     const parsed = JSON.parse(raw) as SuggestionPerformanceFile;

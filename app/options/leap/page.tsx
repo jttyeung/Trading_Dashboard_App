@@ -34,7 +34,7 @@ export default async function OptionsLeapPage({ searchParams }: { searchParams: 
   const closedLeaps = (await getClosedLeaps()).closed.filter((c) => !sym || c.symbol.toUpperCase() === sym);
   // CC candidates live on the Covered Calls page instead — this page mirrors
   // the leap-call/leap-put-hedge open-position kinds it already shows.
-  const singleLegCandidates = getSingleLegCandidates().candidates.filter(
+  const singleLegCandidates = (await getSingleLegCandidates()).candidates.filter(
     (c) => c.strategy !== "CC" && (!sym || c.symbol.toUpperCase() === sym),
   );
 
