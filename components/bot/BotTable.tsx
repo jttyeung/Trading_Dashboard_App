@@ -5,7 +5,21 @@ import type { BotTrade, BotGrade, MyGradeSummary } from "@/lib/types";
 import { fmtMoney, fmtPct } from "@/lib/calc";
 import { decideTrade, setPersonallySelected, type BotStatus } from "@/lib/paperbot-api";
 
-type SortKey = "postedAt" | "ticker" | "strike" | "expiration" | "dteAtPost" | "delta" | "ivPercent" | "annualizedRorPct" | "score" | "status";
+type SortKey =
+  | "postedAt"
+  | "ticker"
+  | "strike"
+  | "expiration"
+  | "dteAtPost"
+  | "premium"
+  | "premiumTotal"
+  | "breakeven"
+  | "delta"
+  | "ivPercent"
+  | "annualizedRorPct"
+  | "score"
+  | "status"
+  | "stockPriceAtPost";
 
 const STATUS_STYLE: Record<string, string> = {
   pending_approval: "bg-amber-500/15 text-amber-300 ring-amber-500/30",
@@ -40,6 +54,12 @@ function sortValue(t: BotTrade, key: SortKey): number | string {
       return t.expiration;
     case "dteAtPost":
       return t.dteAtPost;
+    case "premium":
+      return t.premium;
+    case "premiumTotal":
+      return t.premiumTotal;
+    case "breakeven":
+      return t.breakeven;
     case "delta":
       return t.delta;
     case "ivPercent":
@@ -50,26 +70,37 @@ function sortValue(t: BotTrade, key: SortKey): number | string {
       return t.score;
     case "status":
       return t.status;
+    case "stockPriceAtPost":
+      return t.stockPriceAtPost;
   }
 }
 
+// Column order matches the reference tracker spreadsheet the account
+// holder pointed to as a layout bar (see the paperbot package doc
+// comment): DTE, Premium, Premium $, Breakeven, Delta, IV %, ARR %,
+// Score, then the approve/reject call and Stock @ Post.
 const COLUMNS: { key: SortKey; label: string }[] = [
   { key: "postedAt", label: "Date Posted" },
   { key: "ticker", label: "Ticker" },
   { key: "strike", label: "Strike" },
   { key: "expiration", label: "Expiration" },
   { key: "dteAtPost", label: "DTE" },
+  { key: "premium", label: "Premium" },
+  { key: "premiumTotal", label: "Premium $" },
+  { key: "breakeven", label: "Breakeven" },
   { key: "delta", label: "Delta" },
   { key: "ivPercent", label: "IV %" },
   { key: "annualizedRorPct", label: "ARR %" },
   { key: "score", label: "Score" },
   { key: "status", label: "Your call" },
+  { key: "stockPriceAtPost", label: "Stock @ Post" },
 ];
 
-// TOTAL_COLUMNS: the 10 sortable COLUMNS above, plus Current/Outcome/P&L
-// and the trailing Mine checkbox — kept in sync manually since the
-// expanded rationale row's colSpan has to span every column.
-const TOTAL_COLUMNS = COLUMNS.length + 4;
+// TOTAL_COLUMNS: the sortable COLUMNS above, plus Current/Outcome/P&L/
+// Return %/Stock @ Expiry and the trailing Mine checkbox — kept in sync
+// manually since the expanded rationale row's colSpan has to span every
+// column.
+const TOTAL_COLUMNS = COLUMNS.length + 6;
 
 function ThumbButton({
   active,
@@ -210,7 +241,7 @@ export function BotTable({ trades, myGrade }: { trades: BotTrade[]; myGrade: MyG
         <div className="border-b border-border bg-rose-500/10 px-4 py-2 text-[11px] text-rose-300">{apiError}</div>
       )}
 
-      <table className="w-full min-w-[1180px] border-collapse text-sm">
+      <table className="w-full min-w-[1780px] border-collapse text-sm">
         <thead>
           <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted">
             {COLUMNS.map((c) => (
@@ -221,10 +252,18 @@ export function BotTable({ trades, myGrade }: { trades: BotTrade[]; myGrade: MyG
                 </button>
               </th>
             ))}
-            <th className="whitespace-nowrap px-3 py-2 font-medium">Current</th>
-            <th className="whitespace-nowrap px-3 py-2 font-medium">Outcome</th>
-            <th className="whitespace-nowrap px-3 py-2 font-medium">P&amp;L</th>
-            <th className="whitespace-nowrap px-3 py-2 text-center font-medium">Mine</th>
+            {/* normal-case: the sortable COLUMNS headers above render mixed-case
+                despite the row's own `uppercase` because each label sits inside a
+                <button>, and browsers' UA stylesheet gives form controls their own
+                `text-transform: none` that wins over the inherited uppercase — these
+                plain-text headers have no such override, so it's applied explicitly
+                to keep every header's case consistent. */}
+            <th className="whitespace-nowrap px-3 py-2 font-medium normal-case">Current</th>
+            <th className="whitespace-nowrap px-3 py-2 font-medium normal-case">Stock @ Expiry</th>
+            <th className="whitespace-nowrap px-3 py-2 font-medium normal-case">Outcome</th>
+            <th className="whitespace-nowrap px-3 py-2 font-medium normal-case">P&amp;L</th>
+            <th className="whitespace-nowrap px-3 py-2 font-medium normal-case">Return %</th>
+            <th className="whitespace-nowrap px-3 py-2 text-center font-medium normal-case">Mine</th>
           </tr>
         </thead>
         <tbody>
@@ -239,6 +278,9 @@ export function BotTable({ trades, myGrade }: { trades: BotTrade[]; myGrade: MyG
                 <td className="px-3 py-2 text-right tabular text-text">{fmtMoney(t.strike)}</td>
                 <td className="whitespace-nowrap px-3 py-2 text-xs text-muted">{t.expiration}</td>
                 <td className="px-3 py-2 text-right tabular text-text">{t.dteAtPost}</td>
+                <td className="px-3 py-2 text-right tabular text-text">{fmtMoney(t.premium, { cents: true })}</td>
+                <td className="px-3 py-2 text-right tabular text-text">{fmtMoney(t.premiumTotal, { cents: true })}</td>
+                <td className="px-3 py-2 text-right tabular text-text">{fmtMoney(t.breakeven, { cents: true })}</td>
                 <td className="px-3 py-2 text-right tabular text-text">{t.delta.toFixed(2)}</td>
                 <td className="px-3 py-2 text-right tabular text-text">{t.ivPercent.toFixed(0)}</td>
                 <td className="px-3 py-2 text-right tabular text-emerald-300">{fmtPct(t.annualizedRorPct / 100, 1)}</td>
@@ -266,7 +308,11 @@ export function BotTable({ trades, myGrade }: { trades: BotTrade[]; myGrade: MyG
                     </ThumbButton>
                   </div>
                 </td>
+                <td className="px-3 py-2 text-right tabular text-text">{fmtMoney(t.stockPriceAtPost, { cents: true })}</td>
                 <td className="px-3 py-2 text-right tabular text-text">{t.currentPrice ? fmtMoney(t.currentPrice) : "-"}</td>
+                <td className="px-3 py-2 text-right tabular text-text">
+                  {t.stockPriceAtClose != null ? fmtMoney(t.stockPriceAtClose, { cents: true }) : "-"}
+                </td>
                 <td className="px-3 py-2">
                   {t.outcome ? (
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${OUTCOME_STYLE[t.outcome]}`}>
@@ -281,6 +327,13 @@ export function BotTable({ trades, myGrade }: { trades: BotTrade[]; myGrade: MyG
                     <span className={t.realizedPnl >= 0 ? "text-emerald-400" : "text-rose-400"}>
                       {fmtMoney(t.realizedPnl, { sign: true })}
                     </span>
+                  ) : (
+                    <span className="text-muted">-</span>
+                  )}
+                </td>
+                <td className="px-3 py-2 text-right tabular">
+                  {t.returnPct != null ? (
+                    <span className={t.returnPct >= 0 ? "text-emerald-400" : "text-rose-400"}>{fmtPct(t.returnPct, 1)}</span>
                   ) : (
                     <span className="text-muted">-</span>
                   )}
