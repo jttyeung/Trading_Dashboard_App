@@ -41,11 +41,13 @@ export default async function PnlPage() {
   const showAll = id === "combined";
 
   // Realized — closed round-trips per strategy bucket. CSP/covered/LEAP
-  // carry a real accountId (internal/pnl now matches per account); spreads
-  // and stocks don't (internal/export/closed_trades.go's own documented
-  // scope cut — those files are always empty against real data today), so
-  // there's nothing to filter there and every row shows regardless of
-  // which account is selected.
+  // (Schwab, internal/pnl) and stock (SnapTrade Fidelity/E*TRADE,
+  // internal/agents/snaptrade's own FIFO match) carry a real accountId;
+  // an item with no accountId (Schwab's manual stock-sale entries, which
+  // aren't attributed to one account) always shows rather than being
+  // hidden the moment any specific account is selected. Spreads never
+  // carry one — internal/export/closed_trades.go's own documented scope
+  // cut means that file is always empty against real data today anyway.
   const [cspF, coveredF, spreadF, leapF, stockF] = await Promise.all([
     getClosedCsps(),
     getClosedCovered(),
@@ -58,7 +60,7 @@ export default async function PnlPage() {
     { key: "covered", label: "Covered calls", items: coveredF.closed.filter((r) => showAll || r.accountId === id).map((r) => ({ pnl: r.realizedPnl, date: r.closedAt, sym: r.symbol, strikeLabel: `$${r.strike}`, openedAt: r.openedAt, daysHeld: r.daysHeld })) },
     { key: "spread", label: "Spreads", items: spreadF.closed.map((r) => ({ pnl: r.realizedPnl, date: r.closedAt, sym: r.symbol, strikeLabel: `$${r.shortStrike}/${r.longStrike}`, openedAt: r.openedAt, daysHeld: r.daysHeld })) },
     { key: "leap", label: "LEAPs", items: leapF.closed.filter((r) => showAll || r.accountId === id).map((r) => ({ pnl: r.realizedPnl, date: r.closedAt, sym: r.symbol, strikeLabel: `$${r.strike}`, openedAt: r.openedAt, daysHeld: r.daysHeld })) },
-    { key: "stock", label: "Stocks", items: stockF.closed.map((r) => ({ pnl: r.realizedPnl, date: r.closedAt, sym: r.symbol, strikeLabel: `${px(r.avgOpen)} → ${px(r.avgClose)}`, openedAt: r.openedAt, daysHeld: r.daysHeld })) },
+    { key: "stock", label: "Stocks", items: stockF.closed.filter((r) => showAll || !r.accountId || r.accountId === id).map((r) => ({ pnl: r.realizedPnl, date: r.closedAt, sym: r.symbol, strikeLabel: `${px(r.avgOpen)} → ${px(r.avgClose)}`, openedAt: r.openedAt, daysHeld: r.daysHeld })) },
   ];
 
   // Open — current unrealized mark-to-market per bucket.

@@ -307,6 +307,7 @@ export interface ClosedStock {
   daysHeld: number;
   returnPct: number; // realizedPnl ÷ costBasis (decimal)
   annualized: number; // decimal
+  accountId?: string; // matches Account.id — absent for Schwab's manual-entry stock sales, which aren't attributed to one account
 }
 
 export interface ClosedStockFile {
