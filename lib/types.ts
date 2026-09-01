@@ -196,6 +196,7 @@ export interface ClosedCSP {
   returnOnCollateral: number; // decimal
   annualized: number; // decimal
   washSaleWarning: string | null;
+  accountId: string; // matches Account.id in snapshot.json
 }
 
 export interface ClosedCSPFile {
@@ -223,6 +224,7 @@ export interface ClosedLeap {
   returnPct: number; // realizedPnl ÷ costBasis (decimal)
   annualized: number; // decimal
   washSaleWarning: string | null;
+  accountId: string; // matches Account.id in snapshot.json
 }
 
 export interface ClosedLeapFile {
@@ -249,6 +251,7 @@ export interface ClosedCoveredCall {
   returnOnNotional: number; // realizedPnl ÷ (strike × 100 × contracts), decimal
   annualized: number; // decimal
   washSaleWarning: string | null;
+  accountId: string; // matches Account.id in snapshot.json
 }
 
 export interface ClosedCoveredFile {

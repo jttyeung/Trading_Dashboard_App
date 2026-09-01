@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card, PageHeader } from "@/components/ui";
 import { ShowAmounts } from "@/components/privacy";
+import { AccountSwitcher } from "@/components/AccountSwitcher";
 import { getSnapshot } from "@/lib/snapshot";
 import { getSelectedAccount } from "@/lib/account";
 import { getClosedCsps } from "@/lib/csp-closed";
@@ -34,9 +35,17 @@ const px = (n: number) => "$" + n.toLocaleString(undefined, { maximumFractionDig
 
 export default async function PnlPage() {
   const snap = await getSnapshot();
-  const { id, account, data } = await getSelectedAccount(snap);
+  const { id, data } = await getSelectedAccount(snap);
+  // Matches internal/export/snapshot.go's combinedAccountID — the synthetic
+  // "All Accounts" entry every real account's data is blended into.
+  const showAll = id === "combined";
 
-  // Realized — closed round-trips per strategy bucket.
+  // Realized — closed round-trips per strategy bucket. CSP/covered/LEAP
+  // carry a real accountId (internal/pnl now matches per account); spreads
+  // and stocks don't (internal/export/closed_trades.go's own documented
+  // scope cut — those files are always empty against real data today), so
+  // there's nothing to filter there and every row shows regardless of
+  // which account is selected.
   const [cspF, coveredF, spreadF, leapF, stockF] = await Promise.all([
     getClosedCsps(),
     getClosedCovered(),
@@ -45,10 +54,10 @@ export default async function PnlPage() {
     getClosedStocks(),
   ]);
   const realized: BucketInput[] = [
-    { key: "csp", label: "CSPs", items: cspF.closed.map((r) => ({ pnl: r.realizedPnl, date: r.closedAt, sym: r.symbol, strikeLabel: `$${r.strike}`, openedAt: r.openedAt, daysHeld: r.daysHeld })) },
-    { key: "covered", label: "Covered calls", items: coveredF.closed.map((r) => ({ pnl: r.realizedPnl, date: r.closedAt, sym: r.symbol, strikeLabel: `$${r.strike}`, openedAt: r.openedAt, daysHeld: r.daysHeld })) },
+    { key: "csp", label: "CSPs", items: cspF.closed.filter((r) => showAll || r.accountId === id).map((r) => ({ pnl: r.realizedPnl, date: r.closedAt, sym: r.symbol, strikeLabel: `$${r.strike}`, openedAt: r.openedAt, daysHeld: r.daysHeld })) },
+    { key: "covered", label: "Covered calls", items: coveredF.closed.filter((r) => showAll || r.accountId === id).map((r) => ({ pnl: r.realizedPnl, date: r.closedAt, sym: r.symbol, strikeLabel: `$${r.strike}`, openedAt: r.openedAt, daysHeld: r.daysHeld })) },
     { key: "spread", label: "Spreads", items: spreadF.closed.map((r) => ({ pnl: r.realizedPnl, date: r.closedAt, sym: r.symbol, strikeLabel: `$${r.shortStrike}/${r.longStrike}`, openedAt: r.openedAt, daysHeld: r.daysHeld })) },
-    { key: "leap", label: "LEAPs", items: leapF.closed.map((r) => ({ pnl: r.realizedPnl, date: r.closedAt, sym: r.symbol, strikeLabel: `$${r.strike}`, openedAt: r.openedAt, daysHeld: r.daysHeld })) },
+    { key: "leap", label: "LEAPs", items: leapF.closed.filter((r) => showAll || r.accountId === id).map((r) => ({ pnl: r.realizedPnl, date: r.closedAt, sym: r.symbol, strikeLabel: `$${r.strike}`, openedAt: r.openedAt, daysHeld: r.daysHeld })) },
     { key: "stock", label: "Stocks", items: stockF.closed.map((r) => ({ pnl: r.realizedPnl, date: r.closedAt, sym: r.symbol, strikeLabel: `${px(r.avgOpen)} → ${px(r.avgClose)}`, openedAt: r.openedAt, daysHeld: r.daysHeld })) },
   ];
 
@@ -85,7 +94,12 @@ export default async function PnlPage() {
       <ShowAmounts>
         <PageHeader
           title="Profit & Loss"
-          subtitle={`${account.nickname ?? account.mask} · realized and open by strategy`}
+          subtitle={
+            <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+              <AccountSwitcher accounts={snap.accounts} selectedId={id} />
+              <span>· realized and open by strategy</span>
+            </span>
+          }
           right={
             <div className="flex items-center gap-2">
               <CostBasisAlert unresolved={unresolved} />
