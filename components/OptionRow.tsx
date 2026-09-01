@@ -31,6 +31,7 @@ import {
   daysToExpiry,
   fmtMoney,
   fmtPct,
+  leapInsight,
   LEVEL_STYLES,
   longTermDate,
   optionBasis,
@@ -284,6 +285,8 @@ function CspDetail({ o }: { o: OptionPosition }) {
 }
 
 function LeapDetail({ o }: { o: OptionPosition }) {
+  const ins = leapInsight(o);
+  const s = LEVEL_STYLES[ins.level];
   const dte = daysToExpiry(o.expiration);
   const months = Math.round(dte / 30);
   const val = optionMarketValue(o);
@@ -297,6 +300,15 @@ function LeapDetail({ o }: { o: OptionPosition }) {
 
   return (
     <div className="border-t border-border bg-surface-2/40 px-4 py-3">
+      {ins.level !== "hold" && (
+        <div className="mb-2 flex flex-wrap items-center gap-1.5 text-sm font-medium">
+          <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium ring-1 ring-inset ${s.chip}`}>
+            <span className={`h-1 w-1 rounded-full ${s.dot}`} />
+            {ins.label}
+          </span>
+          <span className="text-xs font-normal text-muted">{ins.detail}</span>
+        </div>
+      )}
       <dl className="space-y-1.5 text-xs">
         <Row k="Opened" v={o.openedAt ? `${o.openedAt} (${daysHeld}d ago)` : "—"} />
         <Row

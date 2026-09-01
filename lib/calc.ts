@@ -393,6 +393,25 @@ export function cspInsight(o: OptionPosition): Insight {
   };
 }
 
+// RULE-017 (OptionsEvaluator's internal/rules/leaps_exit.go carries the
+// authoritative definition/tests): a long LEAP call that's already booked
+// a large gain very fast, per the account holder's own trading history, has
+// been a "take the win" signal more often than a "let it run" one. Two
+// independent bands, either firing is enough — the LOWER bound of each
+// range the account holder gave ("10-20% in 7 days", "20-40% in 4 weeks")
+// is the trigger floor, not a ceiling to wait for. A hard rule, unlike the
+// beta/open-P&L guidance below (soft, not firmly held).
+export const LEAPS_FAST_GAIN_DAYS_1 = 7;
+export const LEAPS_FAST_GAIN_PCT_1 = 0.1;
+export const LEAPS_FAST_GAIN_DAYS_2 = 28;
+export const LEAPS_FAST_GAIN_PCT_2 = 0.2;
+
+export function leapsFastGainExit(pnlPct: number, daysHeld: number): boolean {
+  if (daysHeld <= LEAPS_FAST_GAIN_DAYS_1 && pnlPct >= LEAPS_FAST_GAIN_PCT_1) return true;
+  if (daysHeld <= LEAPS_FAST_GAIN_DAYS_2 && pnlPct >= LEAPS_FAST_GAIN_PCT_2) return true;
+  return false;
+}
+
 export function leapInsight(o: OptionPosition): Insight {
   const dte = daysToExpiry(o.expiration);
   const pnlPct = optionPnlPct(o);
@@ -403,6 +422,16 @@ export function leapInsight(o: OptionPosition): Insight {
       label: "Hedge",
       detail: `Protective put (Δ ${o.delta.toFixed(2)}). Insurance on NVDA — size, don't chase.`,
     };
+  }
+  if (o.openedAt) {
+    const daysHeld = daysBetween(o.openedAt);
+    if (leapsFastGainExit(pnlPct, daysHeld)) {
+      return {
+        level: "manage",
+        label: "Take profit",
+        detail: `+${fmtPct(pnlPct)} in ${daysHeld}d — RULE-017 fast-gain exit (≥10% in ≤7d or ≥20% in ≤28d). Close out.`,
+      };
+    }
   }
   if (dte < 365) {
     return {
