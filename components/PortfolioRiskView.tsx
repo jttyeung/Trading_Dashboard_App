@@ -28,6 +28,7 @@ function ThetaGauge({ risk }: { risk: RiskView }) {
           <div className="tabular text-lg font-bold leading-tight">
             <Amt>{`${risk.thetaToday >= 0 ? "+" : "−"}${fmtMoney(Math.abs(risk.thetaToday))}`}</Amt>/day
           </div>
+          <div className="tabular text-[11px] text-muted">{(risk.thetaPct * 100).toFixed(2)}% of portfolio value</div>
         </div>
         <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${status.chip}`}>
           {status.label}
