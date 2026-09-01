@@ -16,8 +16,8 @@ export const exampleVix: VixSnapshot = {
     vix3m: 18.5,
     vvix: 86.27,
     skew: 141,
-    realizedVol20: 0.118,
-    realizedVol30: 0.126,
+    realizedVol20: 11.8,
+    realizedVol30: 12.6,
     realizedVolBasis: "SPY 20/30-day close-to-close",
     // Share of S&P 500 names above their own 50-day SMA, with recent weekly closes
     // trailing slightly lower — the top of the "no trend" zone.
