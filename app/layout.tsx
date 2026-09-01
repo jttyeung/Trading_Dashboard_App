@@ -41,14 +41,15 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // /desktop is a genuinely different surface (a wide sortable/groupable
-  // table, not a phone-shaped app) — set by middleware.ts, since a Server
-  // Component root layout has no useRouter/usePathname of its own. Every
-  // other route is unaffected: same phone-frame chrome as always.
+  // /desktop and the /bot* paper-bot review tables are all genuinely
+  // different surfaces (wide sortable tables, not a phone-shaped app) —
+  // pathname is set by proxy.ts, since a Server Component root layout has
+  // no useRouter/usePathname of its own. Every other route is unaffected:
+  // same phone-frame chrome as always.
   const pathname = (await headers()).get("x-pathname") ?? "";
-  const isDesktop = pathname.startsWith("/desktop");
+  const isWideSurface = pathname.startsWith("/desktop") || pathname.startsWith("/bot");
 
-  if (isDesktop) {
+  if (isWideSurface) {
     return (
       <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
         <body className="min-h-full bg-bg">
