@@ -4,6 +4,7 @@ import { Fragment, useEffect, useState, useMemo } from "react";
 import type { BotTrade, BotGrade, MyGradeSummary } from "@/lib/types";
 import { fmtMoney, fmtPct } from "@/lib/calc";
 import { decideTrade, setPersonallySelected, type BotStatus } from "@/lib/paperbot-api";
+import { Stat } from "@/components/ui";
 
 type SortKey =
   | "postedAt"
@@ -197,11 +198,21 @@ export function BotTable({ trades, myGrade }: { trades: BotTrade[]; myGrade: MyG
     }
   }
 
-  const pending = localTrades.filter((t) => t.status === "pending_approval").length;
-  const approved = localTrades.filter((t) => t.status === "approved").length;
+  // "Pending" here means no outcome yet (still awaiting expiration),
+  // regardless of approve/reject/pending_approval status — Total =
+  // Pending + Wins + Losses always holds, matching the reference
+  // tracker spreadsheet's own scorecard the account holder pointed to.
+  // needsReview (decision-status based) is a distinct, smaller number
+  // shown separately below.
+  const totalTrades = localTrades.length;
+  const pendingOutcome = localTrades.filter((t) => !t.outcome).length;
   const wins = localTrades.filter((t) => t.outcome === "WIN").length;
-  const assigned = localTrades.filter((t) => t.outcome === "ASSIGNED").length;
+  const losses = localTrades.filter((t) => t.outcome === "ASSIGNED").length;
+  const winRate = wins + losses > 0 ? wins / (wins + losses) : null;
+  const avgAnnualRoR = totalTrades > 0 ? localTrades.reduce((s, t) => s + t.annualizedRorPct, 0) / totalTrades : null;
   const totalPnl = localTrades.reduce((s, t) => s + (t.realizedPnl ?? 0), 0);
+
+  const needsReview = localTrades.filter((t) => t.status === "pending_approval").length;
   const mineCount = localTrades.filter((t) => t.personallySelected).length;
 
   const decidedGraded = myGrade.goodCalls + myGrade.riskRealized + myGrade.missedWins + myGrade.goodPasses;
@@ -210,15 +221,18 @@ export function BotTable({ trades, myGrade }: { trades: BotTrade[]; myGrade: MyG
 
   return (
     <div className="w-full overflow-x-auto rounded-xl border border-border bg-surface">
-      <div className="flex flex-wrap items-center gap-4 border-b border-border px-4 py-3 text-xs text-muted">
-        <span className="text-sm font-semibold text-text">{localTrades.length} ideas</span>
-        <span>{pending} pending</span>
-        <span>{approved} approved</span>
-        <span className="text-emerald-400">{wins} win</span>
-        <span className="text-rose-400">{assigned} assigned</span>
-        <span className={totalPnl >= 0 ? "text-emerald-400" : "text-rose-400"}>
-          settled P&amp;L {fmtMoney(totalPnl, { sign: true })}
-        </span>
+      <div className="grid grid-cols-2 gap-2 border-b border-border p-4 sm:grid-cols-4 lg:grid-cols-7">
+        <Stat label="Total Trades" value={totalTrades} />
+        <Stat label="Pending" value={pendingOutcome} />
+        <Stat label="Wins" value={wins} tone="pos" />
+        <Stat label="Losses" value={losses} tone="neg" />
+        <Stat label="Win Rate" value={winRate != null ? fmtPct(winRate, 2) : "—"} />
+        <Stat label="Avg Annual RoR" value={avgAnnualRoR != null ? fmtPct(avgAnnualRoR / 100, 2) : "—"} />
+        <Stat label="Total P&L" value={fmtMoney(totalPnl, { sign: true })} tone={totalPnl >= 0 ? "pos" : "neg"} />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-4 border-b border-border px-4 py-2 text-xs text-muted">
+        <span>{needsReview} awaiting your review</span>
         <span className="text-sky-300">{mineCount} mine</span>
       </div>
 
