@@ -167,7 +167,7 @@ export function StocksView({ equities, closed, initialStatus = "open", statusFro
                 {th("pnlPct", "P/L%")}
               </div>
               <div className="divide-y divide-border/60">
-                {rows.map((e) => {
+                {rows.map((e, i) => {
                   const val = equityValue(e);
                   const pnl = equityPnl(e);
                   const pnlPct = equityPnlPct(e);
@@ -179,12 +179,17 @@ export function StocksView({ equities, closed, initialStatus = "open", statusFro
                   // premium — a call you could sell that locks in a gain if assigned.
                   const ccOpportunity =
                     ccN === 0 && (e.coveredCalls ?? []).some((cc) => cc.strike > e.avgCost && cc.mark > 0);
-                  const isOpen = has(e.symbol);
+                  // "All Accounts" holdings are concatenated flat, not merged by
+                  // symbol (the same ticker can be held in more than one linked
+                  // account) — a plain e.symbol key collides across those rows,
+                  // so rowKey folds in the row's own index for uniqueness.
+                  const rowKey = `${e.symbol}-${i}`;
+                  const isOpen = has(rowKey);
                   return (
-                    <Fragment key={e.symbol}>
+                    <Fragment key={rowKey}>
                       <button
                         type="button"
-                        onClick={() => toggle(e.symbol)}
+                        onClick={() => toggle(rowKey)}
                         aria-expanded={isOpen}
                         className={`grid ${COLS} w-full items-center gap-1.5 px-2 py-2.5 text-left text-[12px] active:bg-surface-2`}
                       >
