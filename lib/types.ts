@@ -178,13 +178,19 @@ export interface CSPCandidatesFile {
 
 export type BotStatus = "pending_approval" | "approved" | "rejected";
 export type BotOutcome = "WIN" | "ASSIGNED";
+// Grade compares a DECIDED trade (approved/rejected) against its
+// resolved outcome — see OptionsEvaluator's internal/export/paperbot.go
+// gradeDecision for the full mapping. Empty/undefined means ungraded:
+// either never decided, or decided but not yet resolved.
+export type BotGrade = "good_call" | "risk_realized" | "missed_win" | "good_pass";
 
 // One row of the /bot or /bot-20-delta-safe paper-trading review table —
 // a frozen snapshot of a real suggestion-engine candidate (same scoring,
 // same rationale as the live digest), plus whatever approval/outcome
-// state has accumulated since. Approve/reject is CLI-only for now (see
-// OptionsEvaluator's internal/agents/paperbot package doc comment) — this
-// type is read-only display.
+// state has accumulated since. status/personallySelected are writable
+// from the dashboard itself via lib/paperbot-api.ts (a live call into
+// OptionsEvaluator's own localhost API) — the one place this app's
+// frontend writes anything back, rather than only reading exported JSON.
 export interface BotTrade {
   id: number;
   ticker: string;
@@ -212,12 +218,27 @@ export interface BotTrade {
   returnPct?: number;
   currentPrice?: number;
   itmOtm?: "ITM" | "OTM";
+  personallySelected: boolean;
+  grade?: BotGrade;
+}
+
+// The account holder's own approve/reject track record — a mirror for
+// THEIR judgment, distinct from the bot's own future self-performance
+// scorecard (not built yet — the account holder's own stated "eventually"
+// ask, deliberately deferred).
+export interface MyGradeSummary {
+  goodCalls: number; // approved, and it won
+  riskRealized: number; // approved, and it got assigned
+  missedWins: number; // rejected, but it would have won
+  goodPasses: number; // rejected, and it would have been assigned
+  ungraded: number; // pending, or decided but not yet resolved
 }
 
 export interface BotSnapshot {
   generatedAt: string;
   bot: string;
   trades: BotTrade[];
+  myGrade: MyGradeSummary;
 }
 
 // A closed cash-secured-put round-trip (reconstructed from option order history).
