@@ -12,6 +12,7 @@ import {
   optionPnl,
   optionPnlPct,
   positionAnnualizedReturn,
+  positionReturnOnCapital,
 } from "@/lib/calc";
 import { positionDailyTheta } from "@/lib/theta";
 
@@ -33,7 +34,7 @@ const STRATEGY_CODE: Record<OptionKind, string> = {
 export type SourcedOption = OptionPosition & { sourceLabel: string };
 
 type GroupBy = "none" | "strategy" | "dte" | "ticker" | "account";
-type SortKey = "ticker" | "strategy" | "qty" | "dit" | "dte" | "strike" | "spot" | "theta" | "unrealized" | "todayPl" | "marketValue" | "source";
+type SortKey = "ticker" | "strategy" | "qty" | "dit" | "dte" | "strike" | "spot" | "theta" | "apy" | "ror" | "unrealized" | "todayPl" | "marketValue" | "source";
 
 interface Row {
   o: SourcedOption;
@@ -48,6 +49,7 @@ interface Row {
   todayPlPct: number | null;
   marketValue: number;
   apy: number | null;
+  ror: number | null;
 }
 
 // OptionPosition.qty is a plain magnitude (side carries the sign) — signed
@@ -62,10 +64,11 @@ function buildRow(o: SourcedOption): Row {
   const marketValue = optionNetValue(o); // long +, short − (the buy-back liability)
   const todayPl = o.dayValueChange ?? null;
   // Back out yesterday's value (today's value minus today's change) to get a
-  // %; no separate "yesterday" field exists on OptionPosition. Not populated
-  // by this app's own export today (Schwab's own "day change" isn't wired up
-  // for options yet) — todayPl reads null/"-" for every real position until
-  // that's built, rather than a fabricated number.
+  // %; no separate "yesterday" field exists on OptionPosition, and Schwab's
+  // own currentDayProfitLossPercentage isn't threaded through either, so
+  // this derives it instead of carrying a second number. Still reads
+  // null/"-" for a SnapTrade position (no per-position day-change data
+  // there at all — see CRM's blank Mark/Theta for the same reason).
   const yesterdayValue = todayPl != null ? marketValue - todayPl : null;
   const todayPlPct = todayPl != null && yesterdayValue ? todayPl / Math.abs(yesterdayValue) : null;
   return {
@@ -81,7 +84,29 @@ function buildRow(o: SourcedOption): Row {
     todayPlPct,
     marketValue,
     apy: positionAnnualizedReturn(o),
+    ror: positionReturnOnCapital(o),
   };
+}
+
+// unrealizedPct for a short premium-selling position is mathematically the
+// same number as "% of the credit already captured" (mark → 0 as the
+// position decays toward its max profit) — so this same bar/fill doubles as
+// a capture-progress bar for CSP/covered-call rows, not just a generic P/L
+// gauge. The % label sits inside the bar itself (not as separate text next
+// to it) — width is clamped to the track even past ±100% (a LEAP that's
+// doubled, or a spread near its max loss), but the label always shows the
+// real, unclamped number.
+function PctBar({ pct }: { pct: number }) {
+  const positive = pct >= 0;
+  const width = Math.min(100, Math.abs(pct) * 100);
+  return (
+    <div className={`relative h-5 w-20 overflow-hidden rounded-full ${positive ? "bg-emerald-950/60" : "bg-rose-950/60"}`}>
+      <div className={`h-full rounded-full ${positive ? "bg-emerald-500" : "bg-rose-500"}`} style={{ width: `${width}%` }} />
+      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-white drop-shadow-sm">
+        {fmtPct(pct, 0)}
+      </span>
+    </div>
+  );
 }
 
 // 0-7 / 8-21 mirror this app's own DTE-management framing (the 21-DTE
@@ -125,6 +150,10 @@ function sortValue(r: Row, key: SortKey): number | string {
       return r.spot ?? -Infinity;
     case "theta":
       return r.theta;
+    case "apy":
+      return r.apy ?? -Infinity;
+    case "ror":
+      return r.ror ?? -Infinity;
     case "unrealized":
       return r.unrealized;
     case "todayPl":
@@ -148,9 +177,9 @@ function sumRows(rows: Row[]) {
   const unrealizedPct = unrealizedBasis !== 0 ? unrealized / unrealizedBasis : 0;
   const todayBasis = rows.reduce((s, r) => s + Math.abs(r.marketValue - (r.todayPl ?? 0)), 0);
   const todayPlPct = todayBasis !== 0 ? todayPl / todayBasis : 0;
-  // Distinct from "$0 today" — no row in this group has real day-change data
-  // (see buildRow's own note on why todayPl is null for every real position
-  // right now), so the subtotal should read as unavailable, not flat.
+  // Distinct from "$0 today" — a group that's entirely SnapTrade positions
+  // (no per-position day-change data there, see buildRow's own note) should
+  // read as unavailable, not flat.
   const hasTodayPl = rows.some((r) => r.todayPl != null);
   return { unrealized, unrealizedPct, todayPl, todayPlPct, marketValue, theta, hasTodayPl };
 }
@@ -164,6 +193,8 @@ const COLUMNS: { key: SortKey; label: string }[] = [
   { key: "strike", label: "Strike" },
   { key: "spot", label: "Mark" },
   { key: "theta", label: "Theta $" },
+  { key: "ror", label: "RoR %" },
+  { key: "apy", label: "APY" },
   { key: "unrealized", label: "Unrealized" },
   { key: "todayPl", label: "Today P/L" },
   { key: "marketValue", label: "Market Value" },
@@ -294,7 +325,7 @@ export function PositionsTable({ options, marketOpen }: { options: SourcedOption
       </div>
 
       {/* Table */}
-      <table className="w-full min-w-[900px] border-collapse text-sm">
+      <table className="w-full min-w-[1080px] border-collapse text-sm">
         <thead>
           <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted">
             {COLUMNS.map((c) => (
@@ -323,9 +354,12 @@ export function PositionsTable({ options, marketOpen }: { options: SourcedOption
                     </td>
                     <td colSpan={5} />
                     <td className="px-3 py-2 text-right tabular text-xs font-semibold text-muted">{fmtMoney(gSum!.theta)}</td>
+                    <td colSpan={2} />
                     <td className="px-3 py-2 text-right tabular text-xs">
-                      <span className={`font-semibold ${pnlColor(gSum!.unrealized)}`}>{fmtMoney(gSum!.unrealized, { sign: true })}</span>{" "}
-                      <span className={pnlColor(gSum!.unrealized)}>({fmtPct(gSum!.unrealizedPct)})</span>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className={`font-semibold ${pnlColor(gSum!.unrealized)}`}>{fmtMoney(gSum!.unrealized, { sign: true })}</span>
+                        <PctBar pct={gSum!.unrealizedPct} />
+                      </div>
                     </td>
                     <td className="px-3 py-2 text-right tabular text-xs">
                       {gSum!.hasTodayPl ? (
@@ -344,14 +378,7 @@ export function PositionsTable({ options, marketOpen }: { options: SourcedOption
                 {!isCollapsed &&
                   g.rows.map((r) => (
                     <tr key={r.o.id} className="border-b border-border/60 hover:bg-surface-2/40">
-                      <td className="whitespace-nowrap px-3 py-2 font-medium text-text">
-                        {r.o.symbol}
-                        {r.apy != null && r.apy >= 0.35 && (
-                          <span className="ml-1.5 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300">
-                            {fmtPct(r.apy, 1)} APY
-                          </span>
-                        )}
-                      </td>
+                      <td className="whitespace-nowrap px-3 py-2 font-medium text-text">{r.o.symbol}</td>
                       <td className="px-3 py-2">
                         <span className="rounded border border-sky-500/30 bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-sky-300">
                           {r.strategyCode}
@@ -365,10 +392,13 @@ export function PositionsTable({ options, marketOpen }: { options: SourcedOption
                       <td className="px-3 py-2 text-right tabular text-text">{fmtMoney(r.o.strike)}</td>
                       <td className="px-3 py-2 text-right tabular text-text">{r.spot != null ? fmtMoney(r.spot) : "-"}</td>
                       <td className={`px-3 py-2 text-right tabular ${pnlColor(r.theta)}`}>{fmtMoney(r.theta, { sign: true })}</td>
+                      <td className="px-3 py-2 text-right tabular text-text">{r.ror != null ? fmtPct(r.ror, 1) : "-"}</td>
+                      <td className="px-3 py-2 text-right tabular text-text">{r.apy != null ? fmtPct(r.apy, 1) : "-"}</td>
                       <td className="px-3 py-2 text-right tabular">
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${r.unrealized >= 0 ? "bg-emerald-500/15 text-emerald-300" : "bg-rose-500/15 text-rose-300"}`}>
-                          {fmtMoney(r.unrealized, { sign: true })} ({fmtPct(r.unrealizedPct)})
-                        </span>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className={`text-xs font-semibold ${pnlColor(r.unrealized)}`}>{fmtMoney(r.unrealized, { sign: true })}</span>
+                          <PctBar pct={r.unrealizedPct} />
+                        </div>
                       </td>
                       <td className="px-3 py-2 text-right tabular">
                         {r.todayPl != null ? (
@@ -393,10 +423,12 @@ export function PositionsTable({ options, marketOpen }: { options: SourcedOption
               Total
             </td>
             <td className="px-3 py-2.5 text-right tabular text-xs text-text">{fmtMoney(total.theta, { sign: true })}</td>
+            <td colSpan={2} />
             <td className="px-3 py-2.5 text-right tabular text-xs">
-              <span className={pnlColor(total.unrealized)}>
-                {fmtMoney(total.unrealized, { sign: true })} ({fmtPct(total.unrealizedPct)})
-              </span>
+              <div className="flex flex-col items-end gap-1">
+                <span className={pnlColor(total.unrealized)}>{fmtMoney(total.unrealized, { sign: true })}</span>
+                <PctBar pct={total.unrealizedPct} />
+              </div>
             </td>
             <td className="px-3 py-2.5 text-right tabular text-xs">
               {total.hasTodayPl ? (

@@ -299,22 +299,41 @@ export function cspAnnualizedReturn(o: OptionPosition): number {
   return (credit / collateral) * (360 / dte);
 }
 
-/** Annualized return on capital for any short premium-selling position (CSP
- *  or covered call) — same credit÷capital, annualized-over-days-to-expiry
- *  shape as cspAnnualizedReturn, generalized to reuse strike-based notional
- *  (cspCollateral's own formula, strike × 100 × qty, isn't actually CSP-
- *  specific) as the capital base for a covered call too, since the
- *  underlying shares' real cost basis isn't on OptionPosition. Null for
- *  anything that isn't a short CSP/covered-call — a long/debit position
- *  (LEAP, hedge) has no "yield on capital" in the same sense. Used for the
- *  desktop positions table's APY badge. */
+/** Return on capital for any short premium-selling position (CSP or covered
+ *  call), from the ORIGINAL trade's own term — credit ÷ capital, annualized
+ *  over days-to-expiry AT OPEN (openedAt → expiration), not remaining DTE.
+ *  Deliberately not "days left" annualized: that version runs hot as
+ *  expiration approaches (the same trailing credit divided by a shrinking
+ *  denominator) and drifts from what the position was actually entered at.
+ *  Reuses cspCollateral's strike-based notional as the capital base for a
+ *  covered call too, same as before, since the underlying shares' real cost
+ *  basis isn't on OptionPosition. Null for anything that isn't a short
+ *  CSP/covered-call, or when openedAt isn't known (no synced transaction
+ *  history reaches back to the real open — left null rather than guessing
+ *  from remaining DTE, same convention as BBSigma/ErDate above). Used for
+ *  the desktop positions table's APY column. */
 export function positionAnnualizedReturn(o: OptionPosition): number | null {
+  if (o.side !== "short" || (o.kind !== "csp" && o.kind !== "covered-call")) return null;
+  if (!o.openedAt) return null;
+  const capital = cspCollateral(o);
+  if (capital === 0) return null;
+  const credit = optionBasis(o);
+  const dteAtOpen = Math.max(daysToExpiry(o.expiration, o.openedAt), 1);
+  return (credit / capital) * (360 / dteAtOpen);
+}
+
+/** Static (unannualized) return on capital for a short CSP/covered-call —
+ *  credit ÷ capital, the raw yield the position was entered for regardless
+ *  of term length. Same gating as positionAnnualizedReturn, minus the
+ *  360/DTE annualization factor, so the two read as genuinely different
+ *  numbers rather than one being a rescaled copy of the other. Used for the
+ *  desktop positions table's RoR% column. */
+export function positionReturnOnCapital(o: OptionPosition): number | null {
   if (o.side !== "short" || (o.kind !== "csp" && o.kind !== "covered-call")) return null;
   const capital = cspCollateral(o);
   if (capital === 0) return null;
   const credit = optionBasis(o);
-  const dte = Math.max(daysToExpiry(o.expiration), 1);
-  return (credit / capital) * (360 / dte);
+  return credit / capital;
 }
 
 /**
