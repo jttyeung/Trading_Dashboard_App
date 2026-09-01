@@ -24,5 +24,8 @@ export const exampleVix: VixSnapshot = {
     s5fi: 58.1,
     s5fiSlopeWk: -0.35,
     s5fiWeekly: [61.4, 60.2, 62.0, 59.3, 60.1, 58.4, 59.0, 58.1],
+    // Nasdaq-100 Volatility Index — a real reading (captured separately from
+    // the VIX value above), for the VIX/VXN divergence read in lib/vxn.ts.
+    vxn: 20.18,
   },
 };

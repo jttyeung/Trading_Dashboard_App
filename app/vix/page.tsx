@@ -11,6 +11,7 @@ import { getSnapshot } from "@/lib/snapshot";
 import { getSelectedAccount } from "@/lib/account";
 import { getVixSnapshot } from "@/lib/vix-data";
 import { assessVix, REGIME_COLORS, type Regime } from "@/lib/vix";
+import { assessVxn, compareVixVxn, VXN_REGIME_COLORS } from "@/lib/vxn";
 import { freeCashValue } from "@/lib/calc";
 
 export const dynamic = "force-dynamic";
@@ -35,11 +36,16 @@ export default async function VixPage() {
     <main className="px-4">
       <ShowAmounts>
         <PageHeader
-          title="Volatility"
+          title="VIX/VXN"
           subtitle={
             <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
               <AccountSwitcher accounts={snap.accounts} selectedId={id} />
-              <span>· {vix ? `VIX ${vix.inputs.vix.toFixed(2)}` : "no data"}</span>
+              <span>
+                ·{" "}
+                {vix
+                  ? `VIX ${vix.inputs.vix.toFixed(2)}${vix.inputs.vxn != null ? ` / VXN ${vix.inputs.vxn.toFixed(2)}` : ""}`
+                  : "no data"}
+              </span>
             </span>
           }
           right={<BackLink />}
@@ -80,6 +86,10 @@ function VixBody({
   const a = assessVix(vix);
   const tone = REGIME_COLORS[a.regime];
   const markerPct = Math.min(100, Math.max(0, (a.vix / 40) * 100));
+  const vxnA = vix.inputs.vxn != null ? assessVxn(vix.inputs.vxn) : null;
+  const vxnTone = vxnA ? VXN_REGIME_COLORS[vxnA.regime] : null;
+  const divergence = vxnA ? compareVixVxn(a.regime, vxnA.regime) : null;
+  const divergenceTone = divergence == null || divergence.tilt === "aligned" ? "text-muted" : divergence.tilt === "tech-hotter" ? "text-amber-300" : "text-sky-300";
 
   return (
     <>
@@ -117,6 +127,19 @@ function VixBody({
         </div>
 
         <p className="mt-3 text-[12px] leading-relaxed text-muted">{a.marketRead}</p>
+
+        {vxnA && vxnTone && (
+          <div className="mt-4 border-t border-border pt-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-xs text-muted">VXN · Nasdaq-100 implied vol</div>
+                <div className="tabular mt-0.5 text-2xl font-bold">{vxnA.vxn.toFixed(2)}</div>
+              </div>
+              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${vxnTone.chip}`}>{vxnA.regimeLabel}</span>
+            </div>
+            {divergence && <p className={`mt-2 text-[11px] leading-relaxed ${divergenceTone}`}>{divergence.note}</p>}
+          </div>
+        )}
       </Card>
 
       {/* Posture — framework target band + where you actually sit */}
@@ -156,7 +179,7 @@ function VixBody({
       {/* Indicator panel */}
       <SectionTitle>Indicator panel</SectionTitle>
       <p className="-mt-1 mb-2 px-1 text-[11px] text-muted">Tap any row for what it means and where it sits.</p>
-      <VixIndicators a={a} mes={mes} />
+      <VixIndicators a={a} mes={mes} vxn={vix.inputs.vxn} />
 
       {/* Cheat sheet */}
       <SectionTitle>Cheat sheet</SectionTitle>
@@ -170,6 +193,21 @@ function VixBody({
           <li><span className="text-text">25–30</span> Very Fearful · 5–10% cash / 90–95% invested</li>
           <li><span className="text-text">&gt;30</span> Extreme Fear · 0–5% cash / 95–100% invested</li>
         </ul>
+      </Card>
+
+      <Card className="mt-2 px-4 py-3 text-[11px] leading-relaxed">
+        <p className="font-medium text-text">VXN Cash Allocation — same idea, shifted ~4pts above VIX for Nasdaq-100&rsquo;s structurally richer vol.</p>
+        <ul className="mt-2 space-y-1 text-muted">
+          <li><span className="text-text">&lt;15</span> Complacency · 40–50% cash / 50–60% invested</li>
+          <li><span className="text-text">15–19</span> Grind Zone · 30–40% cash / 60–70% invested</li>
+          <li><span className="text-text">19–25</span> Slight Fear · 20–30% cash / 70–80% invested</li>
+          <li><span className="text-text">25–30</span> Fear · 10–20% cash / 80–90% invested</li>
+          <li><span className="text-text">30–35</span> Very Fearful · 5–10% cash / 90–95% invested</li>
+          <li><span className="text-text">35+</span> Extreme Fear · 0–5% cash / 95–100% invested</li>
+        </ul>
+        <p className="mt-2 border-t border-border pt-2 text-[10px] text-muted">
+          Percentile-matched to the VIX bands using 10yrs of Cboe data — slide toward each zone&rsquo;s low end as VXN rises. Not financial advice.
+        </p>
       </Card>
 
       <p className="mt-4 px-1 text-[11px] leading-relaxed text-muted">

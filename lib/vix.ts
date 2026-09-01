@@ -21,6 +21,7 @@ export interface VixInputs {
   s5fi?: number | null; // $SPXA50R — % of S&P 500 above their 50-day SMA
   s5fiSlopeWk?: number | null; // weekly-close least-squares slope (pts/week)
   s5fiWeekly?: number[] | null; // recent weekly closes, oldest→newest (for the sparkline)
+  vxn?: number | null; // Nasdaq-100 Volatility Index — see lib/vxn.ts (RULE-016), a separate read
 }
 
 export interface VixSnapshot {
