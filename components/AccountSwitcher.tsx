@@ -57,7 +57,6 @@ export function AccountSwitcher({
         className="flex items-center gap-1 text-xs font-medium text-muted active:text-text"
       >
         <span className="text-text">{accountLabel(current)}</span>
-        <span>{current.mask}</span>
         <svg
           width="12"
           height="12"
