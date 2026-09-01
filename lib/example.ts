@@ -301,6 +301,10 @@ export const examplePortfolioRiskFile: PortfolioRiskFile = {
     },
     maxSectorAllocationPct: 0.3,
     portfolioValue: 58400,
+    openPnL: 3200,
+    openPnLPct: 0.0548,
+    openPnLStatus: "on_target",
+    openPnLMinPct: -0.1,
   },
   perAccount: [
     {
@@ -321,6 +325,10 @@ export const examplePortfolioRiskFile: PortfolioRiskFile = {
       },
       maxSectorAllocationPct: 0.3,
       portfolioValue: 35500,
+      openPnL: 2100,
+      openPnLPct: 0.0592,
+      openPnLStatus: "on_target",
+      openPnLMinPct: -0.1,
     },
     {
       accountLabel: "Roth IRA",
@@ -341,8 +349,24 @@ export const examplePortfolioRiskFile: PortfolioRiskFile = {
       },
       maxSectorAllocationPct: 0.3,
       portfolioValue: 22900,
+      openPnL: 1100,
+      openPnLPct: 0.048,
+      openPnLStatus: "on_target",
+      openPnLMinPct: -0.1,
     },
   ],
+  blended: {
+    portfolioValue: 58400,
+    beta: 0.82,
+    betaCoverage: 0.85,
+    betaStatus: "on_target",
+    betaMinTarget: 0.6,
+    betaMaxTarget: 1.05,
+    openPnL: 3200,
+    openPnLPct: 0.0548,
+    openPnLStatus: "on_target",
+    openPnLMinPct: -0.1,
+  },
 };
 
 // Active tracker alerts (data/alerts.json) — one of each action type so the

@@ -20,8 +20,24 @@ const EMPTY: PortfolioRiskFile = {
     sectorValues: {},
     maxSectorAllocationPct: 0,
     portfolioValue: 0,
+    openPnL: 0,
+    openPnLPct: 0,
+    openPnLStatus: "unknown",
+    openPnLMinPct: 0,
   },
   perAccount: [],
+  blended: {
+    portfolioValue: 0,
+    beta: 0,
+    betaCoverage: 0,
+    betaStatus: "unknown",
+    betaMinTarget: 0,
+    betaMaxTarget: 0,
+    openPnL: 0,
+    openPnLPct: 0,
+    openPnLStatus: "unknown",
+    openPnLMinPct: 0,
+  },
 };
 
 export async function getPortfolioRisk(): Promise<PortfolioRiskFile> {

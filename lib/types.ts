@@ -511,16 +511,40 @@ export interface RiskView {
   sectorValues: Record<string, number>;
   maxSectorAllocationPct: number;
   portfolioValue: number; // the liquidation value sectorValues/thetaPct were each computed against
+  openPnL: number; // RULE-019 — total unrealized P&L across every open position (Schwab only at this Overall/PerAccount level)
+  openPnLPct: number;
+  openPnLStatus: "on_target" | "below_target" | "unknown";
+  openPnLMinPct: number;
 }
 
 export interface AccountRiskView extends RiskView {
   accountLabel: string; // always masked/labeled server-side — never a raw account number
 }
 
+// RULE-018 (beta-weighted-to-QQQ target, 0.6-1.05) and RULE-019 (open-P&L
+// floor, -10%) combined across Schwab AND SnapTrade — Schwab alone reads
+// nowhere near the account holder's own real numbers, since SnapTrade
+// (Fidelity/E*TRADE) holds roughly 2.5x Schwab's own value. Both soft
+// guidance, never a suggestion-engine gate (unlike RiskView's theta/
+// sector fields above).
+export interface BlendedRiskView {
+  portfolioValue: number; // Schwab + SnapTrade combined
+  beta: number;
+  betaCoverage: number; // fraction of portfolioValue with a computable per-underlying beta
+  betaStatus: "below_target" | "on_target" | "above_target" | "unknown";
+  betaMinTarget: number;
+  betaMaxTarget: number;
+  openPnL: number;
+  openPnLPct: number;
+  openPnLStatus: "on_target" | "below_target" | "unknown";
+  openPnLMinPct: number;
+}
+
 export interface PortfolioRiskFile {
   meta: { generatedAt: string };
   overall: RiskView;
   perAccount: AccountRiskView[];
+  blended: BlendedRiskView;
 }
 
 // ---------------------------------------------------------------------------
