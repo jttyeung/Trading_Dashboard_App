@@ -40,6 +40,17 @@ npm run build
 npm run start    # serves the optimized build on port 3000
 ```
 
+**Use the production build for anything other than active development** — checking
+the dashboard from your phone (e.g. over Tailscale), sharing it, or just regular
+day-to-day browsing. `npm run dev`'s hot-reload client and unminified bundles make
+initial hydration meaningfully slower once there's real network latency involved (a
+loopback `localhost` connection hides this completely, which is why it can look fine
+on desktop). The practical symptom: buttons that need JavaScript to do anything (a
+`<button onClick>`, not a plain link) briefly do nothing when tapped right after the
+page appears, because React hasn't finished attaching event handlers yet — worse in a
+private/incognito tab, since there's no cached JS from a previous visit to speed it
+up. Reach for `npm run dev` only while you're actively editing frontend code.
+
 With no `data/` files present, every view renders the **example dataset** — nothing to
 configure to look around.
 
