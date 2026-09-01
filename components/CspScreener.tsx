@@ -5,7 +5,7 @@
 // the ~0.20–0.30 delta range. Each line shows strike, premium, and premium yield
 // (premium ÷ collateral) as a %.
 import { useMemo } from "react";
-import { usePersistentState } from "@/lib/view-state";
+import { usePersistentState, usePersistentSet } from "@/lib/view-state";
 import type { CSPCandidate } from "@/lib/types";
 import {
   annualizedReturn,
@@ -83,6 +83,7 @@ export function CspScreener({ candidates }: { candidates: CSPCandidate[] }) {
   const [deltaKey, setDeltaKey] = usePersistentState("csp-deltakey", "all");
   const [sourceKey, setSourceKey] = usePersistentState("csp-sourcekey", "all");
   const [openId, setOpenId] = usePersistentState<string | null>("csp-openid", null);
+  const { has: groupExpanded, toggle: toggleGroup } = usePersistentSet("csp-groups-open");
 
   const groups = useMemo(() => {
     const deltaMax = DELTAS.find((d) => d.key === deltaKey)!.max;
@@ -147,12 +148,17 @@ export function CspScreener({ candidates }: { candidates: CSPCandidate[] }) {
           const top = lines.reduce((a, b) => (scoreCandidate(b).total > scoreCandidate(a).total ? b : a));
           const band = scoreBand(scoreCandidate(top).total);
           const c0 = lines[0];
+          const expanded = groupExpanded(symbol);
           return (
             <div key={symbol} className="overflow-hidden rounded-2xl border border-border bg-surface">
-              {/* ticker header */}
-              <div className="flex items-center justify-between gap-2 px-4 pt-3">
+              {/* ticker header — tap to expand/collapse this group */}
+              <button
+                onClick={() => toggleGroup(symbol)}
+                className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left active:bg-surface-2"
+              >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
+                    <span className="w-3 shrink-0 text-[10px] text-muted">{expanded ? "▾" : "▸"}</span>
                     <span className="text-base font-semibold">{symbol}</span>
                     <span className="truncate text-[11px] text-muted">{c0.name}</span>
                     {c0.source === "discovered" && (
@@ -161,16 +167,17 @@ export function CspScreener({ candidates }: { candidates: CSPCandidate[] }) {
                       </span>
                     )}
                   </div>
-                  <div className="mt-0.5 text-[11px] text-muted">
-                    ${c0.underlyingPrice.toFixed(2)} · {c0.sector} · RSI {c0.technical.rsi?.toFixed(0) ?? "—"}
+                  <div className="mt-0.5 pl-5 text-[11px] text-muted">
+                    ${c0.underlyingPrice.toFixed(2)} · {c0.sector} · RSI {c0.technical.rsi?.toFixed(0) ?? "—"} ·{" "}
+                    {lines.length} strike{lines.length === 1 ? "" : "s"}
                   </div>
                 </div>
                 <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${band.chip}`}>
                   {scoreCandidate(top).total}
                 </span>
-              </div>
+              </button>
 
-              {exps.map((eg) => (
+              {expanded && exps.map((eg) => (
                 <div key={eg.expiration} className="border-t border-border">
                   {/* expiration sub-header */}
                   <div className="flex items-center gap-2 px-4 pb-1 pt-2">

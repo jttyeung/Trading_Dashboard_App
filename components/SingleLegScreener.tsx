@@ -7,7 +7,7 @@
 // collateral/yield on a sold one). See lib/single-leg-model.ts for why the
 // score itself is leaner than CSP's.
 import { useMemo } from "react";
-import { usePersistentState } from "@/lib/view-state";
+import { usePersistentState, usePersistentSet } from "@/lib/view-state";
 import type { SingleLegCandidate } from "@/lib/types";
 import { cost, premium, scoreBand, scoreCandidate } from "@/lib/single-leg-model";
 import { fmtMoney } from "@/lib/calc";
@@ -78,6 +78,7 @@ export function SingleLegScreener({ candidates }: { candidates: SingleLegCandida
   const [sortKey, setSortKey] = usePersistentState<SortKey>("singleleg-sortkey", "score");
   const [strategyKey, setStrategyKey] = usePersistentState<SingleLegCandidate["strategy"] | "all">("singleleg-stratkey", "all");
   const [openId, setOpenId] = usePersistentState<string | null>("singleleg-openid", null);
+  const { has: groupExpanded, toggle: toggleGroup } = usePersistentSet("singleleg-groups-open");
 
   const groups = useMemo(() => {
     const rows = candidates.filter((c) => strategyKey === "all" || c.strategy === strategyKey);
@@ -135,24 +136,29 @@ export function SingleLegScreener({ candidates }: { candidates: SingleLegCandida
             const top = lines.reduce((a, b) => (scoreCandidate(b).total > scoreCandidate(a).total ? b : a));
             const band = scoreBand(scoreCandidate(top).total);
             const c0 = lines[0];
+            const expanded = groupExpanded(symbol);
             return (
               <div key={symbol} className="overflow-hidden rounded-2xl border border-border bg-surface">
-                <div className="flex items-center justify-between gap-2 px-4 pt-3">
+                <button
+                  onClick={() => toggleGroup(symbol)}
+                  className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left active:bg-surface-2"
+                >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
+                      <span className="w-3 shrink-0 text-[10px] text-muted">{expanded ? "▾" : "▸"}</span>
                       <span className="text-base font-semibold">{symbol}</span>
                       <span className="truncate text-[11px] text-muted">{c0.name}</span>
                     </div>
-                    <div className="mt-0.5 text-[11px] text-muted">
-                      ${c0.underlyingPrice.toFixed(2)} · {c0.sector}
+                    <div className="mt-0.5 pl-5 text-[11px] text-muted">
+                      ${c0.underlyingPrice.toFixed(2)} · {c0.sector} · {lines.length} contract{lines.length === 1 ? "" : "s"}
                     </div>
                   </div>
                   <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${band.chip}`}>
                     {scoreCandidate(top).total}
                   </span>
-                </div>
+                </button>
 
-                {exps.map((eg) => (
+                {expanded && exps.map((eg) => (
                   <div key={eg.expiration} className="border-t border-border">
                     <div className="flex items-center gap-2 px-4 pb-1 pt-2">
                       <span className="rounded-full bg-violet-500/15 px-2 py-0.5 text-[11px] font-medium text-violet-300 ring-1 ring-inset ring-violet-500/30">
