@@ -11,7 +11,7 @@ import { getSnapshot } from "@/lib/snapshot";
 import { getSelectedAccount } from "@/lib/account";
 import { getVixSnapshot } from "@/lib/vix-data";
 import { assessVix, REGIME_COLORS, type Regime } from "@/lib/vix";
-import { assessVxn, compareVixVxn, VXN_REGIME_COLORS } from "@/lib/vxn";
+import { assessVxn, compareVixVxn, VXN_REGIME_COLORS, type VxnRegime } from "@/lib/vxn";
 import { freeCashValue } from "@/lib/calc";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +22,15 @@ const BANDS: { label: string; lo: number; hi: number; regime: Regime }[] = [
   { label: "15–20", lo: 15, hi: 20, regime: "slight-fear" },
   { label: "20–30", lo: 20, hi: 30, regime: "fear" },
   { label: ">30", lo: 30, hi: 40, regime: "extreme-fear" },
+];
+
+const VXN_BANDS: { label: string; lo: number; hi: number; regime: VxnRegime }[] = [
+  { label: "<15", lo: 0, hi: 15, regime: "complacency" },
+  { label: "15–19", lo: 15, hi: 19, regime: "grind-zone" },
+  { label: "19–25", lo: 19, hi: 25, regime: "slight-fear" },
+  { label: "25–30", lo: 25, hi: 30, regime: "fear" },
+  { label: "30–35", lo: 30, hi: 35, regime: "very-fear" },
+  { label: "35+", lo: 35, hi: 45, regime: "extreme-fear" },
 ];
 
 export default async function VixPage() {
@@ -88,6 +97,7 @@ function VixBody({
   const markerPct = Math.min(100, Math.max(0, (a.vix / 40) * 100));
   const vxnA = vix.inputs.vxn != null ? assessVxn(vix.inputs.vxn) : null;
   const vxnTone = vxnA ? VXN_REGIME_COLORS[vxnA.regime] : null;
+  const vxnMarkerPct = vxnA ? Math.min(100, Math.max(0, (vxnA.vxn / 45) * 100)) : 0;
   const divergence = vxnA ? compareVixVxn(a.regime, vxnA.regime) : null;
   const divergenceTone = divergence == null || divergence.tilt === "aligned" ? "text-muted" : divergence.tilt === "tech-hotter" ? "text-amber-300" : "text-sky-300";
 
@@ -130,13 +140,39 @@ function VixBody({
 
         {vxnA && vxnTone && (
           <div className="mt-4 border-t border-border pt-3">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-xs text-muted">VXN · Nasdaq-100 implied vol</div>
                 <div className="tabular mt-0.5 text-2xl font-bold">{vxnA.vxn.toFixed(2)}</div>
               </div>
               <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${vxnTone.chip}`}>{vxnA.regimeLabel}</span>
             </div>
+
+            {/* Regime scale — same treatment as VIX's own, VXN's own bands */}
+            <div className="mt-3">
+              <div className="mb-1 flex items-center justify-between text-[9px] font-semibold uppercase tracking-wide">
+                <span className="text-sky-300">← Complacency (hold cash)</span>
+                <span className="text-rose-300">Fear (deploy) →</span>
+              </div>
+              <div className="relative h-2 w-full overflow-hidden rounded-full bg-surface-2">
+                <div className="absolute inset-y-0 left-0 w-full bg-gradient-to-r from-sky-500/40 via-emerald-500/40 to-rose-500/50" />
+                <div className="absolute top-1/2 h-3.5 w-1 -translate-y-1/2 rounded-full bg-white shadow" style={{ left: `${vxnMarkerPct}%` }} />
+              </div>
+              <div className="mt-1 flex justify-between text-[9px] text-muted">
+                {VXN_BANDS.map((b) => (
+                  <span key={b.label} className={b.regime === vxnA.regime ? "font-semibold text-text" : ""}>
+                    {b.label}
+                  </span>
+                ))}
+              </div>
+              <p className="mt-1.5 text-[10px] leading-snug text-muted">
+                Same idea as VIX, shifted ~4pts up for Nasdaq-100&rsquo;s structurally richer vol —
+                low VXN means tech/growth options are cheap, high VXN means tech-specific fear is
+                elevated and premium is fat.
+              </p>
+            </div>
+
+            <p className="mt-3 text-[12px] leading-relaxed text-muted">{vxnA.marketRead}</p>
             {divergence && <p className={`mt-2 text-[11px] leading-relaxed ${divergenceTone}`}>{divergence.note}</p>}
           </div>
         )}
