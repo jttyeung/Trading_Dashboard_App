@@ -5,7 +5,7 @@
 // The real snapshot is generated on the host and never ships in the repo.
 import fs from "node:fs";
 import path from "node:path";
-import type { Account, PortfolioSummary, Snapshot } from "./types";
+import type { Account, Equity, OptionPosition, PortfolioSummary, Snapshot } from "./types";
 import { isExampleMode } from "./example-mode";
 import { exampleSnapshot } from "./example";
 import { readAllJson } from "./data-dirs";
@@ -22,6 +22,8 @@ function mergeSnapshots(parts: Snapshot[]): Snapshot {
   let combinedId: string | null = null;
   const extra = zeroSummary();
   let hasExtra = false;
+  const extraEquities: Equity[] = [];
+  const extraOptions: OptionPosition[] = [];
 
   for (const s of parts) {
     if (new Date(s.meta.generatedAt).getTime() > new Date(merged.meta.generatedAt).getTime()) {
@@ -32,8 +34,15 @@ function mergeSnapshots(parts: Snapshot[]): Snapshot {
     // real accounts on the backend, authoritatively — a part with no
     // such entry of its own (SnapTrade's snapshot.json, or an extra
     // Schwab login that predates this) isn't reflected in ANY combined
-    // total yet, so its accounts get folded in additively below instead
-    // of being silently invisible to "All Accounts."
+    // view yet, so its accounts get folded in additively below instead
+    // of being silently invisible to "All Accounts" — not just its
+    // summary totals, but the actual equities/options arrays every
+    // array-driven section (Holdings table, Top Movers, the Allocation
+    // donut's stocks-vs-cash split) reads from. Concatenated flat, no
+    // merge-by-symbol across accounts — matches how Schwab's own
+    // combinedEquities already blends multiple Schwab accounts
+    // (internal/export/snapshot.go's buildEquities never merges by
+    // symbol either, confirmed by reading it).
     const partHasCombined = (s.accounts as Account[]).some((a) => a.type === "all");
     for (const a of s.accounts as Account[]) {
       if (seen.has(a.id)) continue; // ignore an accidental duplicate id
@@ -41,9 +50,11 @@ function mergeSnapshots(parts: Snapshot[]): Snapshot {
       merged.accounts.push(a);
       if (a.type === "all") combinedId = a.id;
       if (!partHasCombined) {
-        const summary = s.data[a.id]?.summary;
-        if (summary) {
-          addSummary(extra, summary);
+        const accountData = s.data[a.id];
+        if (accountData) {
+          addSummary(extra, accountData.summary);
+          extraEquities.push(...accountData.equities);
+          extraOptions.push(...accountData.options);
           hasExtra = true;
         }
       }
@@ -51,14 +62,21 @@ function mergeSnapshots(parts: Snapshot[]): Snapshot {
     Object.assign(merged.data, s.data);
   }
 
-  // Fold every combined-less source's totals into whichever account is
-  // flagged "all" — additive on top of that account's own already-
-  // correct total, never replacing it (so a pure-Schwab setup with no
-  // extra sources sees zero change here).
+  // Fold every combined-less source's totals (and holdings) into
+  // whichever account is flagged "all" — additive on top of that
+  // account's own already-correct data, never replacing it (so a
+  // pure-Schwab setup with no extra sources sees zero change here).
+  // valueHistory is deliberately left alone: Schwab's own history can
+  // span months while SnapTrade's is capped at 30 days, so summing
+  // mismatched date ranges point-by-point would need real date
+  // alignment to not misrepresent the trend line — a known gap, not
+  // silently "fixed" by a naive merge here.
   if (combinedId && hasExtra) {
     const combinedData = merged.data[combinedId];
     if (combinedData) {
       combinedData.summary = addSummary({ ...combinedData.summary }, extra);
+      combinedData.equities = [...combinedData.equities, ...extraEquities];
+      combinedData.options = [...combinedData.options, ...extraOptions];
     }
   }
 
