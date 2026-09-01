@@ -176,6 +176,50 @@ export interface CSPCandidatesFile {
   candidates: CSPCandidate[];
 }
 
+export type BotStatus = "pending_approval" | "approved" | "rejected";
+export type BotOutcome = "WIN" | "ASSIGNED";
+
+// One row of the /bot or /bot-20-delta-safe paper-trading review table —
+// a frozen snapshot of a real suggestion-engine candidate (same scoring,
+// same rationale as the live digest), plus whatever approval/outcome
+// state has accumulated since. Approve/reject is CLI-only for now (see
+// OptionsEvaluator's internal/agents/paperbot package doc comment) — this
+// type is read-only display.
+export interface BotTrade {
+  id: number;
+  ticker: string;
+  strategy: string; // CSP / CSP_SAFE
+  contractSymbol: string;
+  strike: number;
+  expiration: string;
+  dteAtPost: number;
+  delta: number;
+  ivPercent: number;
+  premium: number; // per share
+  premiumTotal: number; // per contract (×100)
+  breakeven: number;
+  rorPct: number;
+  annualizedRorPct: number;
+  score: number;
+  rationale: string;
+  stockPriceAtPost: number;
+  postedAt: string;
+  status: BotStatus;
+  decidedAt?: string;
+  outcome?: BotOutcome;
+  stockPriceAtClose?: number;
+  realizedPnl?: number;
+  returnPct?: number;
+  currentPrice?: number;
+  itmOtm?: "ITM" | "OTM";
+}
+
+export interface BotSnapshot {
+  generatedAt: string;
+  bot: string;
+  trades: BotTrade[];
+}
+
 // A closed cash-secured-put round-trip (reconstructed from option order history).
 export interface ClosedCSP {
   id: string;
