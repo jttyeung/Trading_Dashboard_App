@@ -20,7 +20,7 @@ export default async function DeltaSafeBotPage() {
           for near-zero assignment odds. Same review-queue workflow as the general bot.
         </p>
       </div>
-      <BotTable trades={snap.trades} />
+      <BotTable trades={snap.trades} myGrade={snap.myGrade} />
     </main>
   );
 }

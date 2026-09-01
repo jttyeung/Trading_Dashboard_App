@@ -6,7 +6,12 @@ import fs from "node:fs";
 import path from "node:path";
 import type { BotSnapshot } from "./types";
 
-const EMPTY: BotSnapshot = { generatedAt: "", bot: "", trades: [] };
+const EMPTY: BotSnapshot = {
+  generatedAt: "",
+  bot: "",
+  trades: [],
+  myGrade: { goodCalls: 0, riskRealized: 0, missedWins: 0, goodPasses: 0, ungraded: 0 },
+};
 
 function loadBotFile(filename: string): BotSnapshot {
   try {
