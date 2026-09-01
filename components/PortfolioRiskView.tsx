@@ -1,13 +1,29 @@
 import { Card, SectionTitle } from "@/components/ui";
 import { Amt } from "@/components/privacy";
-import { fmtMoney } from "@/lib/calc";
-import type { RiskView, AccountRiskView } from "@/lib/types";
+import { fmtMoney, fmtPct } from "@/lib/calc";
+import type { RiskView, AccountRiskView, BlendedRiskView } from "@/lib/types";
 
 const STATUS_STYLE: Record<RiskView["thetaStatus"], { label: string; chip: string }> = {
   below_target: { label: "Below target", chip: "bg-sky-500/15 text-sky-300 ring-sky-500/30" },
   on_target: { label: "On target", chip: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30" },
   above_target_below_ceiling: { label: "Above target", chip: "bg-amber-500/15 text-amber-300 ring-amber-500/30" },
   over_ceiling: { label: "Over ceiling", chip: "bg-rose-500/15 text-rose-300 ring-rose-500/30" },
+  unknown: { label: "Unknown", chip: "bg-surface-2 text-muted ring-border" },
+};
+
+// RULE-018 beta and RULE-019 open-P&L are both soft guidance (never a
+// suggestion-engine gate, unlike theta/sector above) — "below_target"
+// reads as informational (sky), not alarming, since neither direction is
+// actually wrong the way over_ceiling is for theta.
+const BETA_STATUS_STYLE: Record<BlendedRiskView["betaStatus"], { label: string; chip: string }> = {
+  below_target: { label: "Below target", chip: "bg-sky-500/15 text-sky-300 ring-sky-500/30" },
+  on_target: { label: "On target", chip: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30" },
+  above_target: { label: "Above target", chip: "bg-amber-500/15 text-amber-300 ring-amber-500/30" },
+  unknown: { label: "Unknown", chip: "bg-surface-2 text-muted ring-border" },
+};
+const OPEN_PNL_STATUS_STYLE: Record<RiskView["openPnLStatus"], { label: string; chip: string }> = {
+  on_target: { label: "On target", chip: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30" },
+  below_target: { label: "Below floor", chip: "bg-amber-500/15 text-amber-300 ring-amber-500/30" },
   unknown: { label: "Unknown", chip: "bg-surface-2 text-muted ring-border" },
 };
 
@@ -89,11 +105,90 @@ function SectorBars({ risk, portfolioValue }: { risk: RiskView; portfolioValue: 
   );
 }
 
-export function PortfolioRiskView({ overall, perAccount }: { overall: RiskView; perAccount: AccountRiskView[] }) {
+function OpenPnLRow({ openPnL, openPnLPct, status, floorPct }: { openPnL: number; openPnLPct: number; status: RiskView["openPnLStatus"]; floorPct: number }) {
+  const s = OPEN_PNL_STATUS_STYLE[status];
+  return (
+    <div className="flex items-center justify-between border-t border-border pt-3">
+      <div>
+        <div className="text-[10px] uppercase tracking-wide text-muted">Open P&L</div>
+        <div className="tabular text-lg font-bold leading-tight">
+          <Amt>{`${openPnL >= 0 ? "+" : "−"}${fmtMoney(Math.abs(openPnL))}`}</Amt>
+        </div>
+        <div className="tabular text-[11px] text-muted">
+          {fmtPct(openPnLPct)} of portfolio · floor {(floorPct * 100).toFixed(0)}%
+        </div>
+      </div>
+      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${s.chip}`}>{s.label}</span>
+    </div>
+  );
+}
+
+// RULE-018: soft guidance, so this reads like ThetaGauge's band visual
+// but with a plain two-sided target band (no separate ceiling marker —
+// there's no hard ceiling here the way RULE-006 has one).
+function BetaGauge({ blended }: { blended: BlendedRiskView }) {
+  const status = BETA_STATUS_STYLE[blended.betaStatus];
+  const gaugeMax = blended.betaMaxTarget * 1.6;
+  const pct = gaugeMax > 0 ? Math.min(1, Math.max(0, blended.beta / gaugeMax)) : 0;
+  const minPct = gaugeMax > 0 ? blended.betaMinTarget / gaugeMax : 0;
+  const maxPct = gaugeMax > 0 ? blended.betaMaxTarget / gaugeMax : 0;
+  return (
+    <div>
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-[10px] uppercase tracking-wide text-muted">Beta vs QQQ</div>
+          <div className="tabular text-lg font-bold leading-tight">{blended.beta.toFixed(2)}</div>
+          <div className="tabular text-[11px] text-muted">
+            <Amt>{fmtMoney(blended.portfolioValue)}</Amt> total · {(blended.betaCoverage * 100).toFixed(0)}% coverage
+          </div>
+        </div>
+        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${status.chip}`}>
+          {status.label}
+        </span>
+      </div>
+      <div className="relative mt-3 h-2.5 w-full overflow-hidden rounded-full bg-surface-2">
+        <div
+          className="absolute inset-y-0 bg-emerald-500/25"
+          style={{ left: `${minPct * 100}%`, width: `${Math.max(0, maxPct - minPct) * 100}%` }}
+        />
+        <div
+          className={`absolute inset-y-0 left-0 rounded-full ${blended.betaStatus === "above_target" ? "bg-amber-400" : "bg-sky-400"}`}
+          style={{ width: `${pct * 100}%` }}
+        />
+      </div>
+      <div className="mt-1 flex justify-between text-[10px] text-muted">
+        <span>0</span>
+        <span>target {blended.betaMinTarget.toFixed(2)}–{blended.betaMaxTarget.toFixed(2)}</span>
+        <span>{gaugeMax.toFixed(2)}</span>
+      </div>
+      <OpenPnLRow openPnL={blended.openPnL} openPnLPct={blended.openPnLPct} status={blended.openPnLStatus} floorPct={blended.openPnLMinPct} />
+      <p className="mt-3 text-[10px] leading-relaxed text-muted">
+        Whole-account (Schwab + SnapTrade combined) — the account holder's own soft targets, never a suggestion-engine
+        gate.
+      </p>
+    </div>
+  );
+}
+
+export function PortfolioRiskView({
+  overall,
+  perAccount,
+  blended,
+}: {
+  overall: RiskView;
+  perAccount: AccountRiskView[];
+  blended: BlendedRiskView;
+}) {
   return (
     <div>
       <Card className="px-4 py-4">
         <ThetaGauge risk={overall} />
+        <OpenPnLRow openPnL={overall.openPnL} openPnLPct={overall.openPnLPct} status={overall.openPnLStatus} floorPct={overall.openPnLMinPct} />
+      </Card>
+
+      <SectionTitle>Beta &amp; open P&L (whole account)</SectionTitle>
+      <Card className="px-4 py-4">
+        <BetaGauge blended={blended} />
       </Card>
 
       <SectionTitle>Sector exposure (overall)</SectionTitle>
@@ -102,15 +197,17 @@ export function PortfolioRiskView({ overall, perAccount }: { overall: RiskView; 
       </Card>
 
       <p className="mt-3 px-1 text-[11px] leading-relaxed text-muted">
-        Only the overall (blended) numbers above actually gate a new suggestion — accounts here are mostly
-        tax/custodial wrappers, not independent risk pools. The per-account breakdown below is for visibility only.
+        Only the overall (blended) theta/sector numbers above actually gate a new suggestion — accounts here are
+        mostly tax/custodial wrappers, not independent risk pools. The per-account breakdown below is for visibility
+        only.
       </p>
 
-      <SectionTitle>Per account</SectionTitle>
+      <SectionTitle>Per account (Schwab only)</SectionTitle>
       {perAccount.map((a) => (
         <Card key={a.accountLabel} className="mb-2 px-4 py-4">
           <div className="mb-2 text-xs font-semibold">{a.accountLabel}</div>
           <ThetaGauge risk={a} />
+          <OpenPnLRow openPnL={a.openPnL} openPnLPct={a.openPnLPct} status={a.openPnLStatus} floorPct={a.openPnLMinPct} />
           <div className="mt-3 border-t border-border pt-3">
             <SectorBars risk={a} portfolioValue={a.portfolioValue} />
           </div>
