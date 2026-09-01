@@ -299,6 +299,24 @@ export function cspAnnualizedReturn(o: OptionPosition): number {
   return (credit / collateral) * (360 / dte);
 }
 
+/** Annualized return on capital for any short premium-selling position (CSP
+ *  or covered call) — same credit÷capital, annualized-over-days-to-expiry
+ *  shape as cspAnnualizedReturn, generalized to reuse strike-based notional
+ *  (cspCollateral's own formula, strike × 100 × qty, isn't actually CSP-
+ *  specific) as the capital base for a covered call too, since the
+ *  underlying shares' real cost basis isn't on OptionPosition. Null for
+ *  anything that isn't a short CSP/covered-call — a long/debit position
+ *  (LEAP, hedge) has no "yield on capital" in the same sense. Used for the
+ *  desktop positions table's APY badge. */
+export function positionAnnualizedReturn(o: OptionPosition): number | null {
+  if (o.side !== "short" || (o.kind !== "csp" && o.kind !== "covered-call")) return null;
+  const capital = cspCollateral(o);
+  if (capital === 0) return null;
+  const credit = optionBasis(o);
+  const dte = Math.max(daysToExpiry(o.expiration), 1);
+  return (credit / capital) * (360 / dte);
+}
+
 /**
  * Premium not yet realized on a short put — the mark you'd still keep if it
  * expires worthless from here. Equal to the buy-to-close cost (mark × 100 × qty).
