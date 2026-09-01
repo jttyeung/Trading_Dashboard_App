@@ -7,7 +7,7 @@ const TABS = [
   { href: "/", label: "Home", icon: HomeIcon },
   { href: "/options", label: "Options", icon: OptionsIcon },
   { href: "/pnl", label: "P&L", icon: PnlIcon },
-  { href: "/vix", label: "VIX", icon: VixIcon },
+  { href: "/vix", label: "VIX/VXN", icon: VixIcon },
   { href: "/briefing", label: "Brief", icon: BriefIcon },
   { href: "/research", label: "Research", icon: SearchIcon },
 ];
