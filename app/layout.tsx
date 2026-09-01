@@ -52,10 +52,17 @@ export default async function RootLayout({
   if (isWideSurface) {
     return (
       <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-        <body className="min-h-full bg-bg">
-          <PrivacyProvider>
-            <MarginModeProvider>{children}</MarginModeProvider>
-          </PrivacyProvider>
+        <body className="h-full bg-bg">
+          {/* globals.css caps html/body at 100vh with overflow:hidden — written
+              for the phone-frame shell's own inner ScrollArea below, which the
+              phone-frame branch further down in this file provides but this
+              wide-surface branch didn't, so anything taller than the viewport
+              was simply clipped with no way to reach it. Same fix, reused here. */}
+          <ScrollArea className="h-full w-full overflow-y-auto">
+            <PrivacyProvider>
+              <MarginModeProvider>{children}</MarginModeProvider>
+            </PrivacyProvider>
+          </ScrollArea>
         </body>
       </html>
     );
