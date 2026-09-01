@@ -166,6 +166,42 @@ export function PnlView({ realized, open }: { realized: BucketInput[]; open: Buc
     return out.sort((a, b) => b.pnl - a.pnl);
   }, [source, isRealized, range, term]);
 
+  // By month, grouped by year — deliberately built from the FULL realized
+  // history (not the TimeFilter's range), since the point of this view is
+  // "my whole track record over time," not whatever ad-hoc window the
+  // Realized/Open hero card happens to be scoped to right now. Still
+  // respects the short/long term lens for consistency with every other
+  // section. Years newest-first (what you care about right now); months
+  // within a year chronological (Jan→Dec) so it reads as a progression.
+  const monthlyByYear = useMemo(() => {
+    if (!isRealized) return [] as { year: string; months: { key: string; label: string; pnl: number; count: number }[] }[];
+    const byMonth = new Map<string, { pnl: number; count: number }>();
+    for (const b of realized) {
+      for (const it of b.items) {
+        if (!it.date || !keepTerm(term, it.daysHeld)) continue;
+        const key = it.date.slice(0, 7); // YYYY-MM
+        const agg = byMonth.get(key) ?? { pnl: 0, count: 0 };
+        agg.pnl += it.pnl;
+        agg.count += 1;
+        byMonth.set(key, agg);
+      }
+    }
+    const byYear = new Map<string, { key: string; label: string; pnl: number; count: number }[]>();
+    for (const [key, v] of byMonth) {
+      const [year, month] = key.split("-");
+      const label = MONTHS[Number(month) - 1];
+      if (!byYear.has(year)) byYear.set(year, []);
+      byYear.get(year)!.push({ key, label, ...v });
+    }
+    return [...byYear.entries()]
+      .map(([year, months]) => ({ year, months: months.sort((a, b) => a.key.localeCompare(b.key)) }))
+      .sort((a, b) => b.year.localeCompare(a.year));
+  }, [realized, isRealized, term]);
+  const monthlyMaxAbs = useMemo(
+    () => monthlyByYear.reduce((m, y) => y.months.reduce((mm, mo) => Math.max(mm, Math.abs(mo.pnl)), m), 0),
+    [monthlyByYear],
+  );
+
   const tickerMaxAbs = tickers.reduce((m, t) => Math.max(m, Math.abs(t.pnl)), 0);
   const [showAllTickers, setShowAllTickers] = usePersistentState("pnl-showall", false);
   const { has: symOpen, toggle: toggleSym } = usePersistentSet("pnl-opensyms");
@@ -343,6 +379,51 @@ export function PnlView({ realized, open }: { realized: BucketInput[]; open: Buc
           ? "Realized P&L from reconstructed closed round-trips (FIFO). Stocks include assignment cost basis where available."
           : "Open P&L is current unrealized mark-to-market on live positions, grouped by strategy."}
       </p>
+
+      {/* By month — full history regardless of the Realized/Open time filter above,
+          so this always reads as "my whole track record," grouped by year. */}
+      {isRealized && (
+        <>
+          <SectionTitle>By month</SectionTitle>
+          {monthlyByYear.length === 0 ? (
+            <Card className="px-4 py-6 text-center text-[12px] text-muted">No closed trades yet.</Card>
+          ) : (
+            <div className="space-y-3">
+              {monthlyByYear.map((y) => {
+                const yearTotal = y.months.reduce((s, mo) => s + mo.pnl, 0);
+                return (
+                  <div key={y.year}>
+                    <div className="mb-1 flex items-center justify-between px-1">
+                      <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">{y.year}</span>
+                      <span className={`tabular text-[11px] font-semibold ${yearTotal >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                        <Amt>{signed(yearTotal)}</Amt>
+                      </span>
+                    </div>
+                    <Card className="divide-y divide-border">
+                      {y.months.map((mo) => (
+                        <div key={mo.key} className="px-4 py-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex min-w-0 items-center gap-2">
+                              <span className="text-sm font-medium">{mo.label}</span>
+                              <span className="tabular rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] text-muted">{mo.count}</span>
+                            </div>
+                            <span className={`tabular shrink-0 text-sm font-semibold ${mo.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                              <Amt>{signed(mo.pnl)}</Amt>
+                            </span>
+                          </div>
+                          <div className="mt-2">
+                            <DivergingBar pnl={mo.pnl} maxAbs={monthlyMaxAbs} />
+                          </div>
+                        </div>
+                      ))}
+                    </Card>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
 
       {/* By ticker */}
       <SectionTitle>By ticker</SectionTitle>
