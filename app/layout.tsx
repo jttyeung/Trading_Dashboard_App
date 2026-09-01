@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { BottomNav } from "@/components/BottomNav";
@@ -35,11 +36,30 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // /desktop is a genuinely different surface (a wide sortable/groupable
+  // table, not a phone-shaped app) — set by middleware.ts, since a Server
+  // Component root layout has no useRouter/usePathname of its own. Every
+  // other route is unaffected: same phone-frame chrome as always.
+  const pathname = (await headers()).get("x-pathname") ?? "";
+  const isDesktop = pathname.startsWith("/desktop");
+
+  if (isDesktop) {
+    return (
+      <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+        <body className="min-h-full bg-bg">
+          <PrivacyProvider>
+            <MarginModeProvider>{children}</MarginModeProvider>
+          </PrivacyProvider>
+        </body>
+      </html>
+    );
+  }
+
   return (
     <html
       lang="en"
