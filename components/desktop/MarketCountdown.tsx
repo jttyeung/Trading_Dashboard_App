@@ -39,8 +39,8 @@ export function MarketCountdown() {
   if (!state) return null;
 
   const style = state.open
-    ? "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30"
-    : "bg-rose-500/15 text-rose-300 ring-rose-500/30";
+    ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+    : "bg-rose-50 text-rose-700 ring-rose-200";
 
   return (
     <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset ${style}`}>

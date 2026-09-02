@@ -32,13 +32,13 @@ const STRATEGY_CODE: Record<OptionKind, string> = {
 // own semantic (good/warning/bad) colors, so a strategy's color never gets
 // read as a signal about how that position is doing.
 const STRATEGY_STYLE: Record<OptionKind, string> = {
-  csp: "border-sky-500/30 bg-sky-500/10 text-sky-300",
-  "covered-call": "border-violet-500/30 bg-violet-500/10 text-violet-300",
-  "leap-call": "border-amber-500/30 bg-amber-500/10 text-amber-300",
-  "leap-put-hedge": "border-fuchsia-500/30 bg-fuchsia-500/10 text-fuchsia-300",
-  "put-spread": "border-teal-500/30 bg-teal-500/10 text-teal-300",
-  "call-spread": "border-indigo-500/30 bg-indigo-500/10 text-indigo-300",
-  other: "border-zinc-500/30 bg-zinc-500/10 text-zinc-300",
+  csp: "border-sky-200 bg-sky-50 text-sky-700",
+  "covered-call": "border-violet-200 bg-violet-50 text-violet-700",
+  "leap-call": "border-amber-200 bg-amber-50 text-amber-700",
+  "leap-put-hedge": "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700",
+  "put-spread": "border-teal-200 bg-teal-50 text-teal-700",
+  "call-spread": "border-indigo-200 bg-indigo-50 text-indigo-700",
+  other: "border-zinc-200 bg-zinc-50 text-zinc-700",
 };
 
 // A position tagged with which real account it came from — computed by the
@@ -122,9 +122,9 @@ function PctBar({ pct }: { pct: number }) {
   const positive = pct >= 0;
   const width = Math.min(100, Math.abs(pct) * 100);
   return (
-    <div className={`relative h-5 w-20 overflow-hidden rounded-full ${positive ? "bg-emerald-950/60" : "bg-rose-950/60"}`}>
+    <div className={`relative h-5 w-20 overflow-hidden rounded-full ${positive ? "bg-emerald-100" : "bg-rose-100"}`}>
       <div className={`h-full rounded-full ${positive ? "bg-emerald-500" : "bg-rose-500"}`} style={{ width: `${width}%` }} />
-      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-white drop-shadow-sm">
+      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-slate-900">
         {fmtPct(pct, 0)}
       </span>
     </div>
@@ -144,14 +144,14 @@ function dteBucket(dte: number): { key: string; label: string; order: number } {
 }
 
 function dteColor(dte: number): string {
-  if (dte <= 7) return "bg-rose-500/20 text-rose-300";
-  if (dte <= 21) return "bg-amber-500/20 text-amber-300";
-  return "bg-emerald-500/20 text-emerald-300";
+  if (dte <= 7) return "bg-rose-50 text-rose-700";
+  if (dte <= 21) return "bg-amber-50 text-amber-700";
+  return "bg-emerald-50 text-emerald-700";
 }
 
 function pnlColor(n: number | null): string {
   if (n == null) return "text-muted";
-  return n >= 0 ? "text-emerald-400" : "text-rose-400";
+  return n >= 0 ? "text-pos" : "text-neg";
 }
 
 function sortValue(r: Row, key: SortKey): number | string {
@@ -332,7 +332,7 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                   key={g}
                   onClick={() => setGroupBy(g)}
                   className={`px-2.5 py-1 text-xs font-medium capitalize ${
-                    groupBy === g ? "bg-sky-500/20 text-sky-300" : "bg-transparent text-muted hover:text-text"
+                    groupBy === g ? "bg-sky-100 text-sky-700" : "bg-transparent text-muted hover:text-text"
                   }`}
                 >
                   {g === "none" ? "None" : g === "dte" ? "DTE" : g.charAt(0).toUpperCase() + g.slice(1)}
@@ -420,8 +420,8 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                           {r.strategyCode}
                         </span>
                       </td>
-                      <td className={`px-3 py-2 text-right tabular ${r.o.side === "short" ? "text-rose-300" : "text-text"}`}>{signedQty(r.o)}</td>
-                      <td className="px-3 py-2 text-right tabular text-emerald-300">{r.dit ?? "-"}</td>
+                      <td className={`px-3 py-2 text-right tabular ${r.o.side === "short" ? "text-rose-600" : "text-text"}`}>{signedQty(r.o)}</td>
+                      <td className="px-3 py-2 text-right tabular text-emerald-600">{r.dit ?? "-"}</td>
                       <td className="px-3 py-2 text-right">
                         <span className={`rounded px-1.5 py-0.5 text-xs font-semibold tabular ${dteColor(r.dte)}`}>{r.dte}</span>
                       </td>
