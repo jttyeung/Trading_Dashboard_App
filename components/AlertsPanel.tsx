@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { Card, SectionTitle } from "@/components/ui";
 import type { Alert } from "@/lib/types";
 
@@ -16,20 +19,77 @@ const ACTION_STYLE: Record<Alert["action"], { label: string; chip: string }> = {
 // (soonest first).
 const ACTION_RANK: Record<Alert["action"], number> = { close: 0, roll: 1, watch: 2, monitor: 3 };
 
+// READ_KEY: which alerts the viewer has already reviewed, persisted per
+// browser (localStorage, same pattern as margin-mode.tsx's own toggle) —
+// this is a per-viewer convenience, not something the backend needs to
+// know about, and every 15-min cycle re-derives the same full alert set
+// regardless (see this file's own doc comment above), so there's no
+// server-side "read" concept to sync against. Keyed by contractSymbol:
+// if the SAME contract's alert later changes (e.g. escalates from Watch
+// to Roll), it stays collapsed here rather than re-surfacing — a known,
+// accepted simplification rather than diffing each alert's own content.
+const READ_KEY = "alertsRead";
+
+function loadRead(): Set<string> {
+  try {
+    const raw = localStorage.getItem(READ_KEY);
+    if (raw) return new Set(JSON.parse(raw));
+  } catch {
+    /* ignore */
+  }
+  return new Set();
+}
+
+function saveRead(read: Set<string>) {
+  try {
+    localStorage.setItem(READ_KEY, JSON.stringify(Array.from(read)));
+  } catch {
+    /* ignore */
+  }
+}
+
 export function AlertsPanel({ alerts }: { alerts: Alert[] }) {
+  const [read, setRead] = useState<Set<string>>(new Set());
+  useEffect(() => setRead(loadRead()), []);
+
   if (alerts.length === 0) return null;
   const sorted = [...alerts].sort((a, b) => ACTION_RANK[a.action] - ACTION_RANK[b.action] || a.dte - b.dte);
+  const unreadCount = sorted.filter((a) => !read.has(a.contractSymbol)).length;
+
+  function toggleRead(symbol: string) {
+    setRead((prev) => {
+      const next = new Set(prev);
+      if (next.has(symbol)) next.delete(symbol);
+      else next.add(symbol);
+      saveRead(next);
+      return next;
+    });
+  }
 
   return (
     <>
-      <SectionTitle>Needs attention</SectionTitle>
+      <SectionTitle
+        action={unreadCount < sorted.length ? <span className="text-[11px] text-muted">{unreadCount} unread</span> : undefined}
+      >
+        Needs attention
+      </SectionTitle>
       <Card className="divide-y divide-border p-0">
         {sorted.map((a) => {
           const style = ACTION_STYLE[a.action];
+          const isRead = read.has(a.contractSymbol);
           return (
-            <div key={a.contractSymbol} className="px-4 py-3">
+            <div key={a.contractSymbol} className={`px-4 py-3 ${isRead ? "opacity-50" : ""}`}>
               <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
+                <button
+                  onClick={() => toggleRead(a.contractSymbol)}
+                  title={isRead ? "Mark unread" : "Mark read"}
+                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ring-1 ring-inset transition-colors ${
+                    isRead ? "bg-emerald-500/20 text-emerald-300 ring-emerald-500/40" : "text-muted/60 ring-border hover:text-text"
+                  }`}
+                >
+                  ✓
+                </button>
+                <div className="flex flex-1 items-center gap-2">
                   <span className="text-sm font-semibold">{a.ticker}</span>
                   <span className="text-[11px] text-muted">
                     ${a.strike} {a.putCall} · {a.dte}d
@@ -39,18 +99,22 @@ export function AlertsPanel({ alerts }: { alerts: Alert[] }) {
                   {style.label}
                 </span>
               </div>
-              <p className="mt-1 text-[11px] leading-relaxed text-muted">{a.rationale}</p>
-              {a.rollToSymbol && (
-                <div className="mt-1.5 rounded-lg bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-200 ring-1 ring-inset ring-amber-500/20">
-                  Roll to <span className="font-medium">${a.rollToStrike}</span> exp {a.rollToExpirationDate} (
-                  {a.rollToDte} DTE, Δ{a.rollToDelta?.toFixed(2)}
-                  {a.rollToNetCredit != null && (
-                    <>
-                      , net {a.rollToNetCredit >= 0 ? "credit" : "debit"} ${Math.abs(a.rollToNetCredit).toFixed(2)}/sh
-                    </>
+              {!isRead && (
+                <>
+                  <p className="mt-1 text-[11px] leading-relaxed text-muted">{a.rationale}</p>
+                  {a.rollToSymbol && (
+                    <div className="mt-1.5 rounded-lg bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-200 ring-1 ring-inset ring-amber-500/20">
+                      Roll to <span className="font-medium">${a.rollToStrike}</span> exp {a.rollToExpirationDate} (
+                      {a.rollToDte} DTE, Δ{a.rollToDelta?.toFixed(2)}
+                      {a.rollToNetCredit != null && (
+                        <>
+                          , net {a.rollToNetCredit >= 0 ? "credit" : "debit"} ${Math.abs(a.rollToNetCredit).toFixed(2)}/sh
+                        </>
+                      )}
+                      )
+                    </div>
                   )}
-                  )
-                </div>
+                </>
               )}
             </div>
           );
