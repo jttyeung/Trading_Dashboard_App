@@ -9,8 +9,18 @@ const TARGET_KEY = "monthlyGoalTargetPercent";
 
 // MonthlyGoalCard tracks RULE-010's own 2%/month floor, 3%/month target
 // against real Schwab options realized P&L for the current calendar
-// month (see MonthlyGoalFile's own backend doc comment for why the
-// Wheel strategy's own Schwab capital is the base, not net worth).
+// month, paced against capitalBase — real capital deployed in options
+// strategies (LEAP/hedge value + CSP collateral + spread risk), passed
+// in from the SAME optionsCapital the Home page's own Options stat
+// already computes from the blended snapshot (Schwab + SnapTrade +
+// E*TRADE). NOT the Schwab-only liquidation value this card started
+// with: the account holder correctly caught that Fidelity/E*TRADE both
+// hold real wheel positions too (CDE/LRCX CSPs, a CRM covered call), so
+// excluding them understated the real capital base. realizedThisMonth
+// is still Schwab-only, though — internal/pnl's own FIFO reconstruction
+// has no SnapTrade/E*TRADE equivalent (those two only reconstruct
+// realized STOCK P&L, not options), a real, known gap this card doesn't
+// paper over but hasn't closed yet either.
 //
 // targetPercent is editable here (the pencil icon) and persisted in
 // localStorage only — same pattern as margin-mode.tsx's own toggle: a
@@ -23,13 +33,13 @@ const TARGET_KEY = "monthlyGoalTargetPercent";
 // initializer would be flagged as an impure render-time read the same
 // way a live Date.now() call already is elsewhere in this app.
 export function MonthlyGoalCard({
-  portfolioValue,
+  capitalBase,
   realizedThisMonth,
   defaultTargetPercent,
   asOfDate,
   daysInMonth,
 }: {
-  portfolioValue: number;
+  capitalBase: number;
   realizedThisMonth: number;
   defaultTargetPercent: number;
   asOfDate: string; // YYYY-MM-DD
@@ -69,7 +79,7 @@ export function MonthlyGoalCard({
     setEditing(false);
   }
 
-  const goal = portfolioValue * (targetPercent / 100);
+  const goal = capitalBase * (targetPercent / 100);
   const progressPct = goal > 0 ? (realizedThisMonth / goal) * 100 : 0;
   const dayOfMonth = parseInt(asOfDate.slice(8, 10), 10) || 1;
   const daysLeft = Math.max(0, daysInMonth - dayOfMonth);
@@ -118,7 +128,7 @@ export function MonthlyGoalCard({
           ) : (
             <span className="font-semibold text-emerald-400">{targetPercent.toFixed(2)}%</span>
           )}{" "}
-          of <Amt>{fmtMoney(portfolioValue)}</Amt>
+          of <Amt>{fmtMoney(capitalBase)}</Amt>
         </div>
         <div className="text-right tabular">
           <span className="text-xl font-bold text-text">
