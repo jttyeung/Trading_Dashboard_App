@@ -346,11 +346,11 @@ export function BotTable({ trades, myGrade, storageKey }: { trades: BotTrade[]; 
         </button>
       </div>
 
-      <table className="w-full min-w-[1780px] border-collapse text-sm">
+      <table className="w-full min-w-[1520px] border-collapse text-sm">
         <thead>
           <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted">
             {COLUMNS.map((c) => (
-              <th key={c.key} className="whitespace-nowrap px-3 py-2 font-medium" title={c.title}>
+              <th key={c.key} className="whitespace-nowrap px-2 py-1.5 font-medium" title={c.title}>
                 <button onClick={() => toggleSort(c.key)} className="flex items-center gap-1 hover:text-text">
                   {c.label}
                   <span className="text-[9px]">{sortKey === c.key ? (sortDir === 1 ? "▲" : "▼") : "↕"}</span>
@@ -363,12 +363,12 @@ export function BotTable({ trades, myGrade, storageKey }: { trades: BotTrade[]; 
                 `text-transform: none` that wins over the inherited uppercase — these
                 plain-text headers have no such override, so it's applied explicitly
                 to keep every header's case consistent. */}
-            <th className="whitespace-nowrap px-3 py-2 font-medium normal-case">Current</th>
-            <th className="whitespace-nowrap px-3 py-2 font-medium normal-case">Stock @ Expiry</th>
-            <th className="whitespace-nowrap px-3 py-2 font-medium normal-case">Outcome</th>
-            <th className="whitespace-nowrap px-3 py-2 font-medium normal-case">P&amp;L</th>
-            <th className="whitespace-nowrap px-3 py-2 font-medium normal-case">Return %</th>
-            <th className="whitespace-nowrap px-3 py-2 text-center font-medium normal-case">Mine</th>
+            <th className="whitespace-nowrap px-2 py-1.5 font-medium normal-case">Current</th>
+            <th className="whitespace-nowrap px-2 py-1.5 font-medium normal-case">Stock @ Expiry</th>
+            <th className="whitespace-nowrap px-2 py-1.5 font-medium normal-case">Outcome</th>
+            <th className="whitespace-nowrap px-2 py-1.5 font-medium normal-case">P&amp;L</th>
+            <th className="whitespace-nowrap px-2 py-1.5 font-medium normal-case">Return %</th>
+            <th className="whitespace-nowrap px-2 py-1.5 text-center font-medium normal-case">Mine</th>
           </tr>
         </thead>
         <tbody>
@@ -381,7 +381,7 @@ export function BotTable({ trades, myGrade, storageKey }: { trades: BotTrade[]; 
             return (
               <Fragment key={g.date}>
                 <tr className="border-b border-border bg-surface-2/60">
-                  <td colSpan={TOTAL_COLUMNS} className="px-3 py-2">
+                  <td colSpan={TOTAL_COLUMNS} className="px-2 py-1.5">
                     <button
                       onClick={() => toggleDate(g.date)}
                       className="flex w-full items-center gap-1.5 text-xs font-semibold text-text"
@@ -408,19 +408,19 @@ export function BotTable({ trades, myGrade, storageKey }: { trades: BotTrade[]; 
                 className="cursor-pointer border-b border-border/60 hover:bg-surface-2/40"
                 onClick={() => toggleRow(t.id)}
               >
-                <td className="whitespace-nowrap px-3 py-2 text-xs text-muted">{t.postedAt.slice(0, 10)}</td>
-                <td className="whitespace-nowrap px-3 py-2 font-medium text-text">{t.ticker}</td>
-                <td className="px-3 py-2 text-right tabular text-text">{fmtMoney(t.strike)}</td>
-                <td className="whitespace-nowrap px-3 py-2 text-xs text-muted">{t.expiration}</td>
-                <td className="px-3 py-2 text-right tabular text-text">{t.dteAtPost}</td>
-                <td className="px-3 py-2 text-right tabular text-text">{fmtMoney(t.premium, { cents: true })}</td>
-                <td className="px-3 py-2 text-right tabular text-text">{fmtMoney(t.premiumTotal, { cents: true })}</td>
-                <td className="px-3 py-2 text-right tabular text-text">{fmtMoney(t.breakeven, { cents: true })}</td>
-                <td className="px-3 py-2 text-right tabular text-text">{t.delta.toFixed(2)}</td>
-                <td className="px-3 py-2 text-right tabular text-text">{t.ivPercent.toFixed(0)}</td>
-                <td className="px-3 py-2 text-right tabular text-pos">{fmtPct(t.annualizedRorPct / 100, 1)}</td>
-                <td className="px-3 py-2 text-right tabular text-text">{t.score.toFixed(1)}</td>
-                <td className="px-3 py-2">
+                <td className="whitespace-nowrap px-2 py-1.5 text-xs text-muted">{t.postedAt.slice(0, 10)}</td>
+                <td className="whitespace-nowrap px-2 py-1.5 font-medium text-text">{t.ticker}</td>
+                <td className="px-2 py-1.5 text-right tabular text-text">{fmtMoney(t.strike)}</td>
+                <td className="whitespace-nowrap px-2 py-1.5 text-xs text-muted">{t.expiration}</td>
+                <td className="px-2 py-1.5 text-right tabular text-text">{t.dteAtPost}</td>
+                <td className="px-2 py-1.5 text-right tabular text-text">{fmtMoney(t.premium, { cents: true })}</td>
+                <td className="px-2 py-1.5 text-right tabular text-text">{fmtMoney(t.premiumTotal, { cents: true })}</td>
+                <td className="px-2 py-1.5 text-right tabular text-text">{fmtMoney(t.breakeven, { cents: true })}</td>
+                <td className="px-2 py-1.5 text-right tabular text-text">{t.delta.toFixed(2)}</td>
+                <td className="px-2 py-1.5 text-right tabular text-text">{t.ivPercent.toFixed(0)}</td>
+                <td className="px-2 py-1.5 text-right tabular text-pos">{fmtPct(t.annualizedRorPct / 100, 1)}</td>
+                <td className="px-2 py-1.5 text-right tabular text-text">{t.score.toFixed(1)}</td>
+                <td className="px-2 py-1.5">
                   <div className="flex items-center gap-1.5">
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${STATUS_STYLE[t.status]}`}>
                       {STATUS_LABEL[t.status]}
@@ -443,12 +443,12 @@ export function BotTable({ trades, myGrade, storageKey }: { trades: BotTrade[]; 
                     </ThumbButton>
                   </div>
                 </td>
-                <td className="px-3 py-2 text-right tabular text-text">{fmtMoney(t.stockPriceAtPost, { cents: true })}</td>
-                <td className="px-3 py-2 text-right tabular text-text">{t.currentPrice ? fmtMoney(t.currentPrice) : "-"}</td>
-                <td className="px-3 py-2 text-right tabular text-text">
+                <td className="px-2 py-1.5 text-right tabular text-text">{fmtMoney(t.stockPriceAtPost, { cents: true })}</td>
+                <td className="px-2 py-1.5 text-right tabular text-text">{t.currentPrice ? fmtMoney(t.currentPrice) : "-"}</td>
+                <td className="px-2 py-1.5 text-right tabular text-text">
                   {t.stockPriceAtClose != null ? fmtMoney(t.stockPriceAtClose, { cents: true }) : "-"}
                 </td>
-                <td className="px-3 py-2">
+                <td className="px-2 py-1.5">
                   {t.outcome ? (
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${OUTCOME_STYLE[t.outcome]}`}>
                       {t.outcome}
@@ -457,7 +457,7 @@ export function BotTable({ trades, myGrade, storageKey }: { trades: BotTrade[]; 
                     <span className="text-xs text-muted">{t.itmOtm ?? "-"}</span>
                   )}
                 </td>
-                <td className="px-3 py-2 text-right tabular">
+                <td className="px-2 py-1.5 text-right tabular">
                   {t.realizedPnl != null ? (
                     <span className={t.realizedPnl >= 0 ? "text-pos" : "text-neg"}>
                       {fmtMoney(t.realizedPnl, { sign: true })}
@@ -466,14 +466,14 @@ export function BotTable({ trades, myGrade, storageKey }: { trades: BotTrade[]; 
                     <span className="text-muted">-</span>
                   )}
                 </td>
-                <td className="px-3 py-2 text-right tabular">
+                <td className="px-2 py-1.5 text-right tabular">
                   {t.returnPct != null ? (
                     <span className={t.returnPct >= 0 ? "text-pos" : "text-neg"}>{fmtPct(t.returnPct, 1)}</span>
                   ) : (
                     <span className="text-muted">-</span>
                   )}
                 </td>
-                <td className="px-3 py-2 text-center" onClick={(e) => e.stopPropagation()}>
+                <td className="px-2 py-1.5 text-center" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="checkbox"
                     checked={t.personallySelected}
