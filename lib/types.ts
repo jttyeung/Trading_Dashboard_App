@@ -4,8 +4,8 @@
 // relies on, independent of where the data comes from.
 
 export interface Account {
-  id: string;
-  mask: string; // last-4 masked id, e.g. "••••0000"
+  id: string; // opaque, one-way-hash-derived id (schwab.MaskAccountNumber) — never a real digit of the account number
+  mask: string; // last 4 chars of a hash-derived id, e.g. "••••9c1d" — not real account digits
   type: string; // "margin" | "cash"
   brokerageType: string; // "individual"
   nickname?: string;
