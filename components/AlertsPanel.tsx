@@ -12,16 +12,29 @@ const ACTION_STYLE: Record<Alert["action"], { label: string; chip: string }> = {
   // Emerald, not one of the risk colors above — this is a positive signal
   // ("you hit your target"), not an assignment/expiration risk warning.
   profit_target: { label: "Profit target", chip: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30" },
+  // A LEAP's own approaching-expiration heads-up — distinct from the
+  // generic short-position monitor so the desktop table can give it its
+  // own ⚠️ ticker icon (see PositionsTable.tsx) without also lighting up
+  // on every CSP/CC nearing its own 21-DTE window.
+  leap_expiring: { label: "Expiring", chip: "bg-amber-500/15 text-amber-300 ring-amber-500/30" },
 };
 
-// Position alerts (close/roll/watch/monitor/profit_target) — always the
-// tracker's current full set, not history (position_alerts is wiped and
-// rewritten each cycle). Sorted with close first, then roll (already ITM),
-// then watch (still OTM but delta rising — a proactive early warning, not
-// yet urgent), then monitor, then profit_target last (a "nice problem to
-// have," not a risk), since that's roughly urgency order; ties broken by
-// DTE (soonest first).
-const ACTION_RANK: Record<Alert["action"], number> = { close: 0, roll: 1, watch: 2, monitor: 3, profit_target: 4 };
+// Position alerts (close/roll/watch/monitor/profit_target/leap_expiring)
+// — always the tracker's current full set, not history (position_alerts
+// is wiped and rewritten each cycle). Sorted with close first, then roll
+// (already ITM), then watch (still OTM but delta rising — a proactive
+// early warning, not yet urgent), then monitor, then leap_expiring (a
+// LEAP-specific variant of the same "heads up" urgency as monitor), then
+// profit_target last (a "nice problem to have," not a risk), since
+// that's roughly urgency order; ties broken by DTE (soonest first).
+const ACTION_RANK: Record<Alert["action"], number> = {
+  close: 0,
+  roll: 1,
+  watch: 2,
+  monitor: 3,
+  leap_expiring: 4,
+  profit_target: 5,
+};
 
 // READ_KEY: which alerts the viewer has already reviewed, persisted per
 // browser (localStorage, same pattern as margin-mode.tsx's own toggle) —

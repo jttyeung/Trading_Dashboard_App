@@ -65,12 +65,14 @@ interface Row {
   marketValue: number;
   apy: number | null;
   ror: number | null;
-  // Set only when the tracker's own "profit_target" alert (a CSP whose
-  // remaining annualized return dropped below the account holder's own
-  // floor) matches this exact contract — the ticker cell surfaces it as
-  // a small warning glyph with this text as its native hover tooltip,
-  // rather than duplicating AlertsPanel's own full card here.
-  profitTargetRationale: string | null;
+  // Set only when a tracker alert matching this exact contract calls for
+  // a ticker-adjacent glyph — 💸 for "good profits, consider closing"
+  // (profit_target: a CSP whose remaining annualized return dropped
+  // below the account holder's own floor, or a LEAP that hit a fast
+  // profit-taking band) or ⚠️ for "this LEAP is approaching expiration"
+  // (leap_expiring). The rationale text is the glyph's native hover
+  // tooltip, rather than duplicating AlertsPanel's own full card here.
+  tickerFlag: { emoji: string; rationale: string } | null;
 }
 
 // OptionPosition.qty is a plain magnitude (side carries the sign) — signed
@@ -81,7 +83,11 @@ function signedQty(o: OptionPosition): number {
   return o.side === "short" ? -o.qty : o.qty;
 }
 
-function buildRow(o: SourcedOption, profitTargetBySymbol: Map<string, string>): Row {
+function buildRow(
+  o: SourcedOption,
+  profitTargetBySymbol: Map<string, string>,
+  leapExpiringBySymbol: Map<string, string>,
+): Row {
   const marketValue = optionNetValue(o); // long +, short − (the buy-back liability)
   const todayPl = o.dayValueChange ?? null;
   // Back out yesterday's value (today's value minus today's change) to get a
@@ -92,6 +98,19 @@ function buildRow(o: SourcedOption, profitTargetBySymbol: Map<string, string>): 
   // there at all — see CRM's blank Mark/Theta for the same reason).
   const yesterdayValue = todayPl != null ? marketValue - todayPl : null;
   const todayPlPct = todayPl != null && yesterdayValue ? todayPl / Math.abs(yesterdayValue) : null;
+
+  // profit_target takes priority if a contract somehow matched both (it
+  // shouldn't in practice — evaluateLeapPosition's own switch is mutually
+  // exclusive — but "good profits to take" is the more actionable signal
+  // of the two either way).
+  const profitRationale = profitTargetBySymbol.get(o.id);
+  const expiringRationale = leapExpiringBySymbol.get(o.id);
+  const tickerFlag = profitRationale
+    ? { emoji: "💸", rationale: profitRationale }
+    : expiringRationale
+      ? { emoji: "⚠️", rationale: expiringRationale }
+      : null;
+
   return {
     o,
     strategyCode: STRATEGY_CODE[o.kind] ?? "OTH",
@@ -106,7 +125,7 @@ function buildRow(o: SourcedOption, profitTargetBySymbol: Map<string, string>): 
     marketValue,
     apy: positionAnnualizedReturn(o),
     ror: positionReturnOnCapital(o),
-    profitTargetRationale: profitTargetBySymbol.get(o.id) ?? null,
+    tickerFlag,
   };
 }
 
@@ -237,9 +256,17 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
     return m;
   }, [alerts]);
 
+  const leapExpiringBySymbol = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const a of alerts) {
+      if (a.action === "leap_expiring") m.set(a.contractSymbol, a.rationale);
+    }
+    return m;
+  }, [alerts]);
+
   const rows = useMemo(
-    () => options.map((o) => buildRow(o, profitTargetBySymbol)),
-    [options, profitTargetBySymbol],
+    () => options.map((o) => buildRow(o, profitTargetBySymbol, leapExpiringBySymbol)),
+    [options, profitTargetBySymbol, leapExpiringBySymbol],
   );
 
   const groups = useMemo(() => {
@@ -407,9 +434,9 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                     <tr key={r.o.id} className="border-b border-border/60 hover:bg-surface-2/40">
                       <td className="whitespace-nowrap px-3 py-2 font-medium text-text">
                         {r.o.symbol}
-                        {r.profitTargetRationale && (
-                          <span className="ml-1 cursor-default" title={r.profitTargetRationale}>
-                            ⚠️
+                        {r.tickerFlag && (
+                          <span className="ml-1 cursor-default" title={r.tickerFlag.rationale}>
+                            {r.tickerFlag.emoji}
                           </span>
                         )}
                       </td>
