@@ -572,16 +572,20 @@ export interface BlendedRiskView {
 }
 
 // RULE-010's own 2%/month floor, 3%/month target — real Schwab options
-// realized P&L for the current calendar month, paced against the
-// account's own Schwab liquidation value (not the blended whole-account
-// figure BlendedRiskView carries — see MonthlyGoalFile's own backend
-// doc comment for why the Wheel strategy's own capital base is the
-// right denominator here, not net worth). targetPercent is a starting
-// point only; the dashboard itself lets the account holder override it
-// (a personal pacing goal, not an enforced rule).
+// realized P&L for the current calendar month. No portfolioValue field
+// here: the capital base is computed client-side instead (app/page.tsx's
+// own optionsCapital — LEAP/hedge value + CSP collateral + spread risk,
+// already blended across Schwab + SnapTrade + E*TRADE from the same
+// snapshot the Home page's own Options stat uses), not a Schwab-only
+// figure from this file — the account holder correctly caught that
+// Fidelity/E*TRADE both hold real wheel positions too, so a Schwab-only
+// base understated real capital deployed. realizedThisMonth is still
+// Schwab-only, though: internal/pnl's own FIFO reconstruction has no
+// SnapTrade/E*TRADE equivalent for options (only stocks). targetPercent
+// is a starting point only; the dashboard itself lets the account
+// holder override it (a personal pacing goal, not an enforced rule).
 export interface MonthlyGoalFile {
   meta: { generatedAt: string };
-  portfolioValue: number;
   realizedThisMonth: number;
   targetPercent: number;
   floorPercent: number;

@@ -10,7 +10,6 @@ export const MONTHLY_GOAL_PATH = path.join(process.cwd(), "data", "monthly-goal.
 
 const EMPTY: MonthlyGoalFile = {
   meta: { generatedAt: "" },
-  portfolioValue: 0,
   realizedThisMonth: 0,
   targetPercent: 3,
   floorPercent: 2,
