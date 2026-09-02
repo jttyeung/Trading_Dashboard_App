@@ -61,6 +61,7 @@ export function StrategyTypeView({
   statusFromUrl = false,
   closedMode,
   closedMonths,
+  costBasisBySymbol,
 }: {
   type: "covered" | "spread";
   open: OptionPosition[];
@@ -70,6 +71,9 @@ export function StrategyTypeView({
   statusFromUrl?: boolean; // true when ?view= set it — then it wins over persisted
   closedMode?: "all" | "ytd" | "months" | "today";
   closedMonths?: number;
+  // Underlying average cost per share, keyed by uppercase symbol — supplied by
+  // the covered-call page so a strike under the basis can carry a BC tag.
+  costBasisBySymbol?: Record<string, number>;
 }) {
   const [status, setStatus] = usePersistentState<Status>("strategy-status", initialStatus, statusFromUrl);
   const [sort, setSort] = usePersistentState<Sort>("strategy-sort", { key: "yr", dir: "asc" });
@@ -162,6 +166,7 @@ export function StrategyTypeView({
               onSort={onSort}
               realById={rawById}
               sim={sim && canSim}
+              costBasisBySymbol={costBasisBySymbol}
             />
           </>
         ) : (

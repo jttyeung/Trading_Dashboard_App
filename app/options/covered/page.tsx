@@ -21,6 +21,12 @@ export default async function OptionsCoveredPage({ searchParams }: { searchParam
   const snap = await getSnapshot();
   const { id, data } = await getSelectedAccount(snap);
   const allCovered = data.options.filter(isCovered);
+  // Average cost of the shares standing behind each call, so a strike written
+  // under the basis can carry a BC tag. Keyed uppercase to match the option
+  // symbols; holdings with no cost on file are left out and simply flag nothing.
+  const costBasisBySymbol = Object.fromEntries(
+    data.equities.filter((e) => e.avgCost > 0).map((e) => [e.symbol.toUpperCase(), e.avgCost] as const),
+  );
   const tickers = [...new Set(allCovered.map((o) => o.symbol.toUpperCase()))].sort();
   const open = allCovered.filter((o) => !sym || o.symbol.toUpperCase() === sym);
   const closedCovered = (await getClosedCovered()).closed.filter((c) => !sym || c.symbol.toUpperCase() === sym);
@@ -49,6 +55,7 @@ export default async function OptionsCoveredPage({ searchParams }: { searchParam
           statusFromUrl={view === "open" || view === "closed"}
           closedMode={closedMode}
           closedMonths={closedMonths}
+          costBasisBySymbol={costBasisBySymbol}
         />
       </ShowAmounts>
     </main>
