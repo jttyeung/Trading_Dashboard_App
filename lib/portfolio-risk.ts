@@ -28,6 +28,12 @@ const EMPTY: PortfolioRiskFile = {
   perAccount: [],
   blended: {
     portfolioValue: 0,
+    thetaToday: 0,
+    thetaPct: 0,
+    thetaStatus: "unknown",
+    thetaMinPct: 0,
+    thetaTargetMaxPct: 0,
+    thetaMaxPct: 0,
     beta: 0,
     betaCoverage: 0,
     betaStatus: "unknown",
