@@ -7,6 +7,31 @@
   --border: #232c3f;
   --text: #e7ecf3;
   --muted: #8b97ad;
+  /* Semantic pos/neg tokens so shared components (Stat, Delta in ui.tsx)
+     can read the same meaning correctly under a theme override below,
+     instead of hardcoding a shade that's only legible on one background.
+     Values here match the emerald-400/rose-400 this app already used
+     everywhere, so the default dark theme's look doesn't change at all. */
+  --pos: #34d399;
+  --neg: #fb7185;
+}
+
+/* Scoped light theme for the wide-surface pages (desktop table, bot
+   review tables, /overview) — applied via a class on their own <body>
+   branch in layout.tsx, never touching the phone-frame mobile app's
+   dark theme above. Modeled on Origin Financial's own light in-app
+   product shell (off-white canvas, white cards, slate text, thin
+   borders, restrained color) rather than the marketing site's dark
+   mode. */
+.theme-light {
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --surface-2: #f1f3f6;
+  --border: #e4e7ec;
+  --text: #12151c;
+  --muted: #6b7280;
+  --pos: #059669;
+  --neg: #e11d48;
 }
 
 @theme inline {
@@ -15,6 +40,8 @@
   --color-surface-2: var(--surface-2);
   --color-border: var(--border);
   --color-muted: var(--muted);
+  --color-pos: var(--pos);
+  --color-neg: var(--neg);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

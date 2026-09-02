@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { BottomNav } from "@/components/BottomNav";
 import { ScrollArea } from "@/components/ScrollArea";
@@ -17,6 +17,15 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+// Inter, not Geist — scoped to the wide-surface pages only (desktop
+// table, bot review tables, /overview). Matches Origin Financial's own
+// in-app interface font (the account holder's own reference for these
+// pages' look); the phone-frame mobile app keeps Geist unchanged.
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
@@ -41,18 +50,29 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // /desktop and the /bot* paper-bot review tables are all genuinely
-  // different surfaces (wide sortable tables, not a phone-shaped app) —
-  // pathname is set by proxy.ts, since a Server Component root layout has
-  // no useRouter/usePathname of its own. Every other route is unaffected:
+  // /desktop, the /bot* paper-bot review tables, and /overview (which
+  // combines them behind one icon rail) are all genuinely different
+  // surfaces (wide sortable tables, not a phone-shaped app) — pathname is
+  // set by proxy.ts, since a Server Component root layout has no
+  // useRouter/usePathname of its own. Every other route is unaffected:
   // same phone-frame chrome as always.
   const pathname = (await headers()).get("x-pathname") ?? "";
-  const isWideSurface = pathname.startsWith("/desktop") || pathname.startsWith("/bot");
+  const isWideSurface =
+    pathname.startsWith("/desktop") || pathname.startsWith("/bot") || pathname.startsWith("/overview");
 
   if (isWideSurface) {
     return (
-      <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-        <body className="h-full bg-bg">
+      <html
+        lang="en"
+        className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} h-full antialiased`}
+      >
+        {/* theme-light (globals.css) overrides the shared bg/surface/border/
+            text/muted/pos/neg tokens for this whole subtree — an off-white
+            canvas + white cards instead of the mobile app's dark theme, per
+            the account holder's own ask to model these specific pages on
+            Origin Financial's light in-app product shell. font-(--font-inter)
+            swaps the interface font the same way, scoped to just this branch. */}
+        <body className="theme-light h-full bg-bg font-[family-name:var(--font-inter)]">
           {/* globals.css caps html/body at 100vh with overflow:hidden — written
               for the phone-frame shell's own inner ScrollArea below, which the
               phone-frame branch further down in this file provides but this
