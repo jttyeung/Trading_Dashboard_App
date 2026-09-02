@@ -357,6 +357,12 @@ export const examplePortfolioRiskFile: PortfolioRiskFile = {
   ],
   blended: {
     portfolioValue: 58400,
+    thetaToday: 68.4,
+    thetaPct: 0.00117,
+    thetaStatus: "on_target",
+    thetaMinPct: 0.0007,
+    thetaTargetMaxPct: 0.0015,
+    thetaMaxPct: 0.002,
     beta: 0.82,
     betaCoverage: 0.85,
     betaStatus: "on_target",

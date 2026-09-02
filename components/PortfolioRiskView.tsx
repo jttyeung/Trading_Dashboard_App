@@ -27,7 +27,12 @@ const OPEN_PNL_STATUS_STYLE: Record<RiskView["openPnLStatus"], { label: string; 
   unknown: { label: "Unknown", chip: "bg-surface-2 text-muted ring-border" },
 };
 
-function ThetaGauge({ risk }: { risk: RiskView }) {
+// Narrowed to just the fields this gauge actually reads (rather than the
+// full RiskView) so the same component can render either the Schwab-only
+// Overall/PerAccount theta or BlendedRiskView's own whole-account theta.
+type ThetaGaugeInput = Pick<RiskView, "thetaToday" | "thetaPct" | "thetaStatus" | "thetaMinPct" | "thetaTargetMaxPct" | "thetaMaxPct">;
+
+function ThetaGauge({ risk }: { risk: ThetaGaugeInput }) {
   const status = STATUS_STYLE[risk.thetaStatus];
   // Gauge spans 0 to 1.5x the hard ceiling so "on target" and "over ceiling"
   // both have visible room either side.
@@ -134,7 +139,8 @@ function BetaGauge({ blended }: { blended: BlendedRiskView }) {
   const maxPct = gaugeMax > 0 ? blended.betaMaxTarget / gaugeMax : 0;
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <ThetaGauge risk={blended} />
+      <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
         <div>
           <div className="text-[10px] uppercase tracking-wide text-muted">Beta vs QQQ</div>
           <div className="tabular text-lg font-bold leading-tight">{blended.beta.toFixed(2)}</div>
@@ -163,8 +169,9 @@ function BetaGauge({ blended }: { blended: BlendedRiskView }) {
       </div>
       <OpenPnLRow openPnL={blended.openPnL} openPnLPct={blended.openPnLPct} status={blended.openPnLStatus} floorPct={blended.openPnLMinPct} />
       <p className="mt-3 text-[10px] leading-relaxed text-muted">
-        Whole-account (Schwab + SnapTrade combined) — the account holder's own soft targets, never a suggestion-engine
-        gate.
+        Whole-account (Schwab + SnapTrade + E*TRADE combined) — informational only, never a suggestion-engine gate.
+        Sector exposure has no blended equivalent here: the other accounts&apos; own holdings are mostly broad index
+        funds with no one meaningful sector to attribute.
       </p>
     </div>
   );
@@ -181,25 +188,26 @@ export function PortfolioRiskView({
 }) {
   return (
     <div>
+      <SectionTitle>Theta &amp; open P&amp;L (Schwab only — gates suggestions)</SectionTitle>
       <Card className="px-4 py-4">
         <ThetaGauge risk={overall} />
         <OpenPnLRow openPnL={overall.openPnL} openPnLPct={overall.openPnLPct} status={overall.openPnLStatus} floorPct={overall.openPnLMinPct} />
       </Card>
 
-      <SectionTitle>Beta &amp; open P&L (whole account)</SectionTitle>
+      <SectionTitle>Theta, beta &amp; open P&amp;L (whole account)</SectionTitle>
       <Card className="px-4 py-4">
         <BetaGauge blended={blended} />
       </Card>
 
-      <SectionTitle>Sector exposure (overall)</SectionTitle>
+      <SectionTitle>Sector exposure (Schwab only)</SectionTitle>
       <Card className="px-4 py-4">
         <SectorBars risk={overall} portfolioValue={overall.portfolioValue} />
       </Card>
 
       <p className="mt-3 px-1 text-[11px] leading-relaxed text-muted">
-        Only the overall (blended) theta/sector numbers above actually gate a new suggestion — accounts here are
-        mostly tax/custodial wrappers, not independent risk pools. The per-account breakdown below is for visibility
-        only.
+        Only the Schwab-only theta/sector numbers above actually gate a new suggestion — accounts here are mostly
+        tax/custodial wrappers, not independent risk pools. The whole-account card and the per-account breakdown
+        below are both for visibility only.
       </p>
 
       <SectionTitle>Per account (Schwab only)</SectionTitle>
