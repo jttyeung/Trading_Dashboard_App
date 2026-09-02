@@ -80,7 +80,7 @@ function sortValue(t: BotTrade, key: SortKey): number | string {
 // holder pointed to as a layout bar (see the paperbot package doc
 // comment): DTE, Premium, Premium $, Breakeven, Delta, IV %, ARR %,
 // Score, then the approve/reject call and Stock @ Post.
-const COLUMNS: { key: SortKey; label: string }[] = [
+const COLUMNS: { key: SortKey; label: string; title?: string }[] = [
   { key: "postedAt", label: "Date Posted" },
   { key: "ticker", label: "Ticker" },
   { key: "strike", label: "Strike" },
@@ -92,7 +92,11 @@ const COLUMNS: { key: SortKey; label: string }[] = [
   { key: "delta", label: "Delta" },
   { key: "ivPercent", label: "IV %" },
   { key: "annualizedRorPct", label: "ARR %" },
-  { key: "score", label: "Score" },
+  {
+    key: "score",
+    label: "Score",
+    title: "0-100, normalized per strategy from the suggestion engine's composite score — not comparable across different strategies",
+  },
   { key: "status", label: "Your call" },
   { key: "stockPriceAtPost", label: "Stock @ Post" },
 ];
@@ -346,7 +350,7 @@ export function BotTable({ trades, myGrade, storageKey }: { trades: BotTrade[]; 
         <thead>
           <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted">
             {COLUMNS.map((c) => (
-              <th key={c.key} className="whitespace-nowrap px-3 py-2 font-medium">
+              <th key={c.key} className="whitespace-nowrap px-3 py-2 font-medium" title={c.title}>
                 <button onClick={() => toggleSort(c.key)} className="flex items-center gap-1 hover:text-text">
                   {c.label}
                   <span className="text-[9px]">{sortKey === c.key ? (sortDir === 1 ? "▲" : "▼") : "↕"}</span>
