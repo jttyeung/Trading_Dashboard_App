@@ -247,7 +247,7 @@ export default async function HomePage() {
       </div>
 
       <MonthlyGoalCard
-        capitalBase={optionsCapital}
+        portfolioValue={summary.totalValue}
         realizedThisMonth={monthlyGoal.realizedThisMonth}
         defaultTargetPercent={monthlyGoal.targetPercent}
         asOfDate={monthlyGoal.asOfDate}
