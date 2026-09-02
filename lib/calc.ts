@@ -105,6 +105,16 @@ export function cspEarningsFlag(
   return (er - exp) / 86_400_000 <= 7 ? "near" : null;
 }
 
+// A covered call written under water: assignment at this strike would sell the
+// shares for less than they cost. The mirror of the emerald "above cost"
+// treatment on the covered-call ladders in StocksView — same comparison, other
+// side. No basis on file (shares held outside this account, or a zero cost) is
+// unknown rather than below, so it flags nothing.
+export function strikeBelowCost(strike: number, avgCost: number | null | undefined): boolean {
+  if (avgCost == null || !(avgCost > 0)) return false;
+  return strike < avgCost;
+}
+
 /** For a short premium-selling position: fraction of credit already captured. */
 export function capturedPct(o: OptionPosition): number {
   if (o.entryPerShare === 0) return 0;

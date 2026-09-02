@@ -38,6 +38,7 @@ import {
   optionMarketValue,
   optionPnl,
   optionPnlPct,
+  strikeBelowCost,
 } from "@/lib/calc";
 
 // Shared column template so the header (in OpenGroupCard) and the rows line up.
@@ -85,7 +86,7 @@ export function SimCell({ show, real, children }: { show: boolean; real: ReactNo
   );
 }
 
-export function OptionRow({ o, real, sim }: { o: OptionPosition; real?: OptionPosition; sim?: boolean }) {
+export function OptionRow({ o, real, sim, costBasis }: { o: OptionPosition; real?: OptionPosition; sim?: boolean; costBasis?: number | null }) {
   const [open, setOpen] = usePersistentState(`optrow:${o.id}`, false);
   const toggle = () => setOpen((v) => !v);
   const dte = daysToExpiry(o.expiration);
@@ -109,6 +110,10 @@ export function OptionRow({ o, real, sim }: { o: OptionPosition; real?: OptionPo
     // current mark (remaining premium), not the original credit. Action catalyst —
     // low means most premium is captured, so close/roll and redeploy.
     const yearlyPct = cspRemainingAnnualized(o);
+    // Covered calls only: the strike sits under the shares' average cost, so being
+    // assigned would book a loss on the stock. A CSP has no shares behind it, and
+    // a symbol with no basis on file flags nothing (see strikeBelowCost).
+    const belowCost = o.kind === "covered-call" && strikeBelowCost(o.strike, costBasis);
     return (
       <div>
         <button onClick={toggle} className={`${CSP_COLS} w-full px-3 py-2.5 text-left text-[11px] active:bg-surface-2`}>
@@ -126,6 +131,14 @@ export function OptionRow({ o, real, sim }: { o: OptionPosition; real?: OptionPo
                   </span>
                 ) : null;
               })()}
+              {belowCost && (
+                <span
+                  className="shrink-0 text-[10px] font-bold text-orange-400"
+                  title={`Strike $${o.strike} is below your $${costBasis?.toFixed(2)} average cost — assignment sells the shares at a loss`}
+                >
+                  BC
+                </span>
+              )}
             </div>
             <div className="truncate text-[10px] text-muted">${o.strike} · ×{o.qty}</div>
           </div>
