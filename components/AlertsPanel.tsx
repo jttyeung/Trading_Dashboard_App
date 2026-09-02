@@ -9,15 +9,19 @@ const ACTION_STYLE: Record<Alert["action"], { label: string; chip: string }> = {
   roll: { label: "Roll", chip: "bg-amber-500/15 text-amber-300 ring-amber-500/30" },
   watch: { label: "Watch", chip: "bg-violet-500/15 text-violet-300 ring-violet-500/30" },
   monitor: { label: "Monitor", chip: "bg-sky-500/15 text-sky-300 ring-sky-500/30" },
+  // Emerald, not one of the risk colors above — this is a positive signal
+  // ("you hit your target"), not an assignment/expiration risk warning.
+  profit_target: { label: "Profit target", chip: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30" },
 };
 
-// Position alerts (close/roll/watch/monitor) — always the tracker's current
-// full set, not history (position_alerts is wiped and rewritten each
-// cycle). Sorted with close first, then roll (already ITM), then watch
-// (still OTM but delta rising — a proactive early warning, not yet urgent),
-// then monitor, since that's roughly urgency order; ties broken by DTE
-// (soonest first).
-const ACTION_RANK: Record<Alert["action"], number> = { close: 0, roll: 1, watch: 2, monitor: 3 };
+// Position alerts (close/roll/watch/monitor/profit_target) — always the
+// tracker's current full set, not history (position_alerts is wiped and
+// rewritten each cycle). Sorted with close first, then roll (already ITM),
+// then watch (still OTM but delta rising — a proactive early warning, not
+// yet urgent), then monitor, then profit_target last (a "nice problem to
+// have," not a risk), since that's roughly urgency order; ties broken by
+// DTE (soonest first).
+const ACTION_RANK: Record<Alert["action"], number> = { close: 0, roll: 1, watch: 2, monitor: 3, profit_target: 4 };
 
 // READ_KEY: which alerts the viewer has already reviewed, persisted per
 // browser (localStorage, same pattern as margin-mode.tsx's own toggle) —
