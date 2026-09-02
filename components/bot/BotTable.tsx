@@ -141,7 +141,35 @@ interface DateGroup {
   trades: BotTrade[];
 }
 
-export function BotTable({ trades, myGrade }: { trades: BotTrade[]; myGrade: MyGradeSummary }) {
+// collapsedDatesKey/loadCollapsedDates/saveCollapsedDates persist which
+// date groups are collapsed per browser — same pattern as AlertsPanel's
+// own "read" state — so a page refresh doesn't silently re-expand
+// everything you'd already collapsed. Scoped per bot (storageKey) since
+// /bot and /bot-20-delta-safe are two independent tables with their own
+// dates worth remembering separately.
+function collapsedDatesKey(storageKey: string): string {
+  return `botCollapsedDates_${storageKey}`;
+}
+
+function loadCollapsedDates(storageKey: string): Set<string> {
+  try {
+    const raw = localStorage.getItem(collapsedDatesKey(storageKey));
+    if (raw) return new Set(JSON.parse(raw));
+  } catch {
+    /* ignore */
+  }
+  return new Set();
+}
+
+function saveCollapsedDates(storageKey: string, dates: Set<string>) {
+  try {
+    localStorage.setItem(collapsedDatesKey(storageKey), JSON.stringify(Array.from(dates)));
+  } catch {
+    /* ignore */
+  }
+}
+
+export function BotTable({ trades, myGrade, storageKey }: { trades: BotTrade[]; myGrade: MyGradeSummary; storageKey: string }) {
   const [localTrades, setLocalTrades] = useState(trades);
   useEffect(() => setLocalTrades(trades), [trades]);
 
@@ -149,6 +177,7 @@ export function BotTable({ trades, myGrade }: { trades: BotTrade[]; myGrade: MyG
   const [sortDir, setSortDir] = useState<1 | -1>(-1);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set());
+  useEffect(() => setCollapsedDates(loadCollapsedDates(storageKey)), [storageKey]);
   const [apiError, setApiError] = useState<string | null>(null);
 
   const sorted = useMemo(() => {
@@ -185,14 +214,18 @@ export function BotTable({ trades, myGrade }: { trades: BotTrade[]; myGrade: MyG
       const next = new Set(prev);
       if (next.has(date)) next.delete(date);
       else next.add(date);
+      saveCollapsedDates(storageKey, next);
       return next;
     });
   }
   function collapseAllDates() {
-    setCollapsedDates(new Set(dateGroups.map((g) => g.date)));
+    const next = new Set(dateGroups.map((g) => g.date));
+    setCollapsedDates(next);
+    saveCollapsedDates(storageKey, next);
   }
   function expandAllDates() {
     setCollapsedDates(new Set());
+    saveCollapsedDates(storageKey, new Set());
   }
   const allDatesCollapsed = dateGroups.length > 0 && dateGroups.every((g) => collapsedDates.has(g.date));
 
