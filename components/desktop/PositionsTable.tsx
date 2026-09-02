@@ -20,11 +20,25 @@ import { MarketCountdown } from "@/components/desktop/MarketCountdown";
 const STRATEGY_CODE: Record<OptionKind, string> = {
   csp: "CSP",
   "covered-call": "CC",
-  "leap-call": "LC",
+  "leap-call": "LEAPS",
   "leap-put-hedge": "HDG",
   "put-spread": "PS",
   "call-spread": "CS",
   other: "OTH",
+};
+
+// One hue per strategy kind so the badge doubles as an at-a-glance category
+// marker across a wide, ungrouped table — distinct from the DTE/P&L columns'
+// own semantic (good/warning/bad) colors, so a strategy's color never gets
+// read as a signal about how that position is doing.
+const STRATEGY_STYLE: Record<OptionKind, string> = {
+  csp: "border-sky-500/30 bg-sky-500/10 text-sky-300",
+  "covered-call": "border-violet-500/30 bg-violet-500/10 text-violet-300",
+  "leap-call": "border-amber-500/30 bg-amber-500/10 text-amber-300",
+  "leap-put-hedge": "border-fuchsia-500/30 bg-fuchsia-500/10 text-fuchsia-300",
+  "put-spread": "border-teal-500/30 bg-teal-500/10 text-teal-300",
+  "call-spread": "border-indigo-500/30 bg-indigo-500/10 text-indigo-300",
+  other: "border-zinc-500/30 bg-zinc-500/10 text-zinc-300",
 };
 
 // A position tagged with which real account it came from — computed by the
@@ -375,7 +389,9 @@ export function PositionsTable({ options }: { options: SourcedOption[] }) {
                     <tr key={r.o.id} className="border-b border-border/60 hover:bg-surface-2/40">
                       <td className="whitespace-nowrap px-3 py-2 font-medium text-text">{r.o.symbol}</td>
                       <td className="px-3 py-2">
-                        <span className="rounded border border-sky-500/30 bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-sky-300">
+                        <span
+                          className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold ${STRATEGY_STYLE[r.o.kind] ?? STRATEGY_STYLE.other}`}
+                        >
                           {r.strategyCode}
                         </span>
                       </td>
