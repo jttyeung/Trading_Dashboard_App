@@ -15,6 +15,7 @@ import {
   positionReturnOnCapital,
 } from "@/lib/calc";
 import { positionDailyTheta } from "@/lib/theta";
+import { MarketCountdown } from "@/components/desktop/MarketCountdown";
 
 const STRATEGY_CODE: Record<OptionKind, string> = {
   csp: "CSP",
@@ -201,7 +202,7 @@ const COLUMNS: { key: SortKey; label: string }[] = [
   { key: "source", label: "Source" },
 ];
 
-export function PositionsTable({ options, marketOpen }: { options: SourcedOption[]; marketOpen: boolean }) {
+export function PositionsTable({ options }: { options: SourcedOption[] }) {
   const [groupBy, setGroupBy] = useState<GroupBy>("dte");
   const [sortKey, setSortKey] = useState<SortKey>("dte");
   const [sortDir, setSortDir] = useState<1 | -1>(1);
@@ -288,13 +289,7 @@ export function PositionsTable({ options, marketOpen }: { options: SourcedOption
           <h2 className="text-sm font-semibold text-text">Open Positions</h2>
           <span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs font-medium text-muted">{rows.length}</span>
         </div>
-        <span
-          className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset ${
-            marketOpen ? "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30" : "bg-surface-2 text-muted ring-border"
-          }`}
-        >
-          {marketOpen ? "MARKET OPEN" : "MARKET CLOSED"}
-        </span>
+        <MarketCountdown />
 
         <div className="ml-auto flex items-center gap-3">
           <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">

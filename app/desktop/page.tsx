@@ -4,7 +4,6 @@
 // page just needs to render its own content, full width.
 import { getSnapshot } from "@/lib/snapshot";
 import { accountLabel } from "@/lib/account-shared";
-import { isRegularSession } from "@/lib/market-hours";
 import { PositionsTable } from "@/components/desktop/PositionsTable";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +23,7 @@ export default async function DesktopPage() {
 
   return (
     <main className="min-h-screen w-full bg-bg px-6 py-6 text-text">
-      <PositionsTable options={options} marketOpen={isRegularSession()} />
+      <PositionsTable options={options} />
     </main>
   );
 }
