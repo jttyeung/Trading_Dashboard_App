@@ -542,14 +542,24 @@ export interface AccountRiskView extends RiskView {
   accountLabel: string; // always masked/labeled server-side — never a raw account number
 }
 
-// RULE-018 (beta-weighted-to-QQQ target, 0.6-1.05) and RULE-019 (open-P&L
-// floor, -10%) combined across Schwab AND SnapTrade — Schwab alone reads
-// nowhere near the account holder's own real numbers, since SnapTrade
-// (Fidelity/E*TRADE) holds roughly 2.5x Schwab's own value. Both soft
-// guidance, never a suggestion-engine gate (unlike RiskView's theta/
-// sector fields above).
+// RULE-006 (theta), RULE-018 (beta-weighted-to-QQQ target, 0.6-1.05), and
+// RULE-019 (open-P&L floor, -10%) combined across Schwab + SnapTrade +
+// E*TRADE — Schwab alone reads nowhere near the account holder's own
+// real numbers, since SnapTrade (Fidelity) + E*TRADE together hold
+// roughly 2.5x Schwab's own value. All three soft guidance here (never a
+// suggestion-engine gate) even though RULE-006 does gate at the
+// Schwab-only Overall level (see RiskView above) — this blended theta is
+// informational only. Sector exposure (RULE-011) has no blended
+// equivalent: the other accounts' holdings are mostly broad index funds
+// with no one meaningful sector to attribute.
 export interface BlendedRiskView {
-  portfolioValue: number; // Schwab + SnapTrade combined
+  portfolioValue: number; // Schwab + SnapTrade + E*TRADE combined
+  thetaToday: number;
+  thetaPct: number;
+  thetaStatus: "below_target" | "on_target" | "above_target_below_ceiling" | "over_ceiling" | "unknown";
+  thetaMinPct: number;
+  thetaTargetMaxPct: number;
+  thetaMaxPct: number;
   beta: number;
   betaCoverage: number; // fraction of portfolioValue with a computable per-underlying beta
   betaStatus: "below_target" | "on_target" | "above_target" | "unknown";
