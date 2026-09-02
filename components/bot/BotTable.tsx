@@ -132,6 +132,15 @@ function ThumbButton({
   );
 }
 
+// DateGroup buckets trades by the calendar day they were posted (the
+// paperbot agent only ever logs picks once a day — see the paperbot
+// package's own "once-a-day, top-N" doc comment — so a date group here
+// reads as one day's actual cohort of picks, not an arbitrary slice).
+interface DateGroup {
+  date: string;
+  trades: BotTrade[];
+}
+
 export function BotTable({ trades, myGrade }: { trades: BotTrade[]; myGrade: MyGradeSummary }) {
   const [localTrades, setLocalTrades] = useState(trades);
   useEffect(() => setLocalTrades(trades), [trades]);
@@ -139,6 +148,7 @@ export function BotTable({ trades, myGrade }: { trades: BotTrade[]; myGrade: MyG
   const [sortKey, setSortKey] = useState<SortKey>("postedAt");
   const [sortDir, setSortDir] = useState<1 | -1>(-1);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set());
   const [apiError, setApiError] = useState<string | null>(null);
 
   const sorted = useMemo(() => {
@@ -151,6 +161,40 @@ export function BotTable({ trades, myGrade }: { trades: BotTrade[]; myGrade: MyG
     });
     return list;
   }, [localTrades, sortKey, sortDir]);
+
+  // Groups are always ordered newest-date-first regardless of the current
+  // column sort (mirroring the desktop positions table's own "row order
+  // within a group follows the sort, group order doesn't" convention) —
+  // rows inside each date keep whatever order the active column sort
+  // produced.
+  const dateGroups = useMemo<DateGroup[]>(() => {
+    const map = new Map<string, BotTrade[]>();
+    for (const t of sorted) {
+      const date = t.postedAt.slice(0, 10);
+      const bucket = map.get(date);
+      if (bucket) bucket.push(t);
+      else map.set(date, [t]);
+    }
+    return Array.from(map.entries())
+      .map(([date, trades]) => ({ date, trades }))
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }, [sorted]);
+
+  function toggleDate(date: string) {
+    setCollapsedDates((prev) => {
+      const next = new Set(prev);
+      if (next.has(date)) next.delete(date);
+      else next.add(date);
+      return next;
+    });
+  }
+  function collapseAllDates() {
+    setCollapsedDates(new Set(dateGroups.map((g) => g.date)));
+  }
+  function expandAllDates() {
+    setCollapsedDates(new Set());
+  }
+  const allDatesCollapsed = dateGroups.length > 0 && dateGroups.every((g) => collapsedDates.has(g.date));
 
   function toggleSort(key: SortKey) {
     if (key === sortKey) setSortDir((d) => (d === 1 ? -1 : 1));
@@ -255,6 +299,16 @@ export function BotTable({ trades, myGrade }: { trades: BotTrade[]; myGrade: MyG
         <div className="border-b border-border bg-rose-500/10 px-4 py-2 text-[11px] text-rose-300">{apiError}</div>
       )}
 
+      <div className="flex items-center justify-between border-b border-border px-4 py-2">
+        <span className="text-[11px] text-muted">{dateGroups.length} days</span>
+        <button
+          onClick={allDatesCollapsed ? expandAllDates : collapseAllDates}
+          className="rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-muted hover:text-text"
+        >
+          {allDatesCollapsed ? "Expand all" : "Collapse all"}
+        </button>
+      </div>
+
       <table className="w-full min-w-[1780px] border-collapse text-sm">
         <thead>
           <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted">
@@ -281,7 +335,37 @@ export function BotTable({ trades, myGrade }: { trades: BotTrade[]; myGrade: MyG
           </tr>
         </thead>
         <tbody>
-          {sorted.map((t) => (
+          {dateGroups.map((g) => {
+            const dateCollapsed = collapsedDates.has(g.date);
+            const dateWins = g.trades.filter((t) => t.outcome === "WIN").length;
+            const dateLosses = g.trades.filter((t) => t.outcome === "ASSIGNED").length;
+            const datePnl = g.trades.reduce((s, t) => s + (t.realizedPnl ?? 0), 0);
+            const hasDatePnl = g.trades.some((t) => t.realizedPnl != null);
+            return (
+              <Fragment key={g.date}>
+                <tr className="border-b border-border bg-surface-2/60">
+                  <td colSpan={TOTAL_COLUMNS} className="px-3 py-2">
+                    <button
+                      onClick={() => toggleDate(g.date)}
+                      className="flex w-full items-center gap-1.5 text-xs font-semibold text-text"
+                    >
+                      <span className={`transition-transform ${dateCollapsed ? "-rotate-90" : ""}`}>▾</span>
+                      {g.date} <span className="font-normal text-muted">({g.trades.length})</span>
+                      {(dateWins > 0 || dateLosses > 0) && (
+                        <span className="font-normal text-muted">
+                          · <span className="text-emerald-400">{dateWins}W</span> / <span className="text-rose-400">{dateLosses}L</span>
+                        </span>
+                      )}
+                      {hasDatePnl && (
+                        <span className={`ml-auto font-normal ${datePnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                          {fmtMoney(datePnl, { sign: true })}
+                        </span>
+                      )}
+                    </button>
+                  </td>
+                </tr>
+                {!dateCollapsed &&
+                  g.trades.map((t) => (
             <Fragment key={t.id}>
               <tr
                 className="cursor-pointer border-b border-border/60 hover:bg-surface-2/40"
@@ -378,7 +462,10 @@ export function BotTable({ trades, myGrade }: { trades: BotTrade[]; myGrade: MyG
                 </tr>
               )}
             </Fragment>
-          ))}
+                  ))}
+              </Fragment>
+            );
+          })}
         </tbody>
       </table>
     </div>
