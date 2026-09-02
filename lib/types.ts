@@ -571,6 +571,24 @@ export interface BlendedRiskView {
   openPnLMinPct: number;
 }
 
+// RULE-010's own 2%/month floor, 3%/month target — real Schwab options
+// realized P&L for the current calendar month, paced against the
+// account's own Schwab liquidation value (not the blended whole-account
+// figure BlendedRiskView carries — see MonthlyGoalFile's own backend
+// doc comment for why the Wheel strategy's own capital base is the
+// right denominator here, not net worth). targetPercent is a starting
+// point only; the dashboard itself lets the account holder override it
+// (a personal pacing goal, not an enforced rule).
+export interface MonthlyGoalFile {
+  meta: { generatedAt: string };
+  portfolioValue: number;
+  realizedThisMonth: number;
+  targetPercent: number;
+  floorPercent: number;
+  asOfDate: string; // YYYY-MM-DD, America/New_York
+  daysInMonth: number;
+}
+
 export interface PortfolioRiskFile {
   meta: { generatedAt: string };
   overall: RiskView;

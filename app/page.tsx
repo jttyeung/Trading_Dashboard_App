@@ -11,7 +11,9 @@ import { PortfolioFit } from "@/components/PortfolioFit";
 import { BuyingPowerStat } from "@/components/BuyingPowerStat";
 import { AvailableCash } from "@/components/AvailableCash";
 import { AlertsPanel } from "@/components/AlertsPanel";
+import { MonthlyGoalCard } from "@/components/MonthlyGoalCard";
 import { getAlerts } from "@/lib/alerts";
+import { getMonthlyGoal } from "@/lib/monthly-goal";
 import { getSnapshot } from "@/lib/snapshot";
 import { getAmReport } from "@/lib/am-report";
 import { computeHoldings } from "@/lib/holdings";
@@ -49,6 +51,7 @@ function fmtDataStamp(pricesAsOf: string): string {
 export default async function HomePage() {
   const snap = await getSnapshot();
   const alerts = (await getAlerts()).alerts;
+  const monthlyGoal = await getMonthlyGoal();
   const { accounts, meta } = snap;
   const { id, data } = await getSelectedAccount(snap);
   const { summary, equities, options, valueHistory } = data;
@@ -242,6 +245,14 @@ export default async function HomePage() {
           }
         />
       </div>
+
+      <MonthlyGoalCard
+        portfolioValue={monthlyGoal.portfolioValue}
+        realizedThisMonth={monthlyGoal.realizedThisMonth}
+        defaultTargetPercent={monthlyGoal.targetPercent}
+        asOfDate={monthlyGoal.asOfDate}
+        daysInMonth={monthlyGoal.daysInMonth}
+      />
 
       {/* Active tracker alerts — what needs attention right now, ahead of the
           static quick-access cards below. */}

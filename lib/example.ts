@@ -15,6 +15,7 @@ import type {
   ClosedSpreadFile,
   ClosedStockFile,
   PortfolioRiskFile,
+  MonthlyGoalFile,
   BenchmarkFile,
   AlertsFile,
   CSPCandidatesFile,
@@ -373,6 +374,19 @@ export const examplePortfolioRiskFile: PortfolioRiskFile = {
     openPnLStatus: "on_target",
     openPnLMinPct: -0.1,
   },
+};
+
+// RULE-010's monthly premium-income goal (data/monthly-goal.json) — mid-month,
+// partway to target, so the progress bar/pacing numbers all have something real
+// to show rather than an all-zero first-of-the-month state.
+export const exampleMonthlyGoalFile: MonthlyGoalFile = {
+  meta: { generatedAt: NOW_ISO },
+  portfolioValue: 58400,
+  realizedThisMonth: 890,
+  targetPercent: 3,
+  floorPercent: 2,
+  asOfDate: isoDay(0),
+  daysInMonth: 30,
 };
 
 // Active tracker alerts (data/alerts.json) — one of each action type so the
