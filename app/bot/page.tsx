@@ -19,7 +19,7 @@ export default async function GeneralBotPage() {
           reasoning as the real digest, tracked here for review before it ever touches a real order.
         </p>
       </div>
-      <BotTable trades={snap.trades} myGrade={snap.myGrade} />
+      <BotTable trades={snap.trades} myGrade={snap.myGrade} storageKey="general" />
     </main>
   );
 }
