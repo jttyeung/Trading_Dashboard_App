@@ -381,7 +381,6 @@ export const examplePortfolioRiskFile: PortfolioRiskFile = {
 // to show rather than an all-zero first-of-the-month state.
 export const exampleMonthlyGoalFile: MonthlyGoalFile = {
   meta: { generatedAt: NOW_ISO },
-  portfolioValue: 58400,
   realizedThisMonth: 890,
   targetPercent: 3,
   floorPercent: 2,
