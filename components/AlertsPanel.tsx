@@ -73,6 +73,24 @@ function saveRead(read: Set<string>) {
   }
 }
 
+// ConvictionDots renders the account holder's own "green dots" score for
+// a roll_up alert (profit captured, delta, target-strike support level —
+// see internal/agents/tracker/roll_up.go's rollUpConviction) as 3 filled/
+// hollow circles rather than a bare number, since the whole point was a
+// glanceable visual, not another figure to read.
+function ConvictionDots({ conviction }: { conviction: number }) {
+  return (
+    <span className="flex shrink-0 items-center gap-0.5" title={`${conviction}/3 conviction`}>
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className={`h-2 w-2 rounded-full ${i < conviction ? "bg-green-400" : "bg-surface-2 ring-1 ring-inset ring-border"}`}
+        />
+      ))}
+    </span>
+  );
+}
+
 export function AlertsPanel({ alerts }: { alerts: Alert[] }) {
   const [read, setRead] = useState<Set<string>>(new Set());
   useEffect(() => setRead(loadRead()), []);
@@ -120,6 +138,7 @@ export function AlertsPanel({ alerts }: { alerts: Alert[] }) {
                     ${a.strike} {a.putCall} · {a.dte}d
                   </span>
                 </div>
+                {a.action === "roll_up" && <ConvictionDots conviction={a.rollUpConviction} />}
                 <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${style.chip}`}>
                   {style.label}
                 </span>
@@ -128,7 +147,13 @@ export function AlertsPanel({ alerts }: { alerts: Alert[] }) {
                 <>
                   <p className="mt-1 text-[11px] leading-relaxed text-muted">{a.rationale}</p>
                   {a.rollToSymbol && (
-                    <div className="mt-1.5 rounded-lg bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-200 ring-1 ring-inset ring-amber-500/20">
+                    <div
+                      className={`mt-1.5 rounded-lg px-2 py-1.5 text-[11px] ring-1 ring-inset ${
+                        a.action === "roll_up"
+                          ? "bg-green-500/10 text-green-200 ring-green-500/20"
+                          : "bg-amber-500/10 text-amber-200 ring-amber-500/20"
+                      }`}
+                    >
                       Roll to <span className="font-medium">${a.rollToStrike}</span> exp {a.rollToExpirationDate} (
                       {a.rollToDte} DTE, Δ{a.rollToDelta?.toFixed(2)}
                       {a.rollToNetCredit != null && (
