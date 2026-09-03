@@ -69,9 +69,11 @@ interface Row {
   // a ticker-adjacent glyph — 💸 for "good profits, consider closing"
   // (profit_target: a CSP whose remaining annualized return dropped
   // below the account holder's own floor, or a LEAP that hit a fast
-  // profit-taking band) or ⚠️ for "this LEAP is approaching expiration"
-  // (leap_expiring). The rationale text is the glyph's native hover
-  // tooltip, rather than duplicating AlertsPanel's own full card here.
+  // profit-taking band), ⚠️ for "this LEAP is approaching expiration"
+  // (leap_expiring), or 📈 for "stock has run up, consider rolling up for
+  // more credit" (roll_up). The rationale text is the glyph's native
+  // hover tooltip, rather than duplicating AlertsPanel's own full card
+  // here.
   tickerFlag: { emoji: string; rationale: string } | null;
 }
 
@@ -87,6 +89,7 @@ function buildRow(
   o: SourcedOption,
   profitTargetBySymbol: Map<string, string>,
   leapExpiringBySymbol: Map<string, string>,
+  rollUpBySymbol: Map<string, string>,
 ): Row {
   const marketValue = optionNetValue(o); // long +, short − (the buy-back liability)
   const todayPl = o.dayValueChange ?? null;
@@ -102,14 +105,21 @@ function buildRow(
   // profit_target takes priority if a contract somehow matched both (it
   // shouldn't in practice — evaluateLeapPosition's own switch is mutually
   // exclusive — but "good profits to take" is the more actionable signal
-  // of the two either way).
+  // of the two either way). roll_up is checked last: it's opportunistic
+  // ("consider taking more"), a lower-priority signal than either "close
+  // now" case, and in practice won't often overlap with them anyway
+  // (evaluateCSPRollUpForCredit only fires well before a position's own
+  // profit-target or expiration window comes into play).
   const profitRationale = profitTargetBySymbol.get(o.id);
   const expiringRationale = leapExpiringBySymbol.get(o.id);
+  const rollUpRationale = rollUpBySymbol.get(o.id);
   const tickerFlag = profitRationale
     ? { emoji: "💸", rationale: profitRationale }
     : expiringRationale
       ? { emoji: "⚠️", rationale: expiringRationale }
-      : null;
+      : rollUpRationale
+        ? { emoji: "📈", rationale: rollUpRationale }
+        : null;
 
   return {
     o,
@@ -264,9 +274,17 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
     return m;
   }, [alerts]);
 
+  const rollUpBySymbol = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const a of alerts) {
+      if (a.action === "roll_up") m.set(a.contractSymbol, a.rationale);
+    }
+    return m;
+  }, [alerts]);
+
   const rows = useMemo(
-    () => options.map((o) => buildRow(o, profitTargetBySymbol, leapExpiringBySymbol)),
-    [options, profitTargetBySymbol, leapExpiringBySymbol],
+    () => options.map((o) => buildRow(o, profitTargetBySymbol, leapExpiringBySymbol, rollUpBySymbol)),
+    [options, profitTargetBySymbol, leapExpiringBySymbol, rollUpBySymbol],
   );
 
   const groups = useMemo(() => {
