@@ -689,6 +689,37 @@ export interface SuggestionPerformanceFile {
 }
 
 // ---------------------------------------------------------------------------
+// Phase 1 of the paper-bot feedback-loop plan: real-trade (matched
+// suggestion_history) and paper-trade (resolved paper_trades, both bots)
+// outcomes unioned into one flat list from data/strategy-performance.json,
+// so "does the paper bots' much bigger sample agree with the smaller
+// real-trade sample" is answerable on one screen instead of two that can't
+// be compared. win is always derived from realizedPnl > 0 for both origins
+// (never paperbot's own WIN/ASSIGNED outcome label) so the two stay
+// comparable on the same definition. Grouping/win-rate math happens
+// client-side, same convention as MatchedSuggestion above.
+// ---------------------------------------------------------------------------
+export interface PerformanceRow {
+  origin: "real" | "paper";
+  ticker: string;
+  strategy: string;
+  contractSymbol: string;
+  delta: number | null;
+  dte: number | null;
+  rorPercent: number | null;
+  annualizedRorPercent: number | null;
+  realizedPnl: number;
+  win: boolean;
+  openDate: string;
+  closeDate: string;
+}
+
+export interface StrategyPerformanceFile {
+  meta: { generatedAt: string };
+  rows: PerformanceRow[];
+}
+
+// ---------------------------------------------------------------------------
 // Pre-OTU portfolio counterfactual vs. S&P 500 vs. actual (data/benchmark.json).
 // All three are full historical series from cutoffDate to today, plotted on
 // the same axis. "frozen" and "spy" are exactly reconstructable (real
