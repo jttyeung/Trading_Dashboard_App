@@ -11,16 +11,18 @@
      Equal to --surface-2 here on purpose: the phone-frame app never
      asked for a third distinct tint, so Stat's look stays unchanged. */
   --surface-3: #1a2234;
-  /* --header-box/--header-box-text: a page-header container that needs
-     its OWN text color, not just its own background — light mode gives
-     it a bold slate fill with white text (a wide-surface-only ask), so
-     it can't just be another --surface-N tint read against --text like
-     everything else. Aliased to --surface-3/--text here (and in
-     .theme-dark below) so the phone-frame app and dark mode look
-     exactly like they did with plain bg-surface-3 text-text before this
-     token existed. */
+  /* --header-box/--header-box-text: a page-header container with its
+     own bold background (light mode: a slate a bit lighter than the
+     icon rail's own shade — a wide-surface-only ask). --header-box-text
+     is just var(--text) everywhere, including light mode — a white-text
+     version shipped briefly and was reverted ("keep the header title...
+     a dark color"), but the separate token stayed since a future theme
+     might still want its own text color paired with this background.
+     Aliased to --surface-3 here (and in .theme-dark below) so the
+     phone-frame app and dark mode look exactly like they did with plain
+     bg-surface-3 text-text before this token existed. */
   --header-box: #1a2234;
-  --header-box-text: #e7ecf3;
+  --header-box-text: var(--text);
   --border: #232c3f;
   --text: #e7ecf3;
   --muted: #8b97ad;
@@ -118,10 +120,11 @@
   --surface-3: #dce1ec;
   /* Update: the page-header container ("wheel bot container") gets its
      own bold treatment now — a bit lighter than the rail's own shade at
-     the time of this ask (#9aa4bd), with white text, rather than
-     another pale --surface-N tint read with dark --text. */
+     the time of this ask (#9aa4bd) — but white text didn't land ("keep
+     the header title... a dark color"), so this reverted to the normal
+     --text right after the white-text version shipped. */
   --header-box: #b3bccf;
-  --header-box-text: #ffffff;
+  --header-box-text: var(--text);
   --border: #c7ccd9;
   --text: #3c3024;
   --muted: #93816a;
@@ -164,7 +167,7 @@
   /* Aliased to --surface-3/--text — dark mode wasn't part of the
      header-box-with-white-text ask either. */
   --header-box: #423f3c;
-  --header-box-text: #e8ddd0;
+  --header-box-text: var(--text);
   --border: #514e4a;
   --text: #e8ddd0;
   --muted: #a89a8a;
