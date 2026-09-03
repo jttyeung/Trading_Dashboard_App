@@ -39,7 +39,9 @@ services:
     # in .env if yours are not 1000 (check with `id -u` / `id -g`).
     user: "${UID:-1000}:${GID:-1000}"
     ports:
-      - "3000:3000"
+      # Host port to publish on. Change in .env if 3000 is taken (e.g. by another
+      # Next app on the same box); the container always listens on 3000.
+      - "${DASHBOARD_PORT:-3000}:3000"
     environment:
       # Where the app deposits credentials and reauth requests. Must match the
       # mount below and the bridge service's working directory.
