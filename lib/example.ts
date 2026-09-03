@@ -22,6 +22,7 @@ import type {
   SingleLegCandidatesFile,
   SpreadCandidatesFile,
   SuggestionPerformanceFile,
+  StrategyPerformanceFile,
 } from "./types";
 
 const ACC = "EX000000"; // primary margin account
@@ -772,6 +773,31 @@ export const exampleSuggestionPerformanceFile: SuggestionPerformanceFile = {
       realizedPnl: 600,
       closeReason: "EXPIRED",
     },
+  ],
+};
+
+// Phase 1 of the paper-bot feedback-loop plan (data/strategy-performance.json)
+// — the same 4 real trades as exampleSuggestionPerformanceFile above (kept
+// consistent across both example files) plus a much bigger paper-trade
+// sample, matching the real shape this is meant to show: a small real
+// sample next to a far larger simulated one, spanning both bots' delta
+// bands (CSP 0.20-0.35, CSP_SAFE 0.10-0.20) with a mix of wins and losses.
+export const exampleStrategyPerformanceFile: StrategyPerformanceFile = {
+  meta: { generatedAt: NOW_ISO },
+  rows: [
+    { origin: "real", ticker: "IREN", strategy: "CSP", contractSymbol: "IREN  260815P00015000", delta: -0.24, dte: 30, rorPercent: 2.1, annualizedRorPercent: 25.5, realizedPnl: 171, win: true, openDate: isoDay(-45), closeDate: isoDay(-15) },
+    { origin: "real", ticker: "GLW", strategy: "CSP", contractSymbol: "GLW   260824P00045000", delta: -0.28, dte: 34, rorPercent: 1.8, annualizedRorPercent: 19.4, realizedPnl: 270, win: true, openDate: isoDay(-40), closeDate: isoDay(-6) },
+    { origin: "real", ticker: "CLS", strategy: "CSP", contractSymbol: "CLS   260828P00120000", delta: -0.31, dte: 24, rorPercent: 2.9, annualizedRorPercent: 44.1, realizedPnl: -170, win: false, openDate: isoDay(-120), closeDate: isoDay(-96) },
+    { origin: "real", ticker: "AAPL", strategy: "CC", contractSymbol: "AAPL  260821C00200000", delta: 0.32, dte: 31, rorPercent: 1.5, annualizedRorPercent: 17.7, realizedPnl: 600, win: true, openDate: isoDay(-42), closeDate: isoDay(-11) },
+    { origin: "paper", ticker: "LRCX", strategy: "CSP", contractSymbol: "LRCX  260918P00275000", delta: -0.33, dte: 23, rorPercent: 3.3, annualizedRorPercent: 52.4, realizedPnl: 908, win: true, openDate: isoDay(-30), closeDate: isoDay(-7) },
+    { origin: "paper", ticker: "DELL", strategy: "CSP", contractSymbol: "DELL  260925P00400000", delta: -0.35, dte: 24, rorPercent: 5.3, annualizedRorPercent: 80.9, realizedPnl: 2128, win: true, openDate: isoDay(-31), closeDate: isoDay(-7) },
+    { origin: "paper", ticker: "SOFI", strategy: "CSP", contractSymbol: "SOFI  260918P00017000", delta: -0.33, dte: 23, rorPercent: 2.7, annualizedRorPercent: 44.2, realizedPnl: 46, win: true, openDate: isoDay(-30), closeDate: isoDay(-7) },
+    { origin: "paper", ticker: "SNDK", strategy: "CSP", contractSymbol: "SNDK  260918P01500000", delta: -0.35, dte: 23, rorPercent: 4.6, annualizedRorPercent: 73.5, realizedPnl: -3200, win: false, openDate: isoDay(-30), closeDate: isoDay(-4) },
+    { origin: "paper", ticker: "CRDO", strategy: "CSP", contractSymbol: "CRDO  260918P00165000", delta: -0.30, dte: 23, rorPercent: 4.1, annualizedRorPercent: 65.9, realizedPnl: 685, win: true, openDate: isoDay(-30), closeDate: isoDay(-7) },
+    { origin: "paper", ticker: "HPE", strategy: "CSP", contractSymbol: "HPE   260925P00047000", delta: -0.31, dte: 24, rorPercent: 4.3, annualizedRorPercent: 68.3, realizedPnl: 211, win: true, openDate: isoDay(-31), closeDate: isoDay(-7) },
+    { origin: "paper", ticker: "BE", strategy: "CSP_SAFE", contractSymbol: "BE    260925P00195000", delta: -0.15, dte: 24, rorPercent: 2.2, annualizedRorPercent: 33.4, realizedPnl: 195, win: true, openDate: isoDay(-31), closeDate: isoDay(-7) },
+    { origin: "paper", ticker: "SKHY", strategy: "CSP_SAFE", contractSymbol: "SKHY  260918P00150000", delta: -0.14, dte: 23, rorPercent: 1.8, annualizedRorPercent: 28.6, realizedPnl: -545, win: false, openDate: isoDay(-30), closeDate: isoDay(-3) },
+    { origin: "paper", ticker: "COHR", strategy: "CSP_SAFE", contractSymbol: "COHR  261002P00250000", delta: -0.12, dte: 31, rorPercent: 1.4, annualizedRorPercent: 16.5, realizedPnl: 1130, win: true, openDate: isoDay(-37), closeDate: isoDay(-6) },
   ],
 };
 
