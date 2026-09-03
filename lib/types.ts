@@ -572,18 +572,21 @@ export interface BlendedRiskView {
 }
 
 // RULE-010's own 2%/month floor, 3%/month target — real Schwab options
-// realized P&L for the current calendar month. No portfolioValue field
-// here: the capital base is computed client-side instead (app/page.tsx's
-// own optionsCapital — LEAP/hedge value + CSP collateral + spread risk,
-// already blended across Schwab + SnapTrade + E*TRADE from the same
-// snapshot the Home page's own Options stat uses), not a Schwab-only
-// figure from this file — the account holder correctly caught that
-// Fidelity/E*TRADE both hold real wheel positions too, so a Schwab-only
-// base understated real capital deployed. realizedThisMonth is still
-// Schwab-only, though: internal/pnl's own FIFO reconstruction has no
-// SnapTrade/E*TRADE equivalent for options (only stocks). targetPercent
-// is a starting point only; the dashboard itself lets the account
-// holder override it (a personal pacing goal, not an enforced rule).
+// realized P&L for the current calendar month, paced against
+// portfolioValueBaseline: the blended (Schwab + SnapTrade + E*TRADE)
+// portfolio value FROZEN once at the start of this calendar month, not
+// the live current value — the account holder's own explicit ask, so
+// the dollar target doesn't silently drift as the live portfolio value
+// moves throughout the month. (An earlier version had no portfolio-value
+// field at all and computed a live capital base client-side instead;
+// that base was also corrected once already for being Schwab-only,
+// understating Fidelity/E*TRADE's own real wheel positions — this
+// baseline is blended across all three from the start.) realizedThisMonth
+// is still Schwab-only, though: internal/pnl's own FIFO reconstruction
+// has no SnapTrade/E*TRADE equivalent for options (only stocks).
+// targetPercent is a starting point only; the dashboard itself lets the
+// account holder override it (a personal pacing goal, not an enforced
+// rule).
 export interface MonthlyGoalFile {
   meta: { generatedAt: string };
   realizedThisMonth: number;
@@ -591,6 +594,7 @@ export interface MonthlyGoalFile {
   floorPercent: number;
   asOfDate: string; // YYYY-MM-DD, America/New_York
   daysInMonth: number;
+  portfolioValueBaseline: number;
 }
 
 export interface PortfolioRiskFile {
