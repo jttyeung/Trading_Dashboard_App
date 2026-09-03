@@ -645,6 +645,11 @@ export interface Alert {
   rollToDte: number | null;
   rollToDelta: number | null;
   rollToNetCredit: number | null;
+  // 0-3 "how many of the three supporting measures are true" score,
+  // meaningful only when action === "roll_up" (profit captured >=20%,
+  // delta <=0.15, target strike at a real support level) -- see
+  // internal/agents/tracker/roll_up.go's rollUpConviction.
+  rollUpConviction: number;
   evaluatedAt: string;
 }
 

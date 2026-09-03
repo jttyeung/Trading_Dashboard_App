@@ -409,6 +409,7 @@ export const exampleAlertsFile: AlertsFile = {
       rollToDte: null,
       rollToDelta: null,
       rollToNetCredit: null,
+      rollUpConviction: 0,
       evaluatedAt: NOW_ISO,
     },
     {
@@ -431,6 +432,7 @@ export const exampleAlertsFile: AlertsFile = {
       rollToDte: 33,
       rollToDelta: 0.62,
       rollToNetCredit: 198,
+      rollUpConviction: 0,
       evaluatedAt: NOW_ISO,
     },
     {
@@ -453,6 +455,7 @@ export const exampleAlertsFile: AlertsFile = {
       rollToDte: null,
       rollToDelta: null,
       rollToNetCredit: null,
+      rollUpConviction: 0,
       evaluatedAt: NOW_ISO,
     },
     {
@@ -469,15 +472,16 @@ export const exampleAlertsFile: AlertsFile = {
       underlyingPrice: 112.4,
       action: "roll_up",
       rationale:
-        "Delta down to 0.06 (VIX 16.2, calm) — stock has run well clear of the $90 strike; rolling up to $100 exp " +
+        "3/3 conviction to roll up — stock up 2.3% today (VIX 16.2, calm): 87% profit captured, delta at -0.06, target $100.00 exp " +
         isoDay(35) +
-        " (35 DTE, Δ0.27) nets $1.85/sh more credit for $1,000 more collateral tied up.",
+        " (35 DTE, Δ0.27) nets $1.85/sh more credit for $1,000 more collateral tied up",
       rollToSymbol: "MU    " + isoDay(35).replace(/-/g, "").slice(2) + "P00100000",
       rollToStrike: 100,
       rollToExpirationDate: isoDay(35),
       rollToDte: 35,
       rollToDelta: 0.27,
       rollToNetCredit: 1.85,
+      rollUpConviction: 3,
       evaluatedAt: NOW_ISO,
     },
   ],
