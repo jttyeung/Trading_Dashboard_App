@@ -61,22 +61,39 @@
    across the wide-surface pages can pick a soft, low-saturation hue
    from the SAME family instead of reaching for a saturated Tailwind
    color with no theme awareness. */
+/* Update: revisited after "the colors aren't going together... still a
+   lot of contrast" against the account holder's own Headspace app-
+   store mood board specifically (not the wallet app) — a warm cream/
+   tan backdrop with soft, warm-leaning accent hues, never a stark
+   white surface or a cool-toned chip color fighting the warm base.
+   Two concrete fixes from the first pass: --surface was pure #ffffff
+   against a warm --bg, which reads as two different color systems
+   sitting next to each other rather than one warm world (now a warm
+   off-white, one gentle step up from --bg, not a jump to true white);
+   and every chip hue (--info/--violet/--indigo especially) was a
+   fairly cool, denim/slate-leaning color, which clashes with a warm
+   cream base the same way a cold accent clashes on a warm wall — all
+   re-picked as warmer, softer versions in the same family as the
+   mood board's own screens (mustard, warm coral, dusty warm blue,
+   warm lavender, warm teal, warm periwinkle). --text also softened
+   (less near-black) for the same "too much contrast" reason dark mode
+   needed, just a smaller move since light mode was never as extreme. */
 .theme-light {
-  --bg: #f6f1e9;
-  --surface: #ffffff;
-  --surface-2: #f0e8da;
-  --border: #e6dcc8;
-  --text: #2c2620;
-  --muted: #8a7c68;
-  --pos: #5e9b7c;
-  --neg: #c97567;
-  --accent: #b9893d;
-  --warn: #b07a3e;
-  --info: #5c84a3;
-  --violet: #8074a8;
-  --teal: #4c8f86;
-  --indigo: #6873a8;
-  --fuchsia: #a66d90;
+  --bg: #f2e4d3;
+  --surface: #faf3e8;
+  --surface-2: #ead9c0;
+  --border: #ddc7a8;
+  --text: #3c3024;
+  --muted: #93816a;
+  --pos: #6fa06e;
+  --neg: #c96f52;
+  --accent: #c99a45;
+  --warn: #cc8542;
+  --info: #7099ab;
+  --violet: #9a84b5;
+  --teal: #5aa89d;
+  --indigo: #7c88b3;
+  --fuchsia: #b17a94;
 }
 
 /* Meaningfully lighter/softer than a typical near-black dark theme —
