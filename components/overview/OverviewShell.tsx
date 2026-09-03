@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import type { Alert, BotSnapshot } from "@/lib/types";
 import { PositionsTable, type SourcedOption } from "@/components/desktop/PositionsTable";
 import { BotTable } from "@/components/bot/BotTable";
-import { useThemeMode } from "@/components/theme-mode";
 
 type Tab = "desktop" | "bot" | "bot-safe";
 
@@ -83,7 +82,6 @@ export function OverviewShell({
 }) {
   const [tab, setTab] = useState<Tab>("desktop");
   useEffect(() => setTab(loadTab()), []);
-  const { resolved } = useThemeMode();
 
   function selectTab(next: Tab) {
     setTab(next);
@@ -97,40 +95,30 @@ export function OverviewShell({
   const heading = HEADINGS[tab];
 
   return (
-    <div className="flex h-full w-full">
+    // min-h-full, not h-full: h-full capped this row at exactly one
+    // viewport (the outer ScrollArea's own box in layout.tsx), so nav's
+    // sticky positioning had no containing block taller than itself to
+    // travel within — it looked fine for one screen, then simply ran out
+    // of "stick" room and stopped covering the column for any content
+    // beyond that, on a page as long as a big positions table. min-h-full
+    // lets this row grow to the real content height (still at least one
+    // viewport for short content) so sticky has room to keep nav pinned
+    // — and its background genuinely extending — for the whole scroll.
+    <div className="flex min-h-full w-full">
       {/* Icon rail: thin, fixed-width, always visible — the whole point of
           this page is switching between these three views without a full
-          navigation. sticky + h-[100dvh] (not the flex row's own h-full,
-          which only ever matched ONE viewport's worth of height) so the
-          rail stays pinned in view as the page's own outer ScrollArea
-          (layout.tsx) scrolls a long table past it, instead of scrolling
-          away with everything above it — the real bug this fixes.
+          navigation. sticky + h-[100dvh] keeps it pinned in view as the
+          page's own outer ScrollArea (layout.tsx) scrolls a long table
+          past it, instead of scrolling away with everything above it.
 
-          Light mode only: a deliberately darker dusty-slate rail against
-          the light content pane, per a Headspace reference screen (a
-          dark slate-blue backdrop behind a light phone frame, the
-          account holder's own explicit "side nav bar with a darker color
-          than the rest" ask) — the one place in the light theme that
-          inverts to a dark-ish surface on purpose, rather than another
-          shade of the same light palette. Lightened twice now (the
-          first two passes both read as too dark) — this is also the
-          anchor hue for globals.css's own --bg/--surface-2/--surface-3/
-          --border in light mode ("shades off the nav bar" was the
-          account holder's own explicit direction for the rest of the
-          page too), so lightening it further here is paired with
-          lightening those the same direction in globals.css. Dark mode
-          is untouched (already approved) since a rail this size adds
-          little further hierarchy on top of an already-dark page.
-          --accent (gold) reads well against this slate regardless of
-          theme, so the active-tab treatment doesn't need its own
-          rail-specific variant; inactive/hover text darkened from the
-          previous near-white pair since they need real contrast against
-          a much lighter rail now, not the earlier near-navy one. */}
-      <nav
-        className={`sticky top-0 flex h-[100dvh] w-16 shrink-0 flex-col items-center gap-1 border-r py-4 ${
-          resolved === "light" ? "border-[#838da6] bg-[#9aa4bd]" : "border-border bg-surface"
-        }`}
-      >
+          Update: no longer a special darker color in light mode — per
+          the account holder's own explicit ask, it now matches the
+          table rows underneath it (bg-surface/border-border, the exact
+          classes dark mode already used) rather than a hardcoded hex
+          rail color. That standalone rail hue lives on as the anchor for
+          the header-box treatment below instead (see globals.css's
+          --header-box). */}
+      <nav className="sticky top-0 flex h-[100dvh] w-16 shrink-0 flex-col items-center gap-1 border-r border-border bg-surface py-4">
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -139,11 +127,7 @@ export function OverviewShell({
             aria-label={t.label}
             aria-current={tab === t.key}
             className={`flex w-12 flex-col items-center gap-1 rounded-xl py-2.5 text-[9px] font-medium transition-colors ${
-              tab === t.key
-                ? "bg-accent/20 text-accent"
-                : resolved === "light"
-                  ? "text-[#565f78] hover:bg-white/20 hover:text-[#2f3547]"
-                  : "text-muted hover:bg-surface-2 hover:text-text"
+              tab === t.key ? "bg-accent/20 text-accent" : "text-muted hover:bg-surface-2 hover:text-text"
             }`}
           >
             {t.icon}
@@ -152,13 +136,15 @@ export function OverviewShell({
       </nav>
 
       <main className="min-w-0 flex-1 px-6 py-6">
-        {/* Boxed (not just bare text on the page bg) so this reads as its
-            own section, distinct from --surface-2's grayer tone used
-            just below (BotTable's date-group headers) — the account
-            holder's own "each of those sets are slight variants" ask. */}
-        <div className="mb-4 rounded-xl bg-surface-3 px-4 py-3">
-          <h1 className="text-lg font-semibold text-text">{heading.title}</h1>
-          <p className="text-sm text-muted">{heading.subtitle}</p>
+        {/* --header-box/--header-box-text (globals.css): a bold, self-
+            contained box with its own text color, not just another pale
+            --surface-N tint read with --text — light mode's own value is
+            a bit lighter than the rail's former darker shade, with white
+            text; dark mode is aliased back to the previous bg-surface-3/
+            text-text look (never part of this ask). */}
+        <div className="mb-4 rounded-xl bg-header-box px-4 py-3">
+          <h1 className="text-lg font-semibold text-header-box-text">{heading.title}</h1>
+          <p className="text-sm text-header-box-text/70">{heading.subtitle}</p>
         </div>
 
         {tab === "desktop" && <PositionsTable options={options} alerts={alerts} />}

@@ -13,9 +13,9 @@ export default async function DeltaSafeBotPage() {
 
   return (
     <main className="min-h-screen w-full bg-bg px-6 py-6 text-text">
-      <div className="mb-4 rounded-xl bg-surface-3 px-4 py-3">
-        <h1 className="text-lg font-semibold">20 Delta Safe Moves</h1>
-        <p className="text-sm text-muted">
+      <div className="mb-4 rounded-xl bg-header-box px-4 py-3">
+        <h1 className="text-lg font-semibold text-header-box-text">20 Delta Safe Moves</h1>
+        <p className="text-sm text-header-box-text/70">
           STRAT-003&apos;s conservative CSP band (0.10–0.20 delta) — biased toward strikes far below current price, aiming
           for near-zero assignment odds. Same review-queue workflow as the general bot.
         </p>

@@ -12,9 +12,9 @@ export default async function GeneralBotPage() {
 
   return (
     <main className="min-h-screen w-full bg-bg px-6 py-6 text-text">
-      <div className="mb-4 rounded-xl bg-surface-3 px-4 py-3">
-        <h1 className="text-lg font-semibold">Wheel Bot</h1>
-        <p className="text-sm text-muted">
+      <div className="mb-4 rounded-xl bg-header-box px-4 py-3">
+        <h1 className="text-lg font-semibold text-header-box-text">Wheel Bot</h1>
+        <p className="text-sm text-header-box-text/70">
           Every candidate the live suggestion engine has surfaced for STRAT-001 (0.20–0.35 delta CSPs) — same scoring, same
           reasoning as the real digest, tracked here for review before it ever touches a real order.
         </p>
