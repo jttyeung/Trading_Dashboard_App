@@ -12,7 +12,7 @@ export default async function GeneralBotPage() {
 
   return (
     <main className="min-h-screen w-full bg-bg px-6 py-6 text-text">
-      <div className="mb-4">
+      <div className="mb-4 rounded-xl bg-surface-3 px-4 py-3">
         <h1 className="text-lg font-semibold">Wheel Bot</h1>
         <p className="text-sm text-muted">
           Every candidate the live suggestion engine has surfaced for STRAT-001 (0.20–0.35 delta CSPs) — same scoring, same
