@@ -112,16 +112,23 @@ export function OverviewShell({
           account holder's own explicit "side nav bar with a darker color
           than the rest" ask) — the one place in the light theme that
           inverts to a dark-ish surface on purpose, rather than another
-          shade of the same light palette. Lightened once already (the
-          first pass read as too dark) to a medium dusty slate instead of
-          a near-navy one. Dark mode is untouched (already approved)
-          since a rail this size adds little further hierarchy on top of
-          an already-dark page. --accent (gold) reads well against this
-          slate regardless of theme, so the active-tab treatment doesn't
-          need its own rail-specific variant. */}
+          shade of the same light palette. Lightened twice now (the
+          first two passes both read as too dark) — this is also the
+          anchor hue for globals.css's own --bg/--surface-2/--surface-3/
+          --border in light mode ("shades off the nav bar" was the
+          account holder's own explicit direction for the rest of the
+          page too), so lightening it further here is paired with
+          lightening those the same direction in globals.css. Dark mode
+          is untouched (already approved) since a rail this size adds
+          little further hierarchy on top of an already-dark page.
+          --accent (gold) reads well against this slate regardless of
+          theme, so the active-tab treatment doesn't need its own
+          rail-specific variant; inactive/hover text darkened from the
+          previous near-white pair since they need real contrast against
+          a much lighter rail now, not the earlier near-navy one. */}
       <nav
         className={`sticky top-0 flex h-[100dvh] w-16 shrink-0 flex-col items-center gap-1 border-r py-4 ${
-          resolved === "light" ? "border-[#5b6480] bg-[#707a94]" : "border-border bg-surface"
+          resolved === "light" ? "border-[#838da6] bg-[#9aa4bd]" : "border-border bg-surface"
         }`}
       >
         {TABS.map((t) => (
@@ -135,7 +142,7 @@ export function OverviewShell({
               tab === t.key
                 ? "bg-accent/20 text-accent"
                 : resolved === "light"
-                  ? "text-[#dde1ec] hover:bg-white/10 hover:text-[#f7f3ea]"
+                  ? "text-[#565f78] hover:bg-white/20 hover:text-[#2f3547]"
                   : "text-muted hover:bg-surface-2 hover:text-text"
             }`}
           >
