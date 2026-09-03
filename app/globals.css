@@ -80,14 +80,20 @@
    needed, just a smaller move since light mode was never as extreme. */
 .theme-light {
   /* Shifted toward light gray per the account holder's own follow-up
-     ask ("try instead a slightly more gray background") — same
-     lightness as the warm-cream version, saturation pulled way down so
-     it reads as gray first, with only a whisper of the same warm
-     undertone left. --surface stays the warmer cream from the repaint
-     above; revisit if that pairing starts to feel disjointed the way
-     the original white-surface-on-cream-bg did. */
-  --bg: #e7e3de;
-  --surface: #faf3e8;
+     ask ("try instead a slightly more gray background... light gray") —
+     confirmed via a real screenshot that the first attempt (#e7e3de)
+     still read as warm cream, not gray: at this near-white lightness,
+     even a small R>G>B spread reads strongly as a warm tint to the eye,
+     so this pushes the channels much closer together (a Tailwind
+     stone-200-ish neutral) rather than just trimming saturation a
+     little. --surface moved the same direction (was a warmer cream,
+     #faf3e8) so it stays one gentle, same-family step up from --bg
+     instead of drifting back into the original "two color systems"
+     mismatch a much-grayer bg would otherwise reintroduce against an
+     unchanged warm-cream surface. --surface-2/--border are untouched
+     for now (still warm tan) — worth a look if that starts to clash. */
+  --bg: #e7e5e4;
+  --surface: #f7f6f4;
   --surface-2: #ead9c0;
   --border: #ddc7a8;
   --text: #3c3024;
