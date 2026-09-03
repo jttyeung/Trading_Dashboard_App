@@ -1,21 +1,27 @@
 "use client";
 
-// Suggestion-vs-actual-performance scorecard: grouped by strategy first
-// (win rate, count, P&L), then a tap-to-drill-into delta-bucket breakdown
-// per strategy — e.g. "0.25-delta CSPs closed at 82% win rate, 0.30-delta
-// at 65%". A mirror for spotting your own patterns, same spirit as a
-// trade-journal spreadsheet; nothing here feeds back into what the app
-// suggests. Aggregation happens entirely client-side, same convention as
-// PnlView.tsx's own "By strategy"/"By ticker" breakdowns — this view
-// reuses that file's own DivergingBar rather than a second copy of it.
+// Phase 1 of the paper-bot feedback-loop plan: real trades (broker-
+// confirmed, matched suggestion_history) and paper trades (both bots'
+// own resolved simulated outcomes — a much bigger sample, simplified
+// P&L) unioned into one comparison, so "does the paper bots' bigger
+// sample agree with the smaller real-trade sample" is answerable on one
+// screen. Real/Paper summary stats sit side by side always; the Origin
+// toggle below controls which set the strategy -> delta-bucket
+// drill-down reflects. Aggregation happens entirely client-side, same
+// convention as PnlView.tsx's own "By strategy"/"By ticker" breakdowns
+// — this view reuses that file's own DivergingBar rather than a second
+// copy of it. A mirror for spotting patterns; nothing here feeds back
+// into what the app suggests.
 import { useMemo, useState } from "react";
 import { Card, SectionTitle, Stat } from "@/components/ui";
 import { Amt } from "@/components/privacy";
 import { fmtMoney } from "@/lib/calc";
 import { DivergingBar } from "@/components/PnlView";
-import type { MatchedSuggestion } from "@/lib/types";
+import type { PerformanceRow } from "@/lib/types";
 
 const signed = (n: number) => `${n >= 0 ? "+" : "−"}${fmtMoney(Math.abs(n))}`;
+
+type Origin = "all" | "real" | "paper";
 
 interface Agg {
   key: string;
@@ -25,8 +31,8 @@ interface Agg {
   pnl: number;
 }
 
-function aggregate(items: MatchedSuggestion[], keyOf: (m: MatchedSuggestion) => string | null, labelOf: (key: string) => string): Agg[] {
-  const groups = new Map<string, MatchedSuggestion[]>();
+function aggregate(items: PerformanceRow[], keyOf: (m: PerformanceRow) => string | null, labelOf: (key: string) => string): Agg[] {
+  const groups = new Map<string, PerformanceRow[]>();
   for (const m of items) {
     const key = keyOf(m);
     if (key === null) continue;
@@ -38,10 +44,18 @@ function aggregate(items: MatchedSuggestion[], keyOf: (m: MatchedSuggestion) => 
       key,
       label: labelOf(key),
       count: ms.length,
-      wins: ms.filter((m) => m.realizedPnl > 0).length,
+      wins: ms.filter((m) => m.win).length,
       pnl: ms.reduce((s, m) => s + m.realizedPnl, 0),
     }))
     .sort((a, b) => b.pnl - a.pnl);
+}
+
+function summarize(rows: PerformanceRow[]) {
+  const count = rows.length;
+  const wins = rows.filter((r) => r.win).length;
+  const pnl = rows.reduce((s, r) => s + r.realizedPnl, 0);
+  const winRate = count > 0 ? Math.round((wins / count) * 100) : 0;
+  return { count, wins, pnl, winRate };
 }
 
 // Dynamic 0.05-wide delta-magnitude bucket rather than a curated list of
@@ -57,9 +71,9 @@ function deltaBucketLabel(key: string): string {
   return `${lo.toFixed(2)}–${(lo + 0.05).toFixed(2)}`;
 }
 
-function StrategyRow({ agg, matched, maxAbsStrategy }: { agg: Agg; matched: MatchedSuggestion[]; maxAbsStrategy: number }) {
+function StrategyRow({ agg, rows, maxAbsStrategy }: { agg: Agg; rows: PerformanceRow[]; maxAbsStrategy: number }) {
   const [open, setOpen] = useState(false);
-  const strategyItems = matched.filter((m) => m.strategy === agg.key);
+  const strategyItems = rows.filter((m) => m.strategy === agg.key);
   const byDelta = useMemo(() => aggregate(strategyItems, (m) => deltaBucketKey(m.delta), deltaBucketLabel), [strategyItems]);
   const maxAbsDelta = byDelta.reduce((m, x) => Math.max(m, Math.abs(x.pnl)), 0);
   const winPct = agg.count > 0 ? Math.round((agg.wins / agg.count) * 100) : 0;
@@ -87,7 +101,7 @@ function StrategyRow({ agg, matched, maxAbsStrategy }: { agg: Agg; matched: Matc
         <div className="border-t border-border bg-surface-2/30 px-4 py-3">
           <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted">By delta (magnitude)</div>
           {byDelta.length === 0 ? (
-            <p className="text-[11px] text-muted">No delta recorded for these suggestions.</p>
+            <p className="text-[11px] text-muted">No delta recorded for these trades.</p>
           ) : (
             <div className="space-y-2">
               {byDelta.map((d) => {
@@ -116,19 +130,23 @@ function StrategyRow({ agg, matched, maxAbsStrategy }: { agg: Agg; matched: Matc
   );
 }
 
-export function ScorecardView({ matched, totalSuggestions }: { matched: MatchedSuggestion[]; totalSuggestions: number }) {
-  const byStrategy = useMemo(() => aggregate(matched, (m) => m.strategy, (k) => k), [matched]);
+export function ScorecardView({ rows, totalSuggestions }: { rows: PerformanceRow[]; totalSuggestions: number }) {
+  const [origin, setOrigin] = useState<Origin>("all");
+
+  const real = useMemo(() => rows.filter((r) => r.origin === "real"), [rows]);
+  const paper = useMemo(() => rows.filter((r) => r.origin === "paper"), [rows]);
+  const realSummary = useMemo(() => summarize(real), [real]);
+  const paperSummary = useMemo(() => summarize(paper), [paper]);
+
+  const filtered = origin === "all" ? rows : origin === "real" ? real : paper;
+  const byStrategy = useMemo(() => aggregate(filtered, (m) => m.strategy, (k) => k), [filtered]);
   const maxAbsStrategy = byStrategy.reduce((m, b) => Math.max(m, Math.abs(b.pnl)), 0);
 
-  const totalPnl = matched.reduce((s, m) => s + m.realizedPnl, 0);
-  const totalWins = matched.filter((m) => m.realizedPnl > 0).length;
-  const winRate = matched.length > 0 ? Math.round((totalWins / matched.length) * 100) : 0;
-
-  if (matched.length === 0) {
+  if (rows.length === 0) {
     return (
       <Card className="mt-3 px-4 py-6 text-center text-sm text-muted">
-        No suggested trades matched to a closed position yet — {totalSuggestions} suggestion
-        {totalSuggestions === 1 ? "" : "s"} logged so far. This fills in as you take a suggested trade and it closes.
+        No resolved trades yet — real or paper — {totalSuggestions} suggestion{totalSuggestions === 1 ? "" : "s"} logged
+        so far. This fills in as a suggested trade closes (real) or a paper-bot candidate resolves.
       </Card>
     );
   }
@@ -136,23 +154,53 @@ export function ScorecardView({ matched, totalSuggestions }: { matched: MatchedS
   return (
     <div>
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <Stat label="Matched suggestions" value={matched.length} sub={`of ${totalSuggestions} ever suggested`} />
-        <Stat label="Win rate" value={`${winRate}%`} tone={winRate >= 50 ? "pos" : "neg"} sub={`${totalWins}/${matched.length}`} />
-      </div>
-      <div className="mt-2">
-        <Stat label="Total realized P&L (matched)" value={<Amt>{signed(totalPnl)}</Amt>} tone={totalPnl >= 0 ? "pos" : "neg"} />
+        <Stat
+          label="Real trades"
+          value={realSummary.count}
+          tone={realSummary.count > 0 ? (realSummary.pnl >= 0 ? "pos" : "neg") : "default"}
+          sub={realSummary.count > 0 ? `${realSummary.winRate}% win · ${signed(realSummary.pnl)}` : "none yet"}
+        />
+        <Stat
+          label="Paper trades"
+          value={paperSummary.count}
+          tone={paperSummary.count > 0 ? (paperSummary.pnl >= 0 ? "pos" : "neg") : "default"}
+          sub={paperSummary.count > 0 ? `${paperSummary.winRate}% win · ${signed(paperSummary.pnl)}` : "none yet"}
+        />
       </div>
 
-      <SectionTitle>By strategy</SectionTitle>
-      <Card className="divide-y divide-border">
-        {byStrategy.map((agg) => (
-          <StrategyRow key={agg.key} agg={agg} matched={matched} maxAbsStrategy={maxAbsStrategy} />
-        ))}
-      </Card>
+      <div className="mt-3 flex items-center gap-1.5 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
+        Show
+        <div className="flex overflow-hidden rounded-lg border border-border">
+          {(["all", "real", "paper"] as Origin[]).map((o) => (
+            <button
+              key={o}
+              onClick={() => setOrigin(o)}
+              className={`px-2.5 py-1 text-xs font-medium capitalize ${
+                origin === o ? "bg-surface-2 text-text" : "bg-transparent text-muted"
+              }`}
+            >
+              {o}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <SectionTitle>By strategy{origin !== "all" ? ` (${origin})` : ""}</SectionTitle>
+      {byStrategy.length === 0 ? (
+        <Card className="px-4 py-6 text-center text-sm text-muted">No {origin} trades yet.</Card>
+      ) : (
+        <Card className="divide-y divide-border">
+          {byStrategy.map((agg) => (
+            <StrategyRow key={agg.key} agg={agg} rows={filtered} maxAbsStrategy={maxAbsStrategy} />
+          ))}
+        </Card>
+      )}
 
       <p className="mt-3 px-1 text-[11px] leading-relaxed text-muted">
-        Only suggestions you actually traded (matched to a closed position) show up here — tap a strategy for its
-        delta breakdown. A mirror for spotting your own patterns; nothing here changes what the app suggests.
+        Real trades are broker-confirmed and actually taken. Paper trades are the wheel bots&apos; own simulated
+        outcomes — a much bigger sample, but a simplified P&L (no rolls or partial closes). A mirror for spotting your
+        own patterns and checking whether the bigger paper sample agrees with the smaller real one; nothing here
+        changes what the app suggests.
       </p>
     </div>
   );
