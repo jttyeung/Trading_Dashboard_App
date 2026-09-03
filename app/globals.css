@@ -11,17 +11,15 @@
      Equal to --surface-2 here on purpose: the phone-frame app never
      asked for a third distinct tint, so Stat's look stays unchanged. */
   --surface-3: #1a2234;
-  /* --header-box/--header-box-text: a page-header container with its
-     own bold background (light mode: a slate a bit lighter than the
-     icon rail's own shade — a wide-surface-only ask). --header-box-text
-     is just var(--text) everywhere, including light mode — a white-text
-     version shipped briefly and was reverted ("keep the header title...
-     a dark color"), but the separate token stayed since a future theme
-     might still want its own text color paired with this background.
-     Aliased to --surface-3 here (and in .theme-dark below) so the
-     phone-frame app and dark mode look exactly like they did with plain
-     bg-surface-3 text-text before this token existed. */
-  --header-box: #1a2234;
+  /* --header-box/--header-box-text: the page-header container's own
+     background/text pair. Went through a few revisions in light mode
+     (a bolder standalone slate, then white text, then dark text) before
+     landing on just aliasing --surface-3/--text everywhere, including
+     here and in .theme-dark below — a separate token kept anyway (not
+     switching call sites back to bg-surface-3 text-text directly) since
+     a future theme might still want this decoupled from Stat's own
+     color again. */
+  --header-box: var(--surface-3);
   --header-box-text: var(--text);
   --border: #232c3f;
   --text: #e7ecf3;
@@ -118,12 +116,12 @@
   --surface: #fafbfd;
   --surface-2: #e4e6ea;
   --surface-3: #dce1ec;
-  /* Update: the page-header container ("wheel bot container") gets its
-     own bold treatment now — a bit lighter than the rail's own shade at
-     the time of this ask (#9aa4bd) — but white text didn't land ("keep
-     the header title... a dark color"), so this reverted to the normal
-     --text right after the white-text version shipped. */
-  --header-box: #b3bccf;
+  /* Update: unified with --surface-3 per the account holder's own ask
+     to match the Total Trades (Stat) container's color exactly — the
+     standalone bolder slate (#b3bccf, then white text, then dark text)
+     went through two revisions before landing on "just use the same
+     color as the other box" instead of a fourth, separate one. */
+  --header-box: var(--surface-3);
   --header-box-text: var(--text);
   --border: #c7ccd9;
   --text: #3c3024;
@@ -164,9 +162,9 @@
   /* Equal to --surface-2 — dark mode wasn't part of the box-hierarchy
      ask, so Stat and the heading container should look unchanged here. */
   --surface-3: #423f3c;
-  /* Aliased to --surface-3/--text — dark mode wasn't part of the
-     header-box-with-white-text ask either. */
-  --header-box: #423f3c;
+  /* Aliased to --surface-3/--text — dark mode was never part of any of
+     the header-box revisions above. */
+  --header-box: var(--surface-3);
   --header-box-text: var(--text);
   --border: #514e4a;
   --text: #e8ddd0;
