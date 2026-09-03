@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Alert, BotSnapshot } from "@/lib/types";
 import { PositionsTable, type SourcedOption } from "@/components/desktop/PositionsTable";
 import { BotTable } from "@/components/bot/BotTable";
+import { useThemeMode } from "@/components/theme-mode";
 
 type Tab = "desktop" | "bot" | "bot-safe";
 
@@ -82,6 +83,7 @@ export function OverviewShell({
 }) {
   const [tab, setTab] = useState<Tab>("desktop");
   useEffect(() => setTab(loadTab()), []);
+  const { resolved } = useThemeMode();
 
   function selectTab(next: Tab) {
     setTab(next);
@@ -98,8 +100,22 @@ export function OverviewShell({
     <div className="flex h-full w-full">
       {/* Icon rail: thin, fixed-width, always visible — the whole point of
           this page is switching between these three views without a full
-          navigation. */}
-      <nav className="flex w-16 shrink-0 flex-col items-center gap-1 border-r border-border bg-surface py-4">
+          navigation. Light mode only: a deliberately darker dusty-slate
+          rail against the light content pane, per a Headspace reference
+          screen (a dark slate-blue backdrop behind a light phone frame,
+          the account holder's own explicit "side nav bar with a darker
+          color than the rest" ask) — the one place in the light theme
+          that inverts to a dark surface on purpose, rather than another
+          shade of the same light palette. Dark mode is untouched (already
+          approved) since a rail this size adds little further hierarchy
+          on top of an already-dark page. --accent (gold) reads well
+          against this dark slate regardless of theme, so the active-tab
+          treatment doesn't need its own rail-specific variant. */}
+      <nav
+        className={`flex w-16 shrink-0 flex-col items-center gap-1 border-r py-4 ${
+          resolved === "light" ? "border-[#3d4457] bg-[#4a5268]" : "border-border bg-surface"
+        }`}
+      >
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -108,7 +124,11 @@ export function OverviewShell({
             aria-label={t.label}
             aria-current={tab === t.key}
             className={`flex w-12 flex-col items-center gap-1 rounded-xl py-2.5 text-[9px] font-medium transition-colors ${
-              tab === t.key ? "bg-accent/15 text-accent" : "text-muted hover:bg-surface-2 hover:text-text"
+              tab === t.key
+                ? "bg-accent/20 text-accent"
+                : resolved === "light"
+                  ? "text-[#9aa1b8] hover:bg-white/5 hover:text-[#eae4d8]"
+                  : "text-muted hover:bg-surface-2 hover:text-text"
             }`}
           >
             {t.icon}
