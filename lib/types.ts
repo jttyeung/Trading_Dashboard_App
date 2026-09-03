@@ -637,7 +637,7 @@ export interface Alert {
   profitLoss: number;
   profitPct: number;
   underlyingPrice: number;
-  action: "close" | "roll" | "watch" | "monitor" | "profit_target" | "leap_expiring";
+  action: "close" | "roll" | "watch" | "monitor" | "profit_target" | "leap_expiring" | "roll_up";
   rationale: string;
   rollToSymbol: string | null;
   rollToStrike: number | null;
