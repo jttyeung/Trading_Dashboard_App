@@ -4,6 +4,13 @@
   --bg: #0a0e14;
   --surface: #121826;
   --surface-2: #1a2234;
+  /* --surface-3 is a THIRD, more visually distinct surface tint — added
+     for the wide-surface light theme's own box hierarchy (see
+     .theme-light below: Stat, from ui.tsx, is a shared component also
+     used here in the phone-frame app, so it needs a value everywhere).
+     Equal to --surface-2 here on purpose: the phone-frame app never
+     asked for a third distinct tint, so Stat's look stays unchanged. */
+  --surface-3: #1a2234;
   --border: #232c3f;
   --text: #e7ecf3;
   --muted: #8b97ad;
@@ -79,25 +86,28 @@
    (less near-black) for the same "too much contrast" reason dark mode
    needed, just a smaller move since light mode was never as extreme. */
 .theme-light {
-  /* Update: the neutral-gray canvas didn't land ("I don't love it") —
-     the account holder pointed at a different Headspace screen (a
-     periwinkle-blue backdrop behind a light phone frame) and asked for
-     a tinted background specifically, cards/surfaces kept clean and
-     light. --bg is now a soft, muted periwinkle-blue rather than a
-     true achromatic gray or a warm cream; --surface/--surface-2/
-     --border moved into the SAME cool-blue family (they were warm tan,
-     tuned for the earlier cream bg — left alone they'd now clash the
-     same way the original white-on-cream and gray-bg/warm-surface
-     mismatches did). --text/--muted and every semantic chip color
-     (--pos/--neg/--accent/etc.) are untouched — a warm dark text and
-     warm/complementary status colors read fine against a cool
-     background; only --info/--indigo (both blue-leaning already) are
-     worth a look if they start to blend into the new bg instead of
-     standing apart from it. */
-  --bg: #e4e9f5;
-  --surface: #fafbfd;
-  --surface-2: #dbe2f0;
-  --border: #cdd6ea;
+  /* Update: moved off the periwinkle-blue tint per the account holder's
+     own explicit ask — light yellow instead, with --surface-2/
+     --surface-3 as two genuinely distinct variants (gray vs. a richer
+     yellow) rather than the same tint repeated everywhere, so nested
+     "boxes" that sit near each other actually read as separate
+     sections instead of blending together. Concretely: --surface-2
+     (a light warm GRAY) is for a de-emphasized grouping row — BotTable's
+     own collapsible date-group header already uses bg-surface-2, no
+     code change needed there, just this token's own meaning shifting
+     from "another shade of blue" to "the gray variant." --surface-3
+     (a richer, more saturated pale YELLOW than --bg) is for a
+     highlighted box that should stand out rather than recede — Stat
+     (ui.tsx, shared with the phone-frame app, where --surface-3 equals
+     that theme's own --surface-2 so nothing changes there) and
+     OverviewShell's own heading container. --text/--muted and every
+     semantic chip color are untouched — see the note above this rule
+     for why a warm palette doesn't need to change per background hue. */
+  --bg: #f7edc9;
+  --surface: #fffdf6;
+  --surface-2: #e8e3d3;
+  --surface-3: #f3e3a3;
+  --border: #ddd2a0;
   --text: #3c3024;
   --muted: #93816a;
   --pos: #6fa06e;
@@ -133,6 +143,9 @@
   --bg: #2c2b2a;
   --surface: #383735;
   --surface-2: #423f3c;
+  /* Equal to --surface-2 — dark mode wasn't part of the box-hierarchy
+     ask, so Stat and the heading container should look unchanged here. */
+  --surface-3: #423f3c;
   --border: #514e4a;
   --text: #e8ddd0;
   --muted: #a89a8a;
@@ -151,6 +164,7 @@
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
   --color-border: var(--border);
   --color-muted: var(--muted);
   --color-pos: var(--pos);

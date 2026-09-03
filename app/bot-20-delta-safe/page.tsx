@@ -13,7 +13,7 @@ export default async function DeltaSafeBotPage() {
 
   return (
     <main className="min-h-screen w-full bg-bg px-6 py-6 text-text">
-      <div className="mb-4">
+      <div className="mb-4 rounded-xl bg-surface-3 px-4 py-3">
         <h1 className="text-lg font-semibold">20 Delta Safe Moves</h1>
         <p className="text-sm text-muted">
           STRAT-003&apos;s conservative CSP band (0.10–0.20 delta) — biased toward strikes far below current price, aiming
