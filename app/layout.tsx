@@ -7,6 +7,8 @@ import { ScrollArea } from "@/components/ScrollArea";
 import { SkewHydrator } from "@/components/SkewHydrator";
 import { PrivacyProvider } from "@/components/privacy";
 import { MarginModeProvider } from "@/components/margin-mode";
+import { ThemeModeProvider } from "@/components/theme-mode";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { DEMO_MODE } from "@/lib/demo";
 import { Analytics } from "@vercel/analytics/next";
 
@@ -66,23 +68,27 @@ export default async function RootLayout({
         lang="en"
         className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} h-full antialiased`}
       >
-        {/* theme-light (globals.css) overrides the shared bg/surface/border/
-            text/muted/pos/neg tokens for this whole subtree — an off-white
-            canvas + white cards instead of the mobile app's dark theme, per
-            the account holder's own ask to model these specific pages on
-            Origin Financial's light in-app product shell. font-(--font-inter)
-            swaps the interface font the same way, scoped to just this branch. */}
+        {/* theme-light (globals.css) is the default, zero-JS canvas for this
+            whole subtree — off-white/warm-ivory + white cards instead of the
+            mobile app's dark theme. ThemeModeProvider (components/theme-mode.tsx)
+            swaps it for theme-dark client-side once mounted, per the account
+            holder's own light/dark/auto toggle (ThemeToggle, fixed top-right,
+            every wide-surface page). font-(--font-inter) swaps the interface
+            font the same way, scoped to just this branch. */}
         <body className="theme-light h-full bg-bg font-[family-name:var(--font-inter)]">
-          {/* globals.css caps html/body at 100vh with overflow:hidden — written
-              for the phone-frame shell's own inner ScrollArea below, which the
-              phone-frame branch further down in this file provides but this
-              wide-surface branch didn't, so anything taller than the viewport
-              was simply clipped with no way to reach it. Same fix, reused here. */}
-          <ScrollArea className="h-full w-full overflow-y-auto">
-            <PrivacyProvider>
-              <MarginModeProvider>{children}</MarginModeProvider>
-            </PrivacyProvider>
-          </ScrollArea>
+          <ThemeModeProvider>
+            <ThemeToggle />
+            {/* globals.css caps html/body at 100vh with overflow:hidden — written
+                for the phone-frame shell's own inner ScrollArea below, which the
+                phone-frame branch further down in this file provides but this
+                wide-surface branch didn't, so anything taller than the viewport
+                was simply clipped with no way to reach it. Same fix, reused here. */}
+            <ScrollArea className="h-full w-full overflow-y-auto">
+              <PrivacyProvider>
+                <MarginModeProvider>{children}</MarginModeProvider>
+              </PrivacyProvider>
+            </ScrollArea>
+          </ThemeModeProvider>
         </body>
       </html>
     );
