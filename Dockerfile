@@ -8,8 +8,8 @@
 #
 #      git pull && docker compose up -d --build dashboard
 #
-#  Built deliberately WITHOUT `output: "standalone"` so this works against the
-#  repo exactly as it stands today, with no change to next.config.ts. See the
+#  Uses `output: "standalone"` (set in next.config.ts): the runtime stage
+#  ships only server.js + traced node_modules, roughly 250 MB instead of 1.2 GB.
 #  note at the bottom for the smaller-image version once you're green.
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -46,10 +46,9 @@ ENV NODE_ENV=production \
     PORT=3000 \
     HOSTNAME=0.0.0.0
 
-COPY --from=deps  /app/node_modules ./node_modules
-COPY --from=build /app/.next        ./.next
-COPY --from=build /app/public       ./public
-COPY package.json next.config.ts ./
+COPY --from=build /app/.next/standalone ./
+COPY --from=build /app/.next/static     ./.next/static
+COPY --from=build /app/public           ./public
 
 # data/ and /bridge are bind-mounted by compose at runtime. Creating the
 # mountpoints here keeps ownership sane when they're mounted.
@@ -61,22 +60,5 @@ RUN mkdir -p /app/data /bridge \
 
 EXPOSE 3000
 
-# -H 0.0.0.0 so the container is reachable from your LAN and over Tailscale.
-CMD ["npx", "next", "start", "-H", "0.0.0.0", "-p", "3000"]
-
-# ─────────────────────────────────────────────────────────────────────────────
-#  Optional, once the build is green: add
-#
-#      output: "standalone",
-#
-#  to next.config.ts, then replace the runtime stage's three COPY lines with:
-#
-#      COPY --from=build /app/.next/standalone ./
-#      COPY --from=build /app/.next/static     ./.next/static
-#      COPY --from=build /app/public           ./public
-#      CMD ["node", "server.js"]
-#
-#  That drops the image from roughly 1.2 GB to under 250 MB, which matters on a
-#  32 GB SD card. Do it as a second step, not a first one — it changes how the
-#  app is started and is easier to debug once you know the plain build works.
-# ─────────────────────────────────────────────────────────────────────────────
+# server.js binds to $HOSTNAME/$PORT (set above), so it is reachable from your LAN and Tailscale.
+CMD ["node", "server.js"]
