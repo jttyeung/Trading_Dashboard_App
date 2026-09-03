@@ -59,7 +59,10 @@ export function HoldingsTable({ rows, cspBoard }: { rows: HoldingRow[]; cspBoard
                       {expandable && <span className="text-[9px] text-muted">{isOpen ? "▾" : "▸"}</span>}
                       {r.symbol}
                       {overlap && (
-                        <span className="rounded bg-emerald-500/20 px-1 py-0.5 text-[8px] font-bold uppercase tracking-wide text-emerald-300">
+                        <span
+                          className="rounded bg-emerald-500/20 px-1 py-0.5 text-[8px] font-bold uppercase tracking-wide text-emerald-300"
+                          title="Underweight (<8.5% of portfolio) and currently a live CSP candidate on the Morning Brief board — not whether you already hold a CSP here"
+                        >
                           CSP
                         </span>
                       )}
