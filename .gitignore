@@ -42,12 +42,14 @@ next-env.d.ts
 
 # ---------------------------------------------------------------------------
 # REAL FINANCIAL DATA — never commit.
-# All of data/*.json is generated locally by the Python bridge (holdings,
+# Everything under data/ is generated locally by the Python bridge (holdings,
 # transactions, trade history, account values, etc.) and contains live account
 # information. It is intentionally NOT versioned: the app reads it at runtime
 # and falls back to the bundled example dataset (lib/example.ts) when absent.
+# Ignore the whole folder, not just *.json: the bridge also writes per-account
+# subfolders (data/acct2/) and .bak backups, which a *.json rule leaves exposed.
 # The .gitkeep keeps the empty folder so a fresh clone/Pi has somewhere to write.
-/data/*.json
+/data/*
 !/data/.gitkeep
 
 # Windows Explorer folder-settings artifacts
