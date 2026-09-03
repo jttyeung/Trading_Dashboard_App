@@ -386,6 +386,7 @@ export const exampleMonthlyGoalFile: MonthlyGoalFile = {
   floorPercent: 2,
   asOfDate: isoDay(0),
   daysInMonth: 30,
+  portfolioValueBaseline: 657160, // matches the combined account's own totalValue above
 };
 
 // Active tracker alerts (data/alerts.json) — one of each action type so the

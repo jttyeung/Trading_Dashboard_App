@@ -12,13 +12,22 @@ const TARGET_KEY = "monthlyGoalTargetPercent";
 // month, paced against portfolioValue — the account holder's explicit
 // call (over an earlier version paced against just optionsCapital,
 // capital actually deployed in options strategies): the target is
-// deliberately the WHOLE portfolio (stocks + cash + options, the same
-// blended summary.totalValue the Home page's donut/share% already use),
-// not just the options slice. This is knowingly a much harder bar to
-// clear while a large chunk of the account sits in plain stock
-// positions — that gap is the point, not a bug: it's the real
-// wheel-strategy-as-share-of-portfolio target to grow into over time,
-// not a number tuned to already read as achievable today.
+// deliberately the WHOLE portfolio (stocks + cash + options), not just
+// the options slice. This is knowingly a much harder bar to clear while
+// a large chunk of the account sits in plain stock positions — that gap
+// is the point, not a bug: it's the real wheel-strategy-as-share-of-
+// portfolio target to grow into over time, not a number tuned to
+// already read as achievable today.
+//
+// portfolioValue itself comes from OptionsEvaluator's own
+// monthly-goal.json (portfolioValueBaseline) — a value FROZEN once at
+// the start of the calendar month, not live — per a later, separate ask
+// from the account holder: the dollar target shouldn't silently drift
+// throughout the month just because the live portfolio value moved.
+// Callers must pass that baseline field, not a live total like
+// summary.totalValue, or this card's whole "static for the month"
+// framing breaks.
+//
 // realizedThisMonth is still Schwab-only, though — internal/pnl's own
 // FIFO reconstruction has no SnapTrade/E*TRADE equivalent (those two
 // only reconstruct realized STOCK P&L, not options), a real, known gap
