@@ -79,7 +79,14 @@
    (less near-black) for the same "too much contrast" reason dark mode
    needed, just a smaller move since light mode was never as extreme. */
 .theme-light {
-  --bg: #f2e4d3;
+  /* Shifted toward light gray per the account holder's own follow-up
+     ask ("try instead a slightly more gray background") — same
+     lightness as the warm-cream version, saturation pulled way down so
+     it reads as gray first, with only a whisper of the same warm
+     undertone left. --surface stays the warmer cream from the repaint
+     above; revisit if that pairing starts to feel disjointed the way
+     the original white-surface-on-cream-bg did. */
+  --bg: #e7e3de;
   --surface: #faf3e8;
   --surface-2: #ead9c0;
   --border: #ddc7a8;
@@ -104,7 +111,10 @@
    above) uses. Text is a softened warm cream, not stark white, for the
    same reason. */
 .theme-dark {
-  --bg: #322d28;
+  /* A touch grayer/less warm-brown than the first pass, per the account
+     holder's own follow-up ask — same lightness, just a smaller warm/
+     neutral spread between the channels. */
+  --bg: #302d2a;
   --surface: #3c3630;
   --surface-2: #453e37;
   --border: #544c43;
