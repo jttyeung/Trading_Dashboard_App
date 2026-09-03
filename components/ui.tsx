@@ -67,7 +67,7 @@ export function Stat({
 }) {
   const toneClass = tone === "pos" ? "text-pos" : tone === "neg" ? "text-neg" : "text-text";
   return (
-    <div className="rounded-xl border border-border bg-surface-2 px-3 py-2.5">
+    <div className="rounded-xl border border-border bg-surface-3 px-3 py-2.5">
       <div className="flex items-center justify-between gap-2">
         <div className="text-[11px] uppercase tracking-wide text-muted">{label}</div>
         {pct !== undefined && (
