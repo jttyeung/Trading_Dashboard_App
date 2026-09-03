@@ -86,28 +86,27 @@
    (less near-black) for the same "too much contrast" reason dark mode
    needed, just a smaller move since light mode was never as extreme. */
 .theme-light {
-  /* Update: moved off the periwinkle-blue tint per the account holder's
-     own explicit ask — light yellow instead, with --surface-2/
-     --surface-3 as two genuinely distinct variants (gray vs. a richer
-     yellow) rather than the same tint repeated everywhere, so nested
-     "boxes" that sit near each other actually read as separate
-     sections instead of blending together. Concretely: --surface-2
-     (a light warm GRAY) is for a de-emphasized grouping row — BotTable's
-     own collapsible date-group header already uses bg-surface-2, no
-     code change needed there, just this token's own meaning shifting
-     from "another shade of blue" to "the gray variant." --surface-3
-     (a richer, more saturated pale YELLOW than --bg) is for a
-     highlighted box that should stand out rather than recede — Stat
-     (ui.tsx, shared with the phone-frame app, where --surface-3 equals
-     that theme's own --surface-2 so nothing changes there) and
-     OverviewShell's own heading container. --text/--muted and every
-     semantic chip color are untouched — see the note above this rule
-     for why a warm palette doesn't need to change per background hue. */
-  --bg: #f7edc9;
-  --surface: #fffdf6;
-  --surface-2: #e8e3d3;
-  --surface-3: #f3e3a3;
-  --border: #ddd2a0;
+  /* Update: the yellow pass didn't land either ("change the darker
+     yellows here... to shades off the nav bar instead") — --bg/
+     --surface-2/--surface-3/--border moved to the SAME dusty slate-blue
+     family as OverviewShell's own icon rail (components/overview/
+     OverviewShell.tsx) instead of yellow, each a different lightness
+     step of that one hue rather than a separate color per role:
+     --bg barely-tinted (lightest), --surface-2/--surface-3 two visibly
+     stronger steps up from it (so the "gray" and "highlighted" variants
+     still read as distinct from each other and from the page), and the
+     rail itself the darkest step of the same family — reused, not a
+     fourth independent color, since a shared hue across ALL of these is
+     literally what "shades off the nav bar" means. --surface stays a
+     clean near-white (never the complaint) with just a cooler whisper
+     to match the family. --text/--muted and every semantic chip color
+     are untouched, same reasoning as every earlier pass — a warm
+     palette reads fine against a cool background. */
+  --bg: #eef0f5;
+  --surface: #fafbfd;
+  --surface-2: #e4e6ea;
+  --surface-3: #dce1ec;
+  --border: #c7ccd9;
   --text: #3c3024;
   --muted: #93816a;
   --pos: #6fa06e;
