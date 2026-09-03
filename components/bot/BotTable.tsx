@@ -23,8 +23,8 @@ type SortKey =
   | "stockPriceAtPost";
 
 const STATUS_STYLE: Record<string, string> = {
-  pending_approval: "bg-amber-50 text-amber-700 ring-amber-200",
-  approved: "bg-sky-50 text-sky-700 ring-sky-200",
+  pending_approval: "bg-warn/10 text-warn ring-warn/30",
+  approved: "bg-info/10 text-info ring-info/30",
   rejected: "bg-surface-2 text-muted ring-border",
 };
 const STATUS_LABEL: Record<string, string> = {
@@ -33,12 +33,12 @@ const STATUS_LABEL: Record<string, string> = {
   rejected: "Rejected",
 };
 const OUTCOME_STYLE: Record<string, string> = {
-  WIN: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-  ASSIGNED: "bg-rose-50 text-rose-700 ring-rose-200",
+  WIN: "bg-pos/10 text-pos ring-pos/30",
+  ASSIGNED: "bg-neg/10 text-neg ring-neg/30",
 };
 const GRADE_TEXT: Record<BotGrade, { label: string; className: string }> = {
   good_call: { label: "✓ Good call — you approved, it won", className: "text-pos" },
-  risk_realized: { label: "You approved; it got assigned", className: "text-amber-600" },
+  risk_realized: { label: "You approved; it got assigned", className: "text-warn" },
   missed_win: { label: "✗ Missed win — you rejected, it would have won", className: "text-neg" },
   good_pass: { label: "✓ Good pass — you rejected, it would have been assigned", className: "text-pos" },
 };
@@ -314,13 +314,13 @@ export function BotTable({ trades, myGrade, storageKey }: { trades: BotTrade[]; 
 
       <div className="flex flex-wrap items-center gap-4 border-b border-border px-4 py-2 text-xs text-muted">
         <span>{needsReview} awaiting your review</span>
-        <span className="text-sky-700">{mineCount} mine</span>
+        <span className="text-info">{mineCount} mine</span>
       </div>
 
       <div className="flex flex-wrap items-center gap-4 border-b border-border bg-surface-2/30 px-4 py-2 text-[11px] text-muted">
         <span className="font-semibold text-text">Your grading</span>
         <span className="text-pos">{myGrade.goodCalls} good calls</span>
-        <span className="text-amber-600">{myGrade.riskRealized} risk realized</span>
+        <span className="text-warn">{myGrade.riskRealized} risk realized</span>
         <span className="text-neg">{myGrade.missedWins} missed wins</span>
         <span className="text-pos">{myGrade.goodPasses} good passes</span>
         <span>{myGrade.ungraded} ungraded</span>
@@ -333,7 +333,7 @@ export function BotTable({ trades, myGrade, storageKey }: { trades: BotTrade[]; 
       </div>
 
       {apiError && (
-        <div className="border-b border-border bg-rose-50 px-4 py-2 text-[11px] text-rose-700">{apiError}</div>
+        <div className="border-b border-border bg-neg/10 px-4 py-2 text-[11px] text-neg">{apiError}</div>
       )}
 
       <div className="flex items-center justify-between border-b border-border px-4 py-2">
@@ -428,7 +428,7 @@ export function BotTable({ trades, myGrade, storageKey }: { trades: BotTrade[]; 
                     <ThumbButton
                       active={t.status === "approved"}
                       onClick={() => handleThumb(t, "up")}
-                      activeClassName="bg-sky-100 text-sky-700"
+                      activeClassName="bg-info/15 text-info"
                       title="Approve (click again to undo)"
                     >
                       👍
@@ -436,7 +436,7 @@ export function BotTable({ trades, myGrade, storageKey }: { trades: BotTrade[]; 
                     <ThumbButton
                       active={t.status === "rejected"}
                       onClick={() => handleThumb(t, "down")}
-                      activeClassName="bg-rose-100 text-rose-700"
+                      activeClassName="bg-neg/15 text-neg"
                       title="Reject (click again to undo)"
                     >
                       👎
