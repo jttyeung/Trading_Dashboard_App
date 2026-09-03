@@ -79,23 +79,25 @@
    (less near-black) for the same "too much contrast" reason dark mode
    needed, just a smaller move since light mode was never as extreme. */
 .theme-light {
-  /* Shifted toward light gray per the account holder's own follow-up
-     ask ("try instead a slightly more gray background... light gray") —
-     confirmed via a real screenshot that the first attempt (#e7e3de)
-     still read as warm cream, not gray: at this near-white lightness,
-     even a small R>G>B spread reads strongly as a warm tint to the eye,
-     so this pushes the channels much closer together (a Tailwind
-     stone-200-ish neutral) rather than just trimming saturation a
-     little. --surface moved the same direction (was a warmer cream,
-     #faf3e8) so it stays one gentle, same-family step up from --bg
-     instead of drifting back into the original "two color systems"
-     mismatch a much-grayer bg would otherwise reintroduce against an
-     unchanged warm-cream surface. --surface-2/--border are untouched
-     for now (still warm tan) — worth a look if that starts to clash. */
-  --bg: #e7e5e4;
-  --surface: #f7f6f4;
-  --surface-2: #ead9c0;
-  --border: #ddc7a8;
+  /* Update: the neutral-gray canvas didn't land ("I don't love it") —
+     the account holder pointed at a different Headspace screen (a
+     periwinkle-blue backdrop behind a light phone frame) and asked for
+     a tinted background specifically, cards/surfaces kept clean and
+     light. --bg is now a soft, muted periwinkle-blue rather than a
+     true achromatic gray or a warm cream; --surface/--surface-2/
+     --border moved into the SAME cool-blue family (they were warm tan,
+     tuned for the earlier cream bg — left alone they'd now clash the
+     same way the original white-on-cream and gray-bg/warm-surface
+     mismatches did). --text/--muted and every semantic chip color
+     (--pos/--neg/--accent/etc.) are untouched — a warm dark text and
+     warm/complementary status colors read fine against a cool
+     background; only --info/--indigo (both blue-leaning already) are
+     worth a look if they start to blend into the new bg instead of
+     standing apart from it. */
+  --bg: #e4e9f5;
+  --surface: #fafbfd;
+  --surface-2: #dbe2f0;
+  --border: #cdd6ea;
   --text: #3c3024;
   --muted: #93816a;
   --pos: #6fa06e;
@@ -117,13 +119,21 @@
    above) uses. Text is a softened warm cream, not stark white, for the
    same reason. */
 .theme-dark {
-  /* A touch grayer/less warm-brown than the first pass, per the account
-     holder's own follow-up ask — same lightness, just a smaller warm/
-     neutral spread between the channels. */
-  --bg: #302d2a;
-  --surface: #3c3630;
-  --surface-2: #453e37;
-  --border: #544c43;
+  /* Update: "still pretty brown" even after the first gray nudge — same
+     lesson learned fixing light mode's bg: a small saturation trim
+     isn't enough, the channels need to sit much closer together to
+     actually read as gray rather than warm-tinted. Pushed --bg's
+     spread way down (was a 6-point R-B gap, now ~2). --surface/
+     --surface-2/--border flattened the same way and by roughly the
+     same proportion, keeping their existing lightness steps (so the
+     bg -> surface -> surface-2 -> border ladder still reads clearly)
+     — left brown while --bg goes this much grayer would reintroduce
+     the exact same "doesn't cohere" mismatch fixing light mode's
+     surface just avoided. */
+  --bg: #2c2b2a;
+  --surface: #383735;
+  --surface-2: #423f3c;
+  --border: #514e4a;
   --text: #e8ddd0;
   --muted: #a89a8a;
   --pos: #8fc0a5;
