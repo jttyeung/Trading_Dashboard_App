@@ -14,24 +14,51 @@
      everywhere, so the default dark theme's look doesn't change at all. */
   --pos: #34d399;
   --neg: #fb7185;
+  /* Unused by the phone-frame app today (nothing there references
+     --color-accent yet) — defined here anyway so the token always
+     resolves to something, since @theme inline below is global. The
+     wide-surface themes (.theme-light/.theme-dark) are what actually
+     give this its intended warm-gold meaning. */
+  --accent: #d9ad5f;
 }
 
-/* Scoped light theme for the wide-surface pages (desktop table, bot
-   review tables, /overview) — applied via a class on their own <body>
-   branch in layout.tsx, never touching the phone-frame mobile app's
-   dark theme above. Modeled on Origin Financial's own light in-app
-   product shell (off-white canvas, white cards, slate text, thin
-   borders, restrained color) rather than the marketing site's dark
-   mode. */
+/* Scoped light/dark themes for the wide-surface pages (desktop table,
+   bot review tables, /overview) — applied via a class on their own
+   <body> branch in layout.tsx (see components/theme-mode.tsx for the
+   light/dark/auto toggle that picks between them), never touching the
+   phone-frame mobile app's own dark theme above. Both are soft, low-
+   saturation and warm-neutral rather than a stark cool gray/black —
+   the account holder's own reference mood board (a warm-charcoal
+   fintech app with a muted gold accent and a pastel ring chart; a
+   warm-cream app-store sheet with soft pastel screens) rather than a
+   typical saturated SaaS palette. --accent is new: a muted warm gold,
+   the one deliberately richer note against an otherwise restrained
+   palette, echoing the mood board's own "premium" accent use.
+   --pos/--neg stay semantic (Stat/Delta in ui.tsx) but are now soft
+   sage/dusty-terracotta rather than stock emerald/rose, matching the
+   mood board's own pastel ring segments. */
 .theme-light {
-  --bg: #f7f8fa;
+  --bg: #f6f1e9;
   --surface: #ffffff;
-  --surface-2: #f1f3f6;
-  --border: #e4e7ec;
-  --text: #12151c;
-  --muted: #6b7280;
-  --pos: #059669;
-  --neg: #e11d48;
+  --surface-2: #f0e8da;
+  --border: #e6dcc8;
+  --text: #2c2620;
+  --muted: #8a7c68;
+  --pos: #5e9b7c;
+  --neg: #c97567;
+  --accent: #b9893d;
+}
+
+.theme-dark {
+  --bg: #201c18;
+  --surface: #2a2521;
+  --surface-2: #35302a;
+  --border: #453f36;
+  --text: #f1e9dc;
+  --muted: #a79a87;
+  --pos: #7fb396;
+  --neg: #d99385;
+  --accent: #d9ad5f;
 }
 
 @theme inline {
@@ -42,6 +69,7 @@
   --color-muted: var(--muted);
   --color-pos: var(--pos);
   --color-neg: var(--neg);
+  --color-accent: var(--accent);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
