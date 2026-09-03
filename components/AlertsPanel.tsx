@@ -17,16 +17,23 @@ const ACTION_STYLE: Record<Alert["action"], { label: string; chip: string }> = {
   // own ⚠️ ticker icon (see PositionsTable.tsx) without also lighting up
   // on every CSP/CC nearing its own 21-DTE window.
   leap_expiring: { label: "Expiring", chip: "bg-amber-500/15 text-amber-300 ring-amber-500/30" },
+  // A short CSP that's run well clear of its strike with a genuinely
+  // better higher-strike roll available nearby in time — opportunistic
+  // ("chase more credit"), not a risk warning, so it gets its own green
+  // treatment distinct from ActionRoll's amber "at risk" framing.
+  roll_up: { label: "Roll up", chip: "bg-green-500/15 text-green-300 ring-green-500/30" },
 };
 
-// Position alerts (close/roll/watch/monitor/profit_target/leap_expiring)
-// — always the tracker's current full set, not history (position_alerts
-// is wiped and rewritten each cycle). Sorted with close first, then roll
-// (already ITM), then watch (still OTM but delta rising — a proactive
-// early warning, not yet urgent), then monitor, then leap_expiring (a
-// LEAP-specific variant of the same "heads up" urgency as monitor), then
-// profit_target last (a "nice problem to have," not a risk), since
-// that's roughly urgency order; ties broken by DTE (soonest first).
+// Position alerts (close/roll/watch/monitor/profit_target/leap_expiring/
+// roll_up) — always the tracker's current full set, not history
+// (position_alerts is wiped and rewritten each cycle). Sorted with close
+// first, then roll (already ITM), then watch (still OTM but delta rising
+// — a proactive early warning, not yet urgent), then monitor, then
+// leap_expiring (a LEAP-specific variant of the same "heads up" urgency
+// as monitor), then profit_target (a "nice problem to have," not a
+// risk), then roll_up last — purely opportunistic (chase more credit on
+// an already-winning position), the least urgent of all — since that's
+// roughly urgency order; ties broken by DTE (soonest first).
 const ACTION_RANK: Record<Alert["action"], number> = {
   close: 0,
   roll: 1,
@@ -34,6 +41,7 @@ const ACTION_RANK: Record<Alert["action"], number> = {
   monitor: 3,
   leap_expiring: 4,
   profit_target: 5,
+  roll_up: 6,
 };
 
 // READ_KEY: which alerts the viewer has already reviewed, persisted per

@@ -455,6 +455,31 @@ export const exampleAlertsFile: AlertsFile = {
       rollToNetCredit: null,
       evaluatedAt: NOW_ISO,
     },
+    {
+      ticker: "MU",
+      putCall: "PUT",
+      contractSymbol: "MU    260930P00090000",
+      strike: 90,
+      expirationDate: isoDay(30),
+      dte: 30,
+      entryCredit: 155,
+      currentValue: 20,
+      profitLoss: 135,
+      profitPct: 0.871,
+      underlyingPrice: 112.4,
+      action: "roll_up",
+      rationale:
+        "Delta down to 0.06 (VIX 16.2, calm) — stock has run well clear of the $90 strike; rolling up to $100 exp " +
+        isoDay(35) +
+        " (35 DTE, Δ0.27) nets $1.85/sh more credit for $1,000 more collateral tied up.",
+      rollToSymbol: "MU    " + isoDay(35).replace(/-/g, "").slice(2) + "P00100000",
+      rollToStrike: 100,
+      rollToExpirationDate: isoDay(35),
+      rollToDte: 35,
+      rollToDelta: 0.27,
+      rollToNetCredit: 1.85,
+      evaluatedAt: NOW_ISO,
+    },
   ],
 };
 
