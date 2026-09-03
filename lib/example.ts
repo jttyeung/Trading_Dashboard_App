@@ -331,7 +331,7 @@ export const examplePortfolioRiskFile: PortfolioRiskFile = {
     // SnapTrade/E*TRADE accounts — informational only, not part of RULE-006's
     // real gating decision (see PortfolioRiskFile's own doc comment).
     {
-      accountLabel: "Fidelity HSA",
+      accountLabel: "Fidelity Individual",
       thetaToday: 18.2,
       thetaPct: 0.00021,
       thetaStatus: "below_target",
@@ -341,7 +341,7 @@ export const examplePortfolioRiskFile: PortfolioRiskFile = {
       portfolioValue: 87400,
     },
     {
-      accountLabel: "E-Trade Brokerage",
+      accountLabel: "E*TRADE Individual",
       thetaToday: 11.4,
       thetaPct: 0.00016,
       thetaStatus: "below_target",
