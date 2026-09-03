@@ -108,7 +108,7 @@ export function OverviewShell({
             aria-label={t.label}
             aria-current={tab === t.key}
             className={`flex w-12 flex-col items-center gap-1 rounded-xl py-2.5 text-[9px] font-medium transition-colors ${
-              tab === t.key ? "bg-sky-50 text-sky-700" : "text-muted hover:bg-surface-2 hover:text-text"
+              tab === t.key ? "bg-accent/15 text-accent" : "text-muted hover:bg-surface-2 hover:text-text"
             }`}
           >
             {t.icon}

@@ -30,15 +30,20 @@ const STRATEGY_CODE: Record<OptionKind, string> = {
 // One hue per strategy kind so the badge doubles as an at-a-glance category
 // marker across a wide, ungrouped table — distinct from the DTE/P&L columns'
 // own semantic (good/warning/bad) colors, so a strategy's color never gets
-// read as a signal about how that position is doing.
+// read as a signal about how that position is doing. Each hue is a single
+// theme-aware token (globals.css) used at low opacity for the tint and full
+// opacity for the border/text, rather than a separate light-only Tailwind
+// shade pair — the same shape --pos/--neg already used, extended to every
+// category chip so this table doesn't need one saturated-Tailwind palette
+// for light mode and none at all for dark.
 const STRATEGY_STYLE: Record<OptionKind, string> = {
-  csp: "border-sky-200 bg-sky-50 text-sky-700",
-  "covered-call": "border-violet-200 bg-violet-50 text-violet-700",
-  "leap-call": "border-amber-200 bg-amber-50 text-amber-700",
-  "leap-put-hedge": "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700",
-  "put-spread": "border-teal-200 bg-teal-50 text-teal-700",
-  "call-spread": "border-indigo-200 bg-indigo-50 text-indigo-700",
-  other: "border-zinc-200 bg-zinc-50 text-zinc-700",
+  csp: "border-info/30 bg-info/10 text-info",
+  "covered-call": "border-violet/30 bg-violet/10 text-violet",
+  "leap-call": "border-warn/30 bg-warn/10 text-warn",
+  "leap-put-hedge": "border-fuchsia/30 bg-fuchsia/10 text-fuchsia",
+  "put-spread": "border-teal/30 bg-teal/10 text-teal",
+  "call-spread": "border-indigo/30 bg-indigo/10 text-indigo",
+  other: "border-border bg-surface-2 text-muted",
 };
 
 // A position tagged with which real account it came from — computed by the
@@ -151,9 +156,12 @@ function PctBar({ pct }: { pct: number }) {
   const positive = pct >= 0;
   const width = Math.min(100, Math.abs(pct) * 100);
   return (
-    <div className={`relative h-5 w-20 overflow-hidden rounded-full ${positive ? "bg-emerald-100" : "bg-rose-100"}`}>
-      <div className={`h-full rounded-full ${positive ? "bg-emerald-500" : "bg-rose-500"}`} style={{ width: `${width}%` }} />
-      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-slate-900">
+    <div className={`relative h-5 w-20 overflow-hidden rounded-full ${positive ? "bg-pos/15" : "bg-neg/15"}`}>
+      <div className={`h-full rounded-full ${positive ? "bg-pos" : "bg-neg"}`} style={{ width: `${width}%` }} />
+      {/* A fixed dark warm tone, not a theme token — --pos/--neg are always
+          light-ish in both themes (they double as legible status TEXT
+          elsewhere), so a dark label reads fine against either fill. */}
+      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-[#2c2620]">
         {fmtPct(pct, 0)}
       </span>
     </div>
@@ -173,9 +181,9 @@ function dteBucket(dte: number): { key: string; label: string; order: number } {
 }
 
 function dteColor(dte: number): string {
-  if (dte <= 7) return "bg-rose-50 text-rose-700";
-  if (dte <= 21) return "bg-amber-50 text-amber-700";
-  return "bg-emerald-50 text-emerald-700";
+  if (dte <= 7) return "bg-neg/10 text-neg";
+  if (dte <= 21) return "bg-warn/10 text-warn";
+  return "bg-pos/10 text-pos";
 }
 
 function pnlColor(n: number | null): string {
@@ -377,7 +385,7 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                   key={g}
                   onClick={() => setGroupBy(g)}
                   className={`px-2.5 py-1 text-xs font-medium capitalize ${
-                    groupBy === g ? "bg-sky-100 text-sky-700" : "bg-transparent text-muted hover:text-text"
+                    groupBy === g ? "bg-accent/15 text-accent" : "bg-transparent text-muted hover:text-text"
                   }`}
                 >
                   {g === "none" ? "None" : g === "dte" ? "DTE" : g.charAt(0).toUpperCase() + g.slice(1)}
@@ -465,8 +473,8 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                           {r.strategyCode}
                         </span>
                       </td>
-                      <td className={`px-3 py-2 text-right tabular ${r.o.side === "short" ? "text-rose-600" : "text-text"}`}>{signedQty(r.o)}</td>
-                      <td className="px-3 py-2 text-right tabular text-emerald-600">{r.dit ?? "-"}</td>
+                      <td className={`px-3 py-2 text-right tabular ${r.o.side === "short" ? "text-neg" : "text-text"}`}>{signedQty(r.o)}</td>
+                      <td className="px-3 py-2 text-right tabular text-info">{r.dit ?? "-"}</td>
                       <td className="px-3 py-2 text-right">
                         <span className={`rounded px-1.5 py-0.5 text-xs font-semibold tabular ${dteColor(r.dte)}`}>{r.dte}</span>
                       </td>
