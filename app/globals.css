@@ -14,12 +14,18 @@
      everywhere, so the default dark theme's look doesn't change at all. */
   --pos: #34d399;
   --neg: #fb7185;
-  /* Unused by the phone-frame app today (nothing there references
-     --color-accent yet) — defined here anyway so the token always
-     resolves to something, since @theme inline below is global. The
-     wide-surface themes (.theme-light/.theme-dark) are what actually
-     give this its intended warm-gold meaning. */
+  /* Unused by the phone-frame app today (nothing there references these
+     tokens yet) — defined here anyway so they always resolve to
+     something, since @theme inline below is global. The wide-surface
+     themes (.theme-light/.theme-dark) are what actually give these
+     their intended soft-pastel meaning. */
   --accent: #d9ad5f;
+  --warn: #d3a06a;
+  --info: #94b8cf;
+  --violet: #b3a3d6;
+  --teal: #86c2b8;
+  --indigo: #a3addb;
+  --fuchsia: #d29fbb;
 }
 
 /* Scoped light/dark themes for the wide-surface pages (desktop table,
@@ -27,16 +33,34 @@
    <body> branch in layout.tsx (see components/theme-mode.tsx for the
    light/dark/auto toggle that picks between them), never touching the
    phone-frame mobile app's own dark theme above. Both are soft, low-
-   saturation and warm-neutral rather than a stark cool gray/black —
-   the account holder's own reference mood board (a warm-charcoal
-   fintech app with a muted gold accent and a pastel ring chart; a
-   warm-cream app-store sheet with soft pastel screens) rather than a
-   typical saturated SaaS palette. --accent is new: a muted warm gold,
-   the one deliberately richer note against an otherwise restrained
-   palette, echoing the mood board's own "premium" accent use.
-   --pos/--neg stay semantic (Stat/Delta in ui.tsx) but are now soft
-   sage/dusty-terracotta rather than stock emerald/rose, matching the
-   mood board's own pastel ring segments. */
+   saturation and warm-neutral rather than a stark cool gray/black or
+   near-white — the account holder's own reference mood board (a
+   warm-charcoal fintech app with a muted gold accent and a pastel ring
+   chart; a warm-cream app-store sheet with soft pastel screens) rather
+   than a typical saturated, high-contrast SaaS palette.
+
+   Every status/category color a component needs (pos/neg, a caution
+   tone, and the strategy-badge/status-chip hues) is ONE base value per
+   theme here, always used at full opacity for text and a low opacity
+   (see components below) for its own background tint — the same
+   "single hue + opacity modifier" shape --pos/--neg already used
+   before this pass, now extended to every chip/badge instead of each
+   one separately picking a light-mode-only Tailwind shade pair
+   (bg-amber-50/text-amber-700) that had no real dark-mode equivalent.
+   This is also what fixes dark mode's own harsh contrast: a single
+   mid-tone color that already needs to read as legible TEXT on the
+   dark surface is, by construction, never nearly as extreme a jump
+   from the background as a stock Tailwind -400 shade against near-
+   black used to be.
+
+   --accent is the one deliberately richer note against the restrained
+   base palette — a muted warm gold — echoing the mood board's own
+   "premium" gold accent (the wallet app's gradient button, the ring
+   chart's warm segment). --warn/--info/--violet/--teal/--indigo/
+   --fuchsia round out the chip palette so every strategy/status badge
+   across the wide-surface pages can pick a soft, low-saturation hue
+   from the SAME family instead of reaching for a saturated Tailwind
+   color with no theme awareness. */
 .theme-light {
   --bg: #f6f1e9;
   --surface: #ffffff;
@@ -47,18 +71,37 @@
   --pos: #5e9b7c;
   --neg: #c97567;
   --accent: #b9893d;
+  --warn: #b07a3e;
+  --info: #5c84a3;
+  --violet: #8074a8;
+  --teal: #4c8f86;
+  --indigo: #6873a8;
+  --fuchsia: #a66d90;
 }
 
+/* Meaningfully lighter/softer than a typical near-black dark theme —
+   the account holder's own explicit ask after the first pass ("still
+   feels really high contrast... I want it to not be completely dark"),
+   modeled on the mood board's own warm mid-dark charcoal rather than
+   the near-black #0a0e14 the phone-frame app's own dark theme (:root
+   above) uses. Text is a softened warm cream, not stark white, for the
+   same reason. */
 .theme-dark {
-  --bg: #201c18;
-  --surface: #2a2521;
-  --surface-2: #35302a;
-  --border: #453f36;
-  --text: #f1e9dc;
-  --muted: #a79a87;
-  --pos: #7fb396;
-  --neg: #d99385;
-  --accent: #d9ad5f;
+  --bg: #322d28;
+  --surface: #3c3630;
+  --surface-2: #453e37;
+  --border: #544c43;
+  --text: #e8ddd0;
+  --muted: #a89a8a;
+  --pos: #8fc0a5;
+  --neg: #e0a89c;
+  --accent: #dab672;
+  --warn: #d3a06a;
+  --info: #94b8cf;
+  --violet: #b3a3d6;
+  --teal: #86c2b8;
+  --indigo: #a3addb;
+  --fuchsia: #d29fbb;
 }
 
 @theme inline {
@@ -70,6 +113,12 @@
   --color-pos: var(--pos);
   --color-neg: var(--neg);
   --color-accent: var(--accent);
+  --color-warn: var(--warn);
+  --color-info: var(--info);
+  --color-violet: var(--violet);
+  --color-teal: var(--teal);
+  --color-indigo: var(--indigo);
+  --color-fuchsia: var(--fuchsia);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
