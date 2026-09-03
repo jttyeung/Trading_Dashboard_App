@@ -538,8 +538,21 @@ export interface RiskView {
   openPnLMinPct: number;
 }
 
-export interface AccountRiskView extends RiskView {
+// AccountThetaView is one account's own theta-only reading — Schwab,
+// SnapTrade (Fidelity), or E*TRADE alike. It used to carry a full
+// RiskView (sector + open P&L) per Schwab-only account; the account
+// holder asked to see every linked account here instead, with just
+// theta — open P&L and sector exposure now live once, portfolio-wide, in
+// Overall/Blended rather than being repeated per row.
+export interface AccountThetaView {
   accountLabel: string; // always masked/labeled server-side — never a raw account number
+  thetaToday: number;
+  thetaPct: number;
+  thetaStatus: "below_target" | "on_target" | "above_target_below_ceiling" | "over_ceiling" | "unknown";
+  thetaMinPct: number;
+  thetaTargetMaxPct: number;
+  thetaMaxPct: number;
+  portfolioValue: number; // this one account's own value, not the whole portfolio's
 }
 
 // RULE-006 (theta), RULE-018 (beta-weighted-to-QQQ target, 0.6-1.05), and
@@ -600,7 +613,10 @@ export interface MonthlyGoalFile {
 export interface PortfolioRiskFile {
   meta: { generatedAt: string };
   overall: RiskView;
-  perAccount: AccountRiskView[];
+  // Spans every linked account — Schwab, SnapTrade (Fidelity), E*TRADE —
+  // each theta-only. Only the Schwab entries feed RULE-006's real gating
+  // decision; the rest are informational only, same as blended below.
+  perAccount: AccountThetaView[];
   blended: BlendedRiskView;
 }
 

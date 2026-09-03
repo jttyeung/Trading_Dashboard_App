@@ -1,7 +1,7 @@
 import { Card, SectionTitle } from "@/components/ui";
 import { Amt } from "@/components/privacy";
 import { fmtMoney, fmtPct } from "@/lib/calc";
-import type { RiskView, AccountRiskView, BlendedRiskView } from "@/lib/types";
+import type { RiskView, AccountThetaView, BlendedRiskView } from "@/lib/types";
 
 const STATUS_STYLE: Record<RiskView["thetaStatus"], { label: string; chip: string }> = {
   below_target: { label: "Below target", chip: "bg-sky-500/15 text-sky-300 ring-sky-500/30" },
@@ -130,7 +130,9 @@ function OpenPnLRow({ openPnL, openPnLPct, status, floorPct }: { openPnL: number
 
 // RULE-018: soft guidance, so this reads like ThetaGauge's band visual
 // but with a plain two-sided target band (no separate ceiling marker —
-// there's no hard ceiling here the way RULE-006 has one).
+// there's no hard ceiling here the way RULE-006 has one). Renders just
+// the beta figure itself — theta/open P&L/sector are its siblings in the
+// merged "Overall portfolio" card below, not nested inside this gauge.
 function BetaGauge({ blended }: { blended: BlendedRiskView }) {
   const status = BETA_STATUS_STYLE[blended.betaStatus];
   const gaugeMax = blended.betaMaxTarget * 1.6;
@@ -138,15 +140,12 @@ function BetaGauge({ blended }: { blended: BlendedRiskView }) {
   const minPct = gaugeMax > 0 ? blended.betaMinTarget / gaugeMax : 0;
   const maxPct = gaugeMax > 0 ? blended.betaMaxTarget / gaugeMax : 0;
   return (
-    <div>
-      <ThetaGauge risk={blended} />
-      <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
+    <div className="border-t border-border pt-3">
+      <div className="flex items-center justify-between">
         <div>
           <div className="text-[10px] uppercase tracking-wide text-muted">Beta vs QQQ</div>
           <div className="tabular text-lg font-bold leading-tight">{blended.beta.toFixed(2)}</div>
-          <div className="tabular text-[11px] text-muted">
-            <Amt>{fmtMoney(blended.portfolioValue)}</Amt> total · {(blended.betaCoverage * 100).toFixed(0)}% coverage
-          </div>
+          <div className="tabular text-[11px] text-muted">{(blended.betaCoverage * 100).toFixed(0)}% coverage</div>
         </div>
         <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${status.chip}`}>
           {status.label}
@@ -167,12 +166,6 @@ function BetaGauge({ blended }: { blended: BlendedRiskView }) {
         <span>target {blended.betaMinTarget.toFixed(2)}–{blended.betaMaxTarget.toFixed(2)}</span>
         <span>{gaugeMax.toFixed(2)}</span>
       </div>
-      <OpenPnLRow openPnL={blended.openPnL} openPnLPct={blended.openPnLPct} status={blended.openPnLStatus} floorPct={blended.openPnLMinPct} />
-      <p className="mt-3 text-[10px] leading-relaxed text-muted">
-        Whole-account (Schwab + SnapTrade + E*TRADE combined) — informational only, never a suggestion-engine gate.
-        Sector exposure has no blended equivalent here: the other accounts&apos; own holdings are mostly broad index
-        funds with no one meaningful sector to attribute.
-      </p>
     </div>
   );
 }
@@ -183,42 +176,36 @@ export function PortfolioRiskView({
   blended,
 }: {
   overall: RiskView;
-  perAccount: AccountRiskView[];
+  perAccount: AccountThetaView[];
   blended: BlendedRiskView;
 }) {
   return (
     <div>
-      <SectionTitle>Theta &amp; open P&amp;L (Schwab only — gates suggestions)</SectionTitle>
+      <SectionTitle>Overall portfolio</SectionTitle>
       <Card className="px-4 py-4">
-        <ThetaGauge risk={overall} />
-        <OpenPnLRow openPnL={overall.openPnL} openPnLPct={overall.openPnLPct} status={overall.openPnLStatus} floorPct={overall.openPnLMinPct} />
-      </Card>
-
-      <SectionTitle>Theta, beta &amp; open P&amp;L (whole account)</SectionTitle>
-      <Card className="px-4 py-4">
+        <div className="mb-1 text-[10px] text-muted">
+          <Amt>{fmtMoney(blended.portfolioValue)}</Amt> total (Schwab + SnapTrade + E*TRADE)
+        </div>
+        <ThetaGauge risk={blended} />
         <BetaGauge blended={blended} />
+        <OpenPnLRow openPnL={blended.openPnL} openPnLPct={blended.openPnLPct} status={blended.openPnLStatus} floorPct={blended.openPnLMinPct} />
+        <div className="mt-3 border-t border-border pt-3">
+          <SectorBars risk={overall} portfolioValue={overall.portfolioValue} />
+        </div>
+        <p className="mt-3 text-[10px] leading-relaxed text-muted">
+          Theta, beta &amp; open P&amp;L above are whole-account (Schwab + SnapTrade + E*TRADE combined) —
+          informational only. The theta reading that actually gates a new suggestion is computed Schwab-only
+          (accounts here are mostly tax/custodial wrappers, not independent risk pools). Sector exposure has no
+          blended equivalent: the other accounts&apos; own holdings are mostly broad index funds with no one
+          meaningful sector to attribute, so it reads Schwab-only too.
+        </p>
       </Card>
 
-      <SectionTitle>Sector exposure (Schwab only)</SectionTitle>
-      <Card className="px-4 py-4">
-        <SectorBars risk={overall} portfolioValue={overall.portfolioValue} />
-      </Card>
-
-      <p className="mt-3 px-1 text-[11px] leading-relaxed text-muted">
-        Only the Schwab-only theta/sector numbers above actually gate a new suggestion — accounts here are mostly
-        tax/custodial wrappers, not independent risk pools. The whole-account card and the per-account breakdown
-        below are both for visibility only.
-      </p>
-
-      <SectionTitle>Per account (Schwab only)</SectionTitle>
+      <SectionTitle>Per account — theta</SectionTitle>
       {perAccount.map((a) => (
         <Card key={a.accountLabel} className="mb-2 px-4 py-4">
           <div className="mb-2 text-xs font-semibold">{a.accountLabel}</div>
           <ThetaGauge risk={a} />
-          <OpenPnLRow openPnL={a.openPnL} openPnLPct={a.openPnLPct} status={a.openPnLStatus} floorPct={a.openPnLMinPct} />
-          <div className="mt-3 border-t border-border pt-3">
-            <SectorBars risk={a} portfolioValue={a.portfolioValue} />
-          </div>
         </Card>
       ))}
     </div>
