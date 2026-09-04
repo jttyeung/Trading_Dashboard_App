@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   // DEV-SERVER ONLY: origins allowed to load the dev runtime (HMR/RSC/assets).
   // Has no effect on the production server (`next start`), which serves any origin.
   // Add the addresses you use to reach the dev server from other devices (e.g.
