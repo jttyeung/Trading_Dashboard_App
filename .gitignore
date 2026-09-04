@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.docker.example
 
 # vercel
 .vercel
@@ -42,16 +43,19 @@ next-env.d.ts
 
 # ---------------------------------------------------------------------------
 # REAL FINANCIAL DATA — never commit.
-# All of data/*.json is generated locally by the Python bridge (holdings,
+# Everything under data/ is generated locally by the backend (holdings,
 # transactions, trade history, account values, etc.) and contains live account
 # information. It is intentionally NOT versioned: the app reads it at runtime
 # and falls back to the bundled example dataset (lib/example.ts) when absent.
-# The .gitkeep keeps the empty folder so a fresh clone/Pi has somewhere to write.
-# Covers nested per-source subdirectories too (e.g. data/snaptrade/) — the
+# Ignore the whole folder, not just *.json: a non-JSON write (a bridge's
+# per-account subfolder and .bak backups, or anything else dropped in here)
+# would otherwise slip past a *.json-only rule. This also already covers
+# nested per-source subdirectories (e.g. data/snaptrade/) — the
 # OptionsEvaluator side's multi-account merge writes a snapshot.json per
-# brokerage source, not just at the top level.
-/data/*.json
-/data/**/*.json
+# brokerage source, not just at the top level — since git ignores a matched
+# directory's entire contents, not just files matching the pattern directly.
+# The .gitkeep keeps the empty folder so a fresh clone/Pi has somewhere to write.
+/data/*
 !/data/.gitkeep
 
 # Windows Explorer folder-settings artifacts

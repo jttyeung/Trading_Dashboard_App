@@ -1,0 +1,93 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  Portfolio Manager — bridge + dashboard
+#
+#  Lives in:  Trading_Dashboard_App/docker-compose.yml
+#  Expects:   schwab-bridge/ as a SIBLING folder, exactly as the guide has
+#             always said. Nothing about the two-repo layout changes.
+#
+#      ~/portfolio/
+#      ├── schwab-bridge/            (Schwab_Bridge_Public)
+#      └── Trading_Dashboard_App/    ← run `docker compose up -d` from here
+#
+#  Why the paths look the way they do
+#  ----------------------------------
+#  The dashboard writes APP_DATA_DIR into the bridge's .env when you save your
+#  keys on the Settings page. It writes the path as the DASHBOARD container
+#  sees it (/app/data). So the bridge container must see that same folder at
+#  that same absolute path — hence ./data is mounted at /app/data in BOTH
+#  services. That is deliberate, not a copy-paste mistake.
+#
+#  The bridge's code is bind-mounted rather than baked into its image: every
+#  path in the Python is relative to the working directory, so mounting the
+#  repo at /bridge keeps .env, credentials.env, token.json, reauth_inbox/ and
+#  task_inbox/ exactly where the code already expects them. Updating the bridge
+#  is then `git pull` + `docker compose restart bridge` — no rebuild.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: portfolio-manager
+
+services:
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: portfolio-manager/dashboard:local
+    restart: unless-stopped
+    # Same user as the bridge. The app writes credentials.env with mode 600 into
+    # /bridge and drops files into ./data; if it ran as root the bridge could not
+    # read that 600 file and your data/ files would be root-owned. Set UID/GID
+    # in .env if yours are not 1000 (check with `id -u` / `id -g`).
+    user: "${UID:-1000}:${GID:-1000}"
+    ports:
+      # Host port to publish on. Change in .env if 3000 is taken (e.g. by another
+      # Next app on the same box); the container always listens on 3000.
+      - "${DASHBOARD_PORT:-3000}:3000"
+    environment:
+      # Where the app deposits credentials and reauth requests. Must match the
+      # mount below and the bridge service's working directory.
+      AM_REPORT_BRIDGE_DIR: /bridge
+      NODE_ENV: production
+      TZ: ${TZ:-America/Denver}
+    volumes:
+      # The shared diode: bridge writes, dashboard reads.
+      - ./data:/app/data
+      # Write-only deposits into the bridge folder (credentials.env,
+      # reauth_inbox/, task_inbox/). The app never reads secrets back.
+      - ${BRIDGE_DIR:-../schwab-bridge}:/bridge
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  bridge:
+    build:
+      context: ${BRIDGE_DIR:-../schwab-bridge}
+      dockerfile: Dockerfile
+    image: portfolio-manager/bridge:local
+    restart: unless-stopped
+    # Runs as you, not root, so files written into ./data and ../schwab-bridge
+    # stay editable from your own shell. Set UID/GID in .env if yours aren't
+    # 1000 (check with `id -u` / `id -g`).
+    user: "${UID:-1000}:${GID:-1000}"
+    environment:
+      TZ: ${TZ:-America/Denver}
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      # Code AND state — the bridge's working directory, unchanged from a
+      # bare-metal install.
+      - ${BRIDGE_DIR:-../schwab-bridge}:/bridge
+      # Same absolute path as the dashboard sees. See the note at the top.
+      - ./data:/app/data
+    working_dir: /bridge
+    command: ["python", "auto_push.py"]
+
+# No port is published for the bridge, and none is needed.
+#
+# The Schwab login is a PASTE flow: reauth.py builds an authorization URL,
+# publishes it through data/schwab-auth.json, and calls
+# auth.client_from_received_url() on the URL you paste back into Settings.
+# Nothing ever listens on 127.0.0.1:8182, so there is no callback server to
+# expose and no self-signed certificate warning. This is also why a headless
+# Raspberry Pi needs no browser and no scp of token.json.
