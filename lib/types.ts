@@ -621,7 +621,7 @@ export interface PortfolioRiskFile {
 }
 
 // ---------------------------------------------------------------------------
-// Active position alerts (close/roll/monitor) from data/alerts.json —
+// Active position alerts (close/roll/watch/...) from data/alerts.json —
 // always the tracker's current full set, not history (see position_alerts'
 // own doc comment on the Go side).
 // ---------------------------------------------------------------------------
@@ -637,7 +637,7 @@ export interface Alert {
   profitLoss: number;
   profitPct: number;
   underlyingPrice: number;
-  action: "close" | "roll" | "watch" | "monitor" | "profit_target" | "leap_expiring" | "roll_up";
+  action: "close" | "roll" | "watch" | "profit_target" | "leap_expiring" | "roll_up";
   rationale: string;
   rollToSymbol: string | null;
   rollToStrike: number | null;
