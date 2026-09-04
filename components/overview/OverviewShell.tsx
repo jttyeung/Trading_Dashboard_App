@@ -5,8 +5,10 @@ import type { Alert, BotSnapshot } from "@/lib/types";
 import { PositionsTable, type SourcedOption } from "@/components/desktop/PositionsTable";
 import { BotTable } from "@/components/bot/BotTable";
 
-type Tab = "desktop" | "bot" | "bot-safe";
+type Tab = "desktop" | "bot-safe" | "bot" | "bot-aggressive";
 
+// Order: Desktop, 20 Delta Safe, Wheel Bot, Aggressive Bot — the account
+// holder's own explicit ask for the rail's ordering.
 const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
   {
     key: "desktop",
@@ -15,6 +17,15 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="4" width="18" height="16" rx="2" />
         <path d="M3 9h18M9 9v11" />
+      </svg>
+    ),
+  },
+  {
+    key: "bot-safe",
+    label: "20 Delta Safe",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6z" />
       </svg>
     ),
   },
@@ -29,11 +40,11 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
     ),
   },
   {
-    key: "bot-safe",
-    label: "20 Delta Safe",
+    key: "bot-aggressive",
+    label: "Aggressive Bot",
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6z" />
+        <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z" />
       </svg>
     ),
   },
@@ -44,7 +55,7 @@ const TAB_KEY = "overviewActiveTab";
 function loadTab(): Tab {
   try {
     const raw = localStorage.getItem(TAB_KEY);
-    if (raw === "desktop" || raw === "bot" || raw === "bot-safe") return raw;
+    if (raw === "desktop" || raw === "bot" || raw === "bot-safe" || raw === "bot-aggressive") return raw;
   } catch {
     /* ignore */
   }
@@ -61,12 +72,16 @@ const HEADINGS: Record<Tab, { title: string; subtitle: string }> = {
     title: "20 Delta Safe Moves",
     subtitle: "STRAT-003's conservative 0.10–0.20 delta CSP band, biased toward near-zero assignment odds.",
   },
+  "bot-aggressive": {
+    title: "Aggressive Bot",
+    subtitle: "STRAT-011's short-dated CSP band (3–14 DTE, ≤0.25 delta, 40%+ ARR required) — paperbot-only, never a real suggestion.",
+  },
 };
 
 // A single icon rail switching between the desktop positions table and
-// both paper-bot review tables, so all three "personal power-user"
-// surfaces live under one path instead of three separately-typed URLs.
-// Data for all three is fetched once by the server component and handed
+// all three paper-bot review tables, so all four "personal power-user"
+// surfaces live under one path instead of four separately-typed URLs.
+// Data for all four is fetched once by the server component and handed
 // down here, so switching tabs is instant client-side state, never a
 // re-fetch or navigation.
 export function OverviewShell({
@@ -74,11 +89,13 @@ export function OverviewShell({
   alerts,
   generalBot,
   safeBot,
+  aggressiveBot,
 }: {
   options: SourcedOption[];
   alerts: Alert[];
   generalBot: BotSnapshot;
   safeBot: BotSnapshot;
+  aggressiveBot: BotSnapshot;
 }) {
   const [tab, setTab] = useState<Tab>("desktop");
   useEffect(() => setTab(loadTab()), []);
@@ -106,7 +123,7 @@ export function OverviewShell({
     // — and its background genuinely extending — for the whole scroll.
     <div className="flex min-h-full w-full">
       {/* Icon rail: thin, fixed-width, always visible — the whole point of
-          this page is switching between these three views without a full
+          this page is switching between these four views without a full
           navigation. sticky + h-[100dvh] keeps it pinned in view as the
           page's own outer ScrollArea (layout.tsx) scrolls a long table
           past it, instead of scrolling away with everything above it.
@@ -151,6 +168,9 @@ export function OverviewShell({
         {tab === "bot" && <BotTable trades={generalBot.trades} myGrade={generalBot.myGrade} storageKey="general" />}
         {tab === "bot-safe" && (
           <BotTable trades={safeBot.trades} myGrade={safeBot.myGrade} storageKey="20_delta_safe" />
+        )}
+        {tab === "bot-aggressive" && (
+          <BotTable trades={aggressiveBot.trades} myGrade={aggressiveBot.myGrade} storageKey="aggressive" />
         )}
       </main>
     </div>
