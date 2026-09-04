@@ -8,14 +8,11 @@ const ACTION_STYLE: Record<Alert["action"], { label: string; chip: string }> = {
   close: { label: "Close", chip: "bg-rose-500/15 text-rose-300 ring-rose-500/30" },
   roll: { label: "Roll", chip: "bg-amber-500/15 text-amber-300 ring-amber-500/30" },
   watch: { label: "Watch", chip: "bg-violet-500/15 text-violet-300 ring-violet-500/30" },
-  monitor: { label: "Monitor", chip: "bg-sky-500/15 text-sky-300 ring-sky-500/30" },
   // Emerald, not one of the risk colors above — this is a positive signal
   // ("you hit your target"), not an assignment/expiration risk warning.
   profit_target: { label: "Profit target", chip: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30" },
-  // A LEAP's own approaching-expiration heads-up — distinct from the
-  // generic short-position monitor so the desktop table can give it its
-  // own ⚠️ ticker icon (see PositionsTable.tsx) without also lighting up
-  // on every CSP/CC nearing its own 21-DTE window.
+  // A LEAP's own approaching-expiration heads-up, its own ⚠️ ticker icon
+  // (see PositionsTable.tsx).
   leap_expiring: { label: "Expiring", chip: "bg-amber-500/15 text-amber-300 ring-amber-500/30" },
   // A short CSP that's run well clear of its strike with a genuinely
   // better higher-strike roll available nearby in time — opportunistic
@@ -24,24 +21,25 @@ const ACTION_STYLE: Record<Alert["action"], { label: string; chip: string }> = {
   roll_up: { label: "Roll up", chip: "bg-green-500/15 text-green-300 ring-green-500/30" },
 };
 
-// Position alerts (close/roll/watch/monitor/profit_target/leap_expiring/
+// Position alerts (close/roll/watch/profit_target/leap_expiring/
 // roll_up) — always the tracker's current full set, not history
 // (position_alerts is wiped and rewritten each cycle). Sorted with close
 // first, then roll (already ITM), then watch (still OTM but delta rising
-// — a proactive early warning, not yet urgent), then monitor, then
-// leap_expiring (a LEAP-specific variant of the same "heads up" urgency
-// as monitor), then profit_target (a "nice problem to have," not a
-// risk), then roll_up last — purely opportunistic (chase more credit on
-// an already-winning position), the least urgent of all — since that's
-// roughly urgency order; ties broken by DTE (soonest first).
+// — a proactive early warning, not yet urgent), then leap_expiring (a
+// LEAP-specific "heads up" heading toward its own expiration), then
+// profit_target (a "nice problem to have," not a risk), then roll_up
+// last — purely opportunistic (chase more credit on an already-winning
+// position), the least urgent of all — since that's roughly urgency
+// order; ties broken by DTE (soonest first). The old generic "inside
+// 21 DTE" monitor alert was dropped entirely (not a useful signal), so
+// there's no rank entry for it any more.
 const ACTION_RANK: Record<Alert["action"], number> = {
   close: 0,
   roll: 1,
   watch: 2,
-  monitor: 3,
-  leap_expiring: 4,
-  profit_target: 5,
-  roll_up: 6,
+  leap_expiring: 3,
+  profit_target: 4,
+  roll_up: 5,
 };
 
 // READ_KEY: which alerts the viewer has already reviewed, persisted per
