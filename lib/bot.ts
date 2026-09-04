@@ -1,7 +1,8 @@
-// Server-side loader for the two paper-trading review tables
-// (data/bot/general.json, data/bot/20-delta-safe.json), written by
-// OptionsEvaluator's internal/export/paperbot.go. No example-mode data
-// yet — an empty table is an honest state for a feature this new either way.
+// Server-side loader for the three paper-trading review tables
+// (data/bot/general.json, data/bot/20-delta-safe.json,
+// data/bot/aggressive.json), written by OptionsEvaluator's
+// internal/export/paperbot.go. No example-mode data yet — an empty
+// table is an honest state for a feature this new either way.
 import fs from "node:fs";
 import path from "node:path";
 import type { BotSnapshot } from "./types";
@@ -30,4 +31,8 @@ export async function getGeneralBot(): Promise<BotSnapshot> {
 
 export async function get20DeltaSafeBot(): Promise<BotSnapshot> {
   return loadBotFile("20-delta-safe.json");
+}
+
+export async function getAggressiveBot(): Promise<BotSnapshot> {
+  return loadBotFile("aggressive.json");
 }
