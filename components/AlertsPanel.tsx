@@ -74,14 +74,14 @@ function saveRead(read: Set<string>) {
 }
 
 // ConvictionDots renders the account holder's own "green dots" score for
-// a roll_up alert (profit captured, delta, target-strike support level —
-// see internal/agents/tracker/roll_up.go's rollUpConviction) as 3 filled/
-// hollow circles rather than a bare number, since the whole point was a
-// glanceable visual, not another figure to read.
+// a roll_up alert (profit captured, delta, target-strike support level,
+// IV rank — see internal/agents/tracker/roll_up.go's rollUpConviction)
+// as 4 filled/hollow circles rather than a bare number, since the whole
+// point was a glanceable visual, not another figure to read.
 function ConvictionDots({ conviction }: { conviction: number }) {
   return (
-    <span className="flex shrink-0 items-center gap-0.5" title={`${conviction}/3 conviction`}>
-      {[0, 1, 2].map((i) => (
+    <span className="flex shrink-0 items-center gap-0.5" title={`${conviction}/4 conviction`}>
+      {[0, 1, 2, 3].map((i) => (
         <span
           key={i}
           className={`h-2 w-2 rounded-full ${i < conviction ? "bg-green-400" : "bg-surface-2 ring-1 ring-inset ring-border"}`}
