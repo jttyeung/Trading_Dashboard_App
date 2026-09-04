@@ -1,0 +1,42 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  Optional second Schwab login ("acct2")
+#
+#  Mirrors the bare-metal layout for an extra login: a second clone of the
+#  bridge at ../schwab-bridge-acct2 whose .env points APP_DATA_DIR at the
+#  dashboard's data/acct2/ folder. The dashboard auto-discovers that folder and
+#  shows a second connection card on Settings.
+#
+#  Enable by adding to .env (next to docker-compose.yml):
+#
+#      COMPOSE_FILE=docker-compose.yml:docker-compose.acct2.yml
+#      # BRIDGE_ACCT2_DIR=../schwab-bridge-acct2   # only if it lives elsewhere
+#
+#  Inside the containers the data folder is /app/data, so the second bridge's
+#  .env must say APP_DATA_DIR=/app/data/acct2. Saving the account's keys on the
+#  Settings page writes exactly that; for an existing clone edit it by hand.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  dashboard:
+    environment:
+      # Where Settings deposits credentials.env / reauth requests for this login.
+      SCHWAB_BRIDGE_ACCT2_DIR: /bridge-acct2
+    volumes:
+      - ${BRIDGE_ACCT2_DIR:-../schwab-bridge-acct2}:/bridge-acct2
+
+  bridge-acct2:
+    # Same image as the primary bridge — the code is bind-mounted, so one
+    # dependencies-only image serves every login.
+    image: portfolio-manager/bridge:local
+    depends_on:
+      - bridge
+    restart: unless-stopped
+    user: "${UID:-1000}:${GID:-1000}"
+    environment:
+      TZ: ${TZ:-America/Denver}
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ${BRIDGE_ACCT2_DIR:-../schwab-bridge-acct2}:/bridge
+      - ./data:/app/data
+    working_dir: /bridge
+    command: ["python", "auto_push.py"]
