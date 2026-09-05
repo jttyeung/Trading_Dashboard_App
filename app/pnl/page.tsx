@@ -9,6 +9,7 @@ import { getClosedLeaps } from "@/lib/leaps-closed";
 import { getClosedCovered } from "@/lib/covered-closed";
 import { getClosedSpreads } from "@/lib/spreads-closed";
 import { getClosedStocks } from "@/lib/stocks-closed";
+import { getBenchmark } from "@/lib/benchmark";
 import { optionPnl, equityPnl, daysBetween } from "@/lib/calc";
 import { PnlView, type BucketInput } from "@/components/PnlView";
 import { BuildHistory } from "@/components/BuildHistory";
@@ -48,13 +49,19 @@ export default async function PnlPage() {
   // hidden the moment any specific account is selected. Spreads never
   // carry one — internal/export/closed_trades.go's own documented scope
   // cut means that file is always empty against real data today anyway.
-  const [cspF, coveredF, spreadF, leapF, stockF] = await Promise.all([
+  const [cspF, coveredF, spreadF, leapF, stockF, benchmark] = await Promise.all([
     getClosedCsps(),
     getClosedCovered(),
     getClosedSpreads(),
     getClosedLeaps(),
     getClosedStocks(),
+    getBenchmark(),
   ]);
+  // Real historical portfolio value (Schwab + the rollover blend --
+  // internal/benchmark's own Actual series), reused here as each month's
+  // starting capital base for a monthly ROI% -- see PnlView's own
+  // capitalBaseForMonth for why this specific series over anything else.
+  const capitalHistory = benchmark.actual;
   const realized: BucketInput[] = [
     { key: "csp", label: "CSPs", items: cspF.closed.filter((r) => showAll || r.accountId === id).map((r) => ({ pnl: r.realizedPnl, date: r.closedAt, sym: r.symbol, strikeLabel: `$${r.strike}`, openedAt: r.openedAt, daysHeld: r.daysHeld })) },
     { key: "covered", label: "Covered calls", items: coveredF.closed.filter((r) => showAll || r.accountId === id).map((r) => ({ pnl: r.realizedPnl, date: r.closedAt, sym: r.symbol, strikeLabel: `$${r.strike}`, openedAt: r.openedAt, daysHeld: r.daysHeld })) },
@@ -116,7 +123,7 @@ export default async function PnlPage() {
           </p>
         )}
         <ManualStockEntry sales={manualSales} />
-        <PnlView realized={realized} open={open} />
+        <PnlView realized={realized} open={open} capitalHistory={capitalHistory} />
 
         <Link href="/scorecard" className="mt-3 block active:opacity-80">
           <Card className="flex items-center justify-between gap-3 bg-amber-500/5 px-4 py-3 ring-1 ring-inset ring-amber-500/25">
