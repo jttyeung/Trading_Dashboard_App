@@ -202,7 +202,7 @@ export function PortfolioRiskView({
       </Card>
 
       <SectionTitle>Per account — theta</SectionTitle>
-      {perAccount.map((a) => (
+      {[...perAccount].sort((a, b) => a.accountLabel.localeCompare(b.accountLabel)).map((a) => (
         <Card key={a.accountLabel} className="mb-2 px-4 py-4">
           <div className="mb-2 text-xs font-semibold">{a.accountLabel}</div>
           <ThetaGauge risk={a} />
