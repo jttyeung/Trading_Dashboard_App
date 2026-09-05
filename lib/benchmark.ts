@@ -12,6 +12,7 @@ const EMPTY: BenchmarkFile = {
   meta: { generatedAt: "", cutoffDate: "", frozenHoldings: {}, frozenCash: 0, note: "" },
   frozen: [],
   spy: [],
+  qqq: [],
   actual: [],
   actualToday: 0,
   actualDailyReturns: [],
