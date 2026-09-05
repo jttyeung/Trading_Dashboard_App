@@ -856,7 +856,7 @@ export const exampleBenchmarkFile: BenchmarkFile = {
     cutoffDate: benchmarkDates[0],
     frozenHoldings: { AAPL: 40, SOFI: 300, GLW: 150, IREN: 200, MU: 50, SWVXX: 8000 },
     frozenCash: 2500,
-    flatBackfillValue: 0,
+    rolloverBackfillValue: 0,
     note: "Pre-OTU holds the cutoff-date basket static — no reinvestment of dividends/interest — so it's a conservative lower bound on a true buy-and-hold. Actual reconstructs real, changing holdings + cash day by day since the cutoff — it captures real cash flows from options trading, but not the unrealized value of any option position that was still open on a given past date, so treat it as a close approximation everywhere except its very last point, which is today's exact, options-inclusive account value.",
   },
   frozen: benchmarkDates.map((label, i) => ({ label, value: frozenWalk[i] })),
