@@ -9,7 +9,7 @@ import { exampleBenchmarkFile } from "./example";
 export const BENCHMARK_PATH = path.join(process.cwd(), "data", "benchmark.json");
 
 const EMPTY: BenchmarkFile = {
-  meta: { generatedAt: "", cutoffDate: "", frozenHoldings: {}, frozenCash: 0, note: "" },
+  meta: { generatedAt: "", cutoffDate: "", frozenHoldings: {}, frozenCash: 0, flatBackfillValue: 0, note: "" },
   frozen: [],
   spy: [],
   qqq: [],

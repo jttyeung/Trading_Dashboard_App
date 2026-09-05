@@ -285,7 +285,7 @@ export default async function HomePage() {
         <Card className="flex items-center justify-between gap-3 bg-teal-500/5 px-4 py-3 ring-1 ring-inset ring-teal-500/25">
           <div className="min-w-0">
             <div className="text-sm font-semibold text-teal-200">Performance vs. benchmarks</div>
-            <div className="text-[11px] text-muted">What if you'd never traded again since the cutoff?</div>
+            <div className="text-[11px] text-muted">Previous holdings, S&amp;P 500, and QQQ.</div>
           </div>
           <span className="shrink-0 text-sm font-medium text-teal-300">View ›</span>
         </Card>
