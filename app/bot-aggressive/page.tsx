@@ -21,7 +21,7 @@ export default async function AggressiveBotPage() {
       <div className="mb-4 rounded-xl bg-header-box px-4 py-3">
         <h1 className="text-lg font-semibold text-header-box-text">Aggressive Bot</h1>
         <p className="text-sm text-header-box-text/70">
-          STRAT-011&apos;s short-dated CSP band (3–14 DTE, capped at 0.25 delta, 40%+ annualized return required) —
+          A short-dated CSP band (3–14 DTE, capped at 0.25 delta, 40%+ annualized return required) —
           paperbot-only, never a real suggestion. Same review-queue workflow as the other bots.
         </p>
       </div>
