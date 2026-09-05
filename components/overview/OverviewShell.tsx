@@ -106,12 +106,14 @@ export function OverviewShell({
   generalBot,
   safeBot,
   aggressiveBot,
+  exampleMode,
 }: {
   options: SourcedOption[];
   alerts: Alert[];
   generalBot: BotSnapshot;
   safeBot: BotSnapshot;
   aggressiveBot: BotSnapshot;
+  exampleMode: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("desktop");
   useEffect(() => setTab(loadTab()), []);
@@ -193,7 +195,7 @@ export function OverviewShell({
         {tab === "bot-aggressive" && (
           <BotTable trades={aggressiveBot.trades} myGrade={aggressiveBot.myGrade} storageKey="aggressive" />
         )}
-        {tab === "chart" && <SecurityChart watchlist={heldTickers} />}
+        {tab === "chart" && <SecurityChart watchlist={heldTickers} exampleMode={exampleMode} />}
       </main>
     </div>
   );
