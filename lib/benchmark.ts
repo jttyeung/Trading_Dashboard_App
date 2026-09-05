@@ -14,6 +14,7 @@ const EMPTY: BenchmarkFile = {
   spy: [],
   actual: [],
   actualToday: 0,
+  actualDailyReturns: [],
 };
 
 export async function getBenchmark(): Promise<BenchmarkFile> {
