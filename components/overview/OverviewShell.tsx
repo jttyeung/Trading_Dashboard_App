@@ -78,15 +78,15 @@ const HEADINGS: Record<Tab, { title: string; subtitle: string }> = {
   desktop: { title: "Open Positions", subtitle: "Every live option position across every linked account." },
   bot: {
     title: "Wheel Bot",
-    subtitle: "STRAT-001's 0.20–0.35 delta CSP band — same scoring, same reasoning as the real digest.",
+    subtitle: "A 0.20–0.35 delta CSP band — same scoring, same reasoning as the real digest.",
   },
   "bot-safe": {
     title: "20 Delta Safe Moves",
-    subtitle: "STRAT-003's conservative 0.10–0.20 delta CSP band, biased toward near-zero assignment odds.",
+    subtitle: "A conservative 0.10–0.20 delta CSP band, biased toward near-zero assignment odds.",
   },
   "bot-aggressive": {
     title: "Aggressive Bot",
-    subtitle: "STRAT-011's short-dated CSP band (3–14 DTE, ≤0.25 delta, 40%+ ARR required) — paperbot-only, never a real suggestion.",
+    subtitle: "A short-dated CSP band (3–14 DTE, ≤0.25 delta, 40%+ ARR required) — paperbot-only, never a real suggestion.",
   },
   chart: {
     title: "Lookup a Ticker",

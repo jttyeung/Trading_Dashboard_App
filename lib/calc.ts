@@ -459,7 +459,7 @@ export function leapInsight(o: OptionPosition): Insight {
       return {
         level: "manage",
         label: "Take profit",
-        detail: `+${fmtPct(pnlPct)} in ${daysHeld}d — RULE-017 fast-gain exit (≥10% in ≤7d or ≥20% in ≤28d). Close out.`,
+        detail: `+${fmtPct(pnlPct)} in ${daysHeld}d — fast-gain exit (≥10% in ≤7d or ≥20% in ≤28d). Close out.`,
       };
     }
   }
