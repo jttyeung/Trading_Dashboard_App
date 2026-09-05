@@ -286,7 +286,7 @@ const COLUMNS: { key: SortKey; label: string }[] = [
   { key: "ror", label: "RoR %" },
   { key: "apy", label: "APY" },
   { key: "unrealized", label: "Unrealized" },
-  { key: "remApy", label: "Rem. APY" },
+  { key: "remApy", label: "APY Left" },
   { key: "todayPl", label: "Today P/L" },
   { key: "marketValue", label: "Market Value" },
   { key: "source", label: "Source" },
