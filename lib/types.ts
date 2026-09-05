@@ -734,11 +734,12 @@ export interface BenchmarkMeta {
   cutoffDate: string;
   frozenHoldings: Record<string, number>; // ticker -> shares, includes cash-equivalents
   frozenCash: number;
-  // Real money (specific SnapTrade-connected accounts with no reconstructable
-  // history of their own) folded into both "frozen" and "actual" at this same
-  // constant dollar figure for the whole window -- see meta.note. Zero when
-  // none of those accounts are currently linked.
-  flatBackfillValue: number;
+  // Real money (a former-employer 401(k), rolled over into two Fidelity
+  // IRAs) folded into both "frozen" and "actual" -- hand-entered statement
+  // values before the rollover, real SnapTrade-tracked value from the day
+  // it landed there as cash onward. See meta.note. Zero when that money
+  // has no data yet.
+  rolloverBackfillValue: number;
   note: string;
 }
 
