@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import type { Alert, BotSnapshot } from "@/lib/types";
 import { PositionsTable, type SourcedOption } from "@/components/desktop/PositionsTable";
 import { BotTable } from "@/components/bot/BotTable";
+import { SecurityChart } from "@/components/desktop/SecurityChart";
 
-type Tab = "desktop" | "bot-safe" | "bot" | "bot-aggressive";
+type Tab = "desktop" | "bot-safe" | "bot" | "bot-aggressive" | "chart";
 
-// Order: Desktop, 20 Delta Safe, Wheel Bot, Aggressive Bot — the account
-// holder's own explicit ask for the rail's ordering.
+// Order: Desktop, 20 Delta Safe, Wheel Bot, Aggressive Bot, Chart — the
+// account holder's own explicit ask for the rail's ordering (Chart
+// appended last, added later than the other four).
 const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
   {
     key: "desktop",
@@ -48,6 +50,16 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
       </svg>
     ),
   },
+  {
+    key: "chart",
+    label: "Chart",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 17l5-5 4 3 5-7 4 4" />
+        <path d="M3 21h18" />
+      </svg>
+    ),
+  },
 ];
 
 const TAB_KEY = "overviewActiveTab";
@@ -55,7 +67,7 @@ const TAB_KEY = "overviewActiveTab";
 function loadTab(): Tab {
   try {
     const raw = localStorage.getItem(TAB_KEY);
-    if (raw === "desktop" || raw === "bot" || raw === "bot-safe" || raw === "bot-aggressive") return raw;
+    if (raw === "desktop" || raw === "bot" || raw === "bot-safe" || raw === "bot-aggressive" || raw === "chart") return raw;
   } catch {
     /* ignore */
   }
@@ -75,6 +87,10 @@ const HEADINGS: Record<Tab, { title: string; subtitle: string }> = {
   "bot-aggressive": {
     title: "Aggressive Bot",
     subtitle: "STRAT-011's short-dated CSP band (3–14 DTE, ≤0.25 delta, 40%+ ARR required) — paperbot-only, never a real suggestion.",
+  },
+  chart: {
+    title: "Security Chart",
+    subtitle: "2 years of daily candles with Bollinger Bands, MACD, RSI, 200-day SMA, and today's call/put walls — computed on demand for whichever ticker you search.",
   },
 };
 
@@ -110,6 +126,11 @@ export function OverviewShell({
   }
 
   const heading = HEADINGS[tab];
+  // Not the full backend watchlist (no export of that exists yet) --
+  // currently-held underlyings are a reasonable, zero-new-plumbing set of
+  // "quick access" suggestions; free-text search still works for anything
+  // else regardless.
+  const heldTickers = Array.from(new Set(options.map((o) => o.symbol))).sort();
 
   return (
     // min-h-full, not h-full: h-full capped this row at exactly one
@@ -172,6 +193,7 @@ export function OverviewShell({
         {tab === "bot-aggressive" && (
           <BotTable trades={aggressiveBot.trades} myGrade={aggressiveBot.myGrade} storageKey="aggressive" />
         )}
+        {tab === "chart" && <SecurityChart watchlist={heldTickers} />}
       </main>
     </div>
   );
