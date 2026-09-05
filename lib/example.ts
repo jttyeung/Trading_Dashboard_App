@@ -826,6 +826,7 @@ function benchmarkWalk(startValue: number, dailyDriftPct: number, noiseAmplitude
 
 const frozenWalk = benchmarkWalk(60200, 0.0006, 120, 3);
 const spyWalk = benchmarkWalk(745, 0.0007, 1.8, 11);
+const qqqWalk = benchmarkWalk(510, 0.0009, 2.4, 7); // Nasdaq-100, drifts up a bit faster/choppier than SPY
 const actualWalk = benchmarkWalk(60200, 0.0016, 140, 19);
 const ACTUAL_TODAY = 68420.5;
 actualWalk[0] = frozenWalk[0];
@@ -859,6 +860,7 @@ export const exampleBenchmarkFile: BenchmarkFile = {
   },
   frozen: benchmarkDates.map((label, i) => ({ label, value: frozenWalk[i] })),
   spy: benchmarkDates.map((label, i) => ({ label, value: spyWalk[i] })),
+  qqq: benchmarkDates.map((label, i) => ({ label, value: qqqWalk[i] })),
   actual: benchmarkDates.map((label, i) => ({ label, value: actualWalk[i] })),
   actualToday: ACTUAL_TODAY,
   actualDailyReturns: exampleActualDailyReturns,

@@ -753,6 +753,7 @@ export interface BenchmarkFile {
   meta: BenchmarkMeta;
   frozen: ValuePoint[];
   spy: ValuePoint[];
+  qqq: ValuePoint[];
   actual: ValuePoint[];
   actualToday: number;
   actualDailyReturns: ActualDailyReturn[];

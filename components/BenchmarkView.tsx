@@ -1,12 +1,12 @@
 "use client";
 
-// Pre-OTU-vs-S&P-500-vs-actual screen: one chart with all three series over
-// the same cutoff-to-today window (Pre-OTU and S&P 500 are exactly
-// reconstructable; Actual is a close approximation of the account's real
-// activity — see lib/types.ts's BenchmarkFile doc comment for what it can
-// and can't capture), plus a direct today's-dollar comparison.
+// Pre-OTU-vs-S&P-500-vs-Nasdaq-100-vs-actual screen: one chart with all
+// four series over the same cutoff-to-today window (Pre-OTU, S&P 500, and
+// QQQ are exactly reconstructable; Actual is a close approximation of the
+// account's real activity — see lib/types.ts's BenchmarkFile doc comment
+// for what it can and can't capture).
 import { useState } from "react";
-import { Card, SectionTitle, Delta } from "@/components/ui";
+import { Card, Delta } from "@/components/ui";
 import { Amt } from "@/components/privacy";
 import { fmtMoney } from "@/lib/calc";
 import { BenchmarkChart } from "@/components/BenchmarkChart";
@@ -17,6 +17,7 @@ import type { BenchmarkFile } from "@/lib/types";
 
 const PRE_OTU_COLOR = "#60a5fa";
 const SPY_COLOR = "#a3a3a3";
+const QQQ_COLOR = "#c084fc";
 const ACTUAL_COLOR = "#34d399";
 
 function pctReturn(points: { value: number }[]): number {
@@ -27,7 +28,7 @@ function pctReturn(points: { value: number }[]): number {
 }
 
 export function BenchmarkView({ benchmark }: { benchmark: BenchmarkFile }) {
-  const { meta, frozen, spy, actualToday, actualDailyReturns } = benchmark;
+  const { meta, frozen, spy, qqq, actual, actualDailyReturns } = benchmark;
   const [rangeKey, setRangeKey] = useState<RangeKey>("all");
 
   if (frozen.length === 0 || spy.length === 0) {
@@ -42,18 +43,21 @@ export function BenchmarkView({ benchmark }: { benchmark: BenchmarkFile }) {
   const range = resolveRange(rangeKey, Date.now());
   const frozenInRange = frozen.filter((p) => inRange(p.label, range));
   const spyInRange = spy.filter((p) => inRange(p.label, range));
+  const qqqInRange = qqq.filter((p) => inRange(p.label, range));
+  const actualInRange = actual.filter((p) => inRange(p.label, range));
   // Chart-only series: a cumulative-return trajectory (see
   // actualTWRSeries's own doc comment), not actual[]'s raw dollar values
   // -- BenchmarkChart computes its own "% since first point" for both the
   // plotted line's shape and its end-of-line badge, and feeding it raw
-  // dollars (still containing the $6,000/$33,000 deposits below) made the
-  // chart visually show a misleading spike and a naive % that contradicted
-  // the corrected "Actual (time-weighted)" legend text right below it.
+  // dollars (still containing real deposits/withdrawals) made the chart
+  // visually show a misleading spike and a naive % that contradicted the
+  // corrected "Actual (time-weighted)" legend text right below it.
   const actualChartSeries = actualTWRSeries(actualDailyReturns, range);
 
   const preOtuToday = frozen[frozen.length - 1].value;
   const preOtuReturn = pctReturn(frozenInRange);
   const spyReturn = pctReturn(spyInRange);
+  const qqqReturn = pctReturn(qqqInRange);
   // The one line that needs real time-weighting, not a raw start/end
   // comparison: Actual's own dollar values still include any deposit or
   // withdrawal made since the cutoff (see meta.note), so a naive pctReturn
@@ -64,8 +68,21 @@ export function BenchmarkView({ benchmark }: { benchmark: BenchmarkFile }) {
   // apart from Schwab's own internal cash-sweep noise.
   const actualTWR = twrForRange(actualDailyReturns, range);
   const flowsInRange = actualDailyReturns.filter((r) => r.externalFlow !== 0 && inRange(r.date, range));
-  const gapVsPreOtu = actualToday - preOtuToday;
-  const gapVsPreOtuPct = preOtuToday > 0 ? gapVsPreOtu / preOtuToday : 0;
+
+  // Dollar figures for every line, all directly comparable to each other:
+  // Pre-OTU/SPY/QQQ all ask "what if this SAME starting cash (the real
+  // account's own value at the start of the selected window) had instead
+  // gone untouched / into SPY / into QQQ" -- so they share one starting
+  // principal (preOtuStartValue). Actual's own $ figure asks a different
+  // question (how many real dollars did TRADING alone earn, deposits
+  // backed out), so it's scaled off the account's own real starting value
+  // for the window instead, geometrically linked with the TWR just like
+  // the % is -- consistent with (and derived from) the exact same TWR%.
+  const preOtuStartValue = frozenInRange[0]?.value ?? 0;
+  const spyDollar = preOtuStartValue * spyReturn;
+  const qqqDollar = preOtuStartValue * qqqReturn;
+  const actualStartValue = actualInRange[0]?.value ?? 0;
+  const actualDollar = actualStartValue * actualTWR;
 
   const holdingCount = Object.keys(meta.frozenHoldings).length;
 
@@ -87,6 +104,7 @@ export function BenchmarkView({ benchmark }: { benchmark: BenchmarkFile }) {
             series={[
               { label: "Pre-OTU", points: frozenInRange, color: PRE_OTU_COLOR },
               { label: "S&P 500", points: spyInRange, color: SPY_COLOR },
+              { label: "QQQ", points: qqqInRange, color: QQQ_COLOR },
               { label: "Actual", points: actualChartSeries, color: ACTUAL_COLOR },
             ]}
           />
@@ -102,18 +120,15 @@ export function BenchmarkView({ benchmark }: { benchmark: BenchmarkFile }) {
           </span>
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: SPY_COLOR }} />
-            S&amp;P 500 <span className={`tabular font-medium ${spyReturn >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-              {spyReturn >= 0 ? "+" : "−"}
-              {Math.abs(spyReturn * 100).toFixed(1)}%
-            </span>
+            S&amp;P 500 <Delta value={spyDollar} pct={spyReturn} />
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: QQQ_COLOR }} />
+            QQQ <Delta value={qqqDollar} pct={qqqReturn} />
           </span>
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: ACTUAL_COLOR }} />
-            Actual (time-weighted){" "}
-            <span className={`tabular font-medium ${actualTWR >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-              {actualTWR >= 0 ? "+" : "−"}
-              {Math.abs(actualTWR * 100).toFixed(1)}%
-            </span>
+            Actual (time-weighted) <Delta value={actualDollar} pct={actualTWR} />
           </span>
         </div>
         {flowsInRange.length > 0 && (
@@ -129,27 +144,6 @@ export function BenchmarkView({ benchmark }: { benchmark: BenchmarkFile }) {
             </div>
           </div>
         )}
-      </Card>
-
-      <SectionTitle>Pre-OTU vs. actual, today</SectionTitle>
-      <Card className="grid grid-cols-2 divide-x divide-border">
-        <div className="px-4 py-3">
-          <div className="text-[10px] uppercase tracking-wide text-muted">Pre-OTU</div>
-          <div className="tabular mt-1 text-lg font-bold">
-            <Amt>{fmtMoney(preOtuToday)}</Amt>
-          </div>
-          <div className="mt-0.5 text-[10px] text-muted">untouched since {meta.cutoffDate}</div>
-        </div>
-        <div className="px-4 py-3">
-          <div className="text-[10px] uppercase tracking-wide text-muted">Your actual portfolio</div>
-          <div className="tabular mt-1 text-lg font-bold">
-            <Amt>{fmtMoney(actualToday)}</Amt>
-          </div>
-          <div className="mt-0.5 text-[10px]">
-            <Delta value={gapVsPreOtu} pct={gapVsPreOtuPct} />
-            <span className="ml-1 text-muted">vs. Pre-OTU</span>
-          </div>
-        </div>
       </Card>
       <p className="mt-1.5 px-1 text-[10px] leading-relaxed text-muted">{meta.note}</p>
     </div>
