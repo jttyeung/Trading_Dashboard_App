@@ -6,8 +6,9 @@ import Link from "next/link";
 import { Card, SectionTitle, Stat } from "@/components/ui";
 import { Amt } from "@/components/privacy";
 import { TimeFilter, useTimeFilter } from "@/components/TimeFilter";
-import { fmtMoney } from "@/lib/calc";
+import { fmtMoney, fmtPct } from "@/lib/calc";
 import { inRange, rangeSubLabel } from "@/lib/date-range";
+import type { ValuePoint } from "@/lib/types";
 
 export interface BucketInput {
   key: string;
@@ -75,6 +76,27 @@ const SHORT_LABEL: Record<string, string> = {
   other: "Other",
 };
 
+// The portfolio's own real value the last known date BEFORE monthStartISO
+// (e.g. "2026-08-01") -- used as that month's starting capital base for a
+// monthly ROI%, so "how big a move was this $ figure" scales with the
+// account's real size at the time, not today's (since the account's total
+// value has moved a lot -- new SnapTrade/E*TRADE accounts, a real 401(k)
+// rollover -- dividing an old month's P&L by TODAY's much larger total
+// would understate it badly). history is assumed sorted ascending by
+// label (ValuePoint[] from data/benchmark.json's own actual[] always is).
+// Falls back to the EARLIEST known value when monthStartISO predates all
+// of history (P&L this old shouldn't exist given the cutoff, but this
+// keeps a % showing rather than silently going blank if it ever does).
+function capitalBaseForMonth(history: ValuePoint[], monthStartISO: string): number | null {
+  if (history.length === 0) return null;
+  let best: number | null = null;
+  for (const p of history) {
+    if (p.label < monthStartISO) best = p.value;
+    else break;
+  }
+  return best ?? history[0].value;
+}
+
 interface BucketAgg {
   key: string;
   label: string;
@@ -85,7 +107,15 @@ interface BucketAgg {
   lossDollars: number; // sum of |negative trade P&L| (positive magnitude)
 }
 
-export function PnlView({ realized, open }: { realized: BucketInput[]; open: BucketInput[] }) {
+export function PnlView({
+  realized,
+  open,
+  capitalHistory = [],
+}: {
+  realized: BucketInput[];
+  open: BucketInput[];
+  capitalHistory?: ValuePoint[];
+}) {
   const tf = useTimeFilter("months", 1); // default to the last 1 month
   const [mode, setMode] = usePersistentState<"realized" | "open">("pnl-mode", "realized");
   const [term, setTerm] = usePersistentState<TermFilter>("pnl-term", "both");
@@ -174,7 +204,7 @@ export function PnlView({ realized, open }: { realized: BucketInput[]; open: Buc
   // section. Years newest-first (what you care about right now); months
   // within a year chronological (Jan→Dec) so it reads as a progression.
   const monthlyByYear = useMemo(() => {
-    if (!isRealized) return [] as { year: string; months: { key: string; label: string; pnl: number; count: number }[] }[];
+    if (!isRealized) return [] as { year: string; yearPct: number | null; months: { key: string; label: string; pnl: number; count: number; pct: number | null }[] }[];
     const byMonth = new Map<string, { pnl: number; count: number }>();
     for (const b of realized) {
       for (const it of b.items) {
@@ -186,17 +216,24 @@ export function PnlView({ realized, open }: { realized: BucketInput[]; open: Buc
         byMonth.set(key, agg);
       }
     }
-    const byYear = new Map<string, { key: string; label: string; pnl: number; count: number }[]>();
+    const byYear = new Map<string, { key: string; label: string; pnl: number; count: number; pct: number | null }[]>();
     for (const [key, v] of byMonth) {
       const [year, month] = key.split("-");
       const label = MONTHS[Number(month) - 1];
+      const base = capitalBaseForMonth(capitalHistory, `${key}-01`);
+      const pct = base ? v.pnl / base : null;
       if (!byYear.has(year)) byYear.set(year, []);
-      byYear.get(year)!.push({ key, label, ...v });
+      byYear.get(year)!.push({ key, label, pct, ...v });
     }
     return [...byYear.entries()]
-      .map(([year, months]) => ({ year, months: months.sort((a, b) => a.key.localeCompare(b.key)) }))
+      .map(([year, months]) => {
+        const sorted = months.sort((a, b) => a.key.localeCompare(b.key));
+        const yearBase = capitalBaseForMonth(capitalHistory, `${year}-01-01`);
+        const yearPnl = sorted.reduce((s, mo) => s + mo.pnl, 0);
+        return { year, yearPct: yearBase ? yearPnl / yearBase : null, months: sorted };
+      })
       .sort((a, b) => b.year.localeCompare(a.year));
-  }, [realized, isRealized, term]);
+  }, [realized, isRealized, term, capitalHistory]);
   const monthlyMaxAbs = useMemo(
     () => monthlyByYear.reduce((m, y) => y.months.reduce((mm, mo) => Math.max(mm, Math.abs(mo.pnl)), m), 0),
     [monthlyByYear],
@@ -395,8 +432,9 @@ export function PnlView({ realized, open }: { realized: BucketInput[]; open: Buc
                   <div key={y.year}>
                     <div className="mb-1 flex items-center justify-between px-1">
                       <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">{y.year}</span>
-                      <span className={`tabular text-[11px] font-semibold ${yearTotal >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                      <span className={`tabular flex items-baseline gap-1 text-[11px] font-semibold ${yearTotal >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                         <Amt>{signed(yearTotal)}</Amt>
+                        {y.yearPct != null && <span className="font-normal opacity-80">({fmtPct(y.yearPct)})</span>}
                       </span>
                     </div>
                     <Card className="divide-y divide-border">
@@ -407,8 +445,9 @@ export function PnlView({ realized, open }: { realized: BucketInput[]; open: Buc
                               <span className="text-sm font-medium">{mo.label}</span>
                               <span className="tabular rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] text-muted">{mo.count}</span>
                             </div>
-                            <span className={`tabular shrink-0 text-sm font-semibold ${mo.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                            <span className={`tabular flex shrink-0 items-baseline gap-1 text-sm font-semibold ${mo.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                               <Amt>{signed(mo.pnl)}</Amt>
+                              {mo.pct != null && <span className="text-[11px] font-normal opacity-80">({fmtPct(mo.pct)})</span>}
                             </span>
                           </div>
                           <div className="mt-2">
@@ -422,6 +461,11 @@ export function PnlView({ realized, open }: { realized: BucketInput[]; open: Buc
               })}
             </div>
           )}
+          <p className="mt-2 px-1 text-[10px] leading-relaxed text-muted">
+            % is that month&apos;s P&amp;L against the portfolio&apos;s own real value at the start of that month
+            (not today&apos;s) — so a month&apos;s return stays meaningful even after a big deposit, a new linked
+            account, or a 401(k) rollover changes the account&apos;s overall size later on.
+          </p>
         </>
       )}
 
