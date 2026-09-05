@@ -831,6 +831,23 @@ actualWalk[0] = frozenWalk[0];
 actualWalk[actualWalk.length - 1] = ACTUAL_TODAY;
 const benchmarkDates = Array.from({ length: BENCHMARK_DAYS + 1 }, (_, i) => isoDay(i - BENCHMARK_DAYS));
 
+// A synthetic $5,000 deposit partway through the window (a permanent step
+// up in the raw walk, same as a real deposit would be) -- demonstrates
+// actualDailyReturns correctly excluding it from the return series, rather
+// than a naive start/end comparison misreading it as a trading gain. Only
+// this one day carries a non-zero externalFlow.
+const DEPOSIT_DAY_INDEX = 30;
+const DEPOSIT_AMOUNT = 5000;
+for (let i = DEPOSIT_DAY_INDEX; i < actualWalk.length; i++) {
+  actualWalk[i] = Math.round((actualWalk[i] + DEPOSIT_AMOUNT) * 100) / 100;
+}
+const exampleActualDailyReturns = benchmarkDates.map((date, i) => {
+  if (i === 0) return { date, return: 0, externalFlow: 0 };
+  const flow = i === DEPOSIT_DAY_INDEX ? DEPOSIT_AMOUNT : 0;
+  const prev = actualWalk[i - 1];
+  return { date, return: prev !== 0 ? (actualWalk[i] - flow - prev) / prev : 0, externalFlow: flow };
+});
+
 export const exampleBenchmarkFile: BenchmarkFile = {
   meta: {
     generatedAt: NOW_ISO,
@@ -843,4 +860,5 @@ export const exampleBenchmarkFile: BenchmarkFile = {
   spy: benchmarkDates.map((label, i) => ({ label, value: spyWalk[i] })),
   actual: benchmarkDates.map((label, i) => ({ label, value: actualWalk[i] })),
   actualToday: ACTUAL_TODAY,
+  actualDailyReturns: exampleActualDailyReturns,
 };

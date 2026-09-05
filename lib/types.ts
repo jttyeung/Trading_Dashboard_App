@@ -737,10 +737,23 @@ export interface BenchmarkMeta {
   note: string;
 }
 
+// ActualDailyReturn is Actual's own day-over-day return with any real
+// deposit/withdrawal detected that day already backed out (see the Go
+// side's benchmark.DailyExternalFlow) -- geometrically link a date-sliced
+// window of these (see lib/benchmark.ts's twrSince) for a real time-
+// weighted return, rather than a raw start/end comparison on actual[]'s
+// dollar values, which still include deposits/withdrawals.
+export interface ActualDailyReturn {
+  date: string;
+  return: number;
+  externalFlow: number;
+}
+
 export interface BenchmarkFile {
   meta: BenchmarkMeta;
   frozen: ValuePoint[];
   spy: ValuePoint[];
   actual: ValuePoint[];
   actualToday: number;
+  actualDailyReturns: ActualDailyReturn[];
 }
