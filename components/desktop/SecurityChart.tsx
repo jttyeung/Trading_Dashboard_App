@@ -19,6 +19,7 @@ import {
 } from "lightweight-charts";
 import { Card } from "@/components/ui";
 import { fetchChart, type ChartData } from "@/lib/chart-api";
+import { exampleChartData } from "@/lib/example";
 
 const UP_COLOR = "#34d399";
 const DOWN_COLOR = "#f87171";
@@ -35,7 +36,7 @@ function toTime(dateStr: string): UTCTimestamp {
   return (Date.parse(dateStr + "T00:00:00Z") / 1000) as UTCTimestamp;
 }
 
-export function SecurityChart({ watchlist }: { watchlist: string[] }) {
+export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[]; exampleMode: boolean }) {
   const [symbolInput, setSymbolInput] = useState("");
   const [activeSymbol, setActiveSymbol] = useState<string | null>(null);
   const [data, setData] = useState<ChartData | null>(null);
@@ -54,6 +55,18 @@ export function SecurityChart({ watchlist }: { watchlist: string[] }) {
 
   useEffect(() => {
     if (!activeSymbol) return;
+    // A demo deployment can't reach internal/chartapi's localhost API at
+    // all (it's the VIEWER's own localhost, not the app author's machine)
+    // -- rather than let every search fail with a fetch error, demo mode
+    // renders a fake-but-internally-consistent chart instead, same
+    // "complete, non-empty demo experience" convention every other
+    // data/*.json-backed screen already follows (see SECURITY.md).
+    if (exampleMode) {
+      setLoading(false);
+      setError(null);
+      setData(exampleChartData(activeSymbol));
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -70,7 +83,7 @@ export function SecurityChart({ watchlist }: { watchlist: string[] }) {
     return () => {
       cancelled = true;
     };
-  }, [activeSymbol]);
+  }, [activeSymbol, exampleMode]);
 
   useEffect(() => {
     if (!data || !containerRef.current) return;

@@ -9,6 +9,7 @@ import { getSnapshot } from "@/lib/snapshot";
 import { getAlerts } from "@/lib/alerts";
 import { getGeneralBot, get20DeltaSafeBot, getAggressiveBot } from "@/lib/bot";
 import { accountLabel } from "@/lib/account-shared";
+import { isExampleMode } from "@/lib/example-mode";
 import { OverviewShell } from "@/components/overview/OverviewShell";
 
 export const dynamic = "force-dynamic";
@@ -16,10 +17,11 @@ export const dynamic = "force-dynamic";
 export default async function OverviewPage() {
   const snap = await getSnapshot();
   const alerts = (await getAlerts()).alerts;
-  const [generalBot, safeBot, aggressiveBot] = await Promise.all([
+  const [generalBot, safeBot, aggressiveBot, exampleMode] = await Promise.all([
     getGeneralBot(),
     get20DeltaSafeBot(),
     getAggressiveBot(),
+    isExampleMode(),
   ]);
 
   // Same per-account flatten app/desktop/page.tsx uses — see its own
@@ -30,6 +32,13 @@ export default async function OverviewPage() {
   );
 
   return (
-    <OverviewShell options={options} alerts={alerts} generalBot={generalBot} safeBot={safeBot} aggressiveBot={aggressiveBot} />
+    <OverviewShell
+      options={options}
+      alerts={alerts}
+      generalBot={generalBot}
+      safeBot={safeBot}
+      aggressiveBot={aggressiveBot}
+      exampleMode={exampleMode}
+    />
   );
 }
