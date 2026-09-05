@@ -347,6 +347,26 @@ export function positionReturnOnCapital(o: OptionPosition): number | null {
 }
 
 /**
+ * Return on capital left to capture, annualized over the days remaining to
+ * expiration — the same formula the OptionsEvaluator backend's mobile alert
+ * uses (internal/agents/tracker/profit_target.go's annualizedRemainingReturn:
+ * remaining Net Liq ÷ collateral × 360/DTE), ported here so the desktop
+ * table's own number can never disagree with what a "close for X% annualized"
+ * alert already said about the same contract. Same short CSP/covered-call
+ * gating as positionAnnualizedReturn/positionReturnOnCapital (this metric
+ * only makes sense for a short premium-selling position with a strike-based
+ * collateral base) — unlike those two, no openedAt requirement, since this
+ * looks forward from today rather than back to entry. */
+export function positionRemainingAnnualizedReturn(o: OptionPosition): number | null {
+  if (o.side !== "short" || (o.kind !== "csp" && o.kind !== "covered-call")) return null;
+  const capital = cspCollateral(o);
+  if (capital === 0) return null;
+  const remaining = optionMarketValue(o); // buy-to-close cost = Net Liq if closed now
+  const dte = Math.max(daysToExpiry(o.expiration), 1);
+  return (remaining / capital) * (360 / dte);
+}
+
+/**
  * Premium not yet realized on a short put — the mark you'd still keep if it
  * expires worthless from here. Equal to the buy-to-close cost (mark × 100 × qty).
  */
