@@ -100,6 +100,12 @@ export interface OptionPosition {
   underlyingClose?: number | null; // regular-session close — Simulate reference price
   underlyingLive?: number | null; // current/after-hours last — Simulate target price
   dayValueChange?: number | null; // this leg's signed $ value move today (Top Movers)
+  // Set only when dayValueChange is a FALLBACK to the most recent real
+  // trading day (a weekend/holiday has no session -- e.g. Schwab's own
+  // currentDayProfitLoss genuinely reads 0 for every position then, not a
+  // bug) -- the YYYY-MM-DD it's actually from. Absent on a real trading
+  // day, when dayValueChange is today's own live figure.
+  dayValueChangeAsOf?: string;
   bbSigma?: number | null; // strike's σ from the underlying's 20-day mean (−2 = lower BB)
   chanceOfProfitShort?: number; // 0..1, for short positions
   openedAt?: string; // ISO date the position was opened (held positions only)
