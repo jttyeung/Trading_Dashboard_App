@@ -12,6 +12,7 @@ import {
   optionPnl,
   optionPnlPct,
   positionAnnualizedReturn,
+  positionRemainingAnnualizedReturn,
   positionReturnOnCapital,
 } from "@/lib/calc";
 import { positionDailyTheta } from "@/lib/theta";
@@ -54,7 +55,7 @@ const STRATEGY_STYLE: Record<OptionKind, string> = {
 export type SourcedOption = OptionPosition & { sourceLabel: string };
 
 type GroupBy = "none" | "strategy" | "dte" | "ticker" | "account";
-type SortKey = "ticker" | "strategy" | "qty" | "dit" | "dte" | "strike" | "spot" | "theta" | "apy" | "ror" | "unrealized" | "todayPl" | "marketValue" | "source";
+type SortKey = "ticker" | "strategy" | "qty" | "dit" | "dte" | "strike" | "spot" | "theta" | "apy" | "ror" | "unrealized" | "remApy" | "todayPl" | "marketValue" | "source";
 
 interface Row {
   o: SourcedOption;
@@ -65,6 +66,13 @@ interface Row {
   theta: number;
   unrealized: number;
   unrealizedPct: number;
+  // Dollar amount still on the table if held to expiration — the buy-to-close
+  // cost magnitude, i.e. optionBasis minus what's already been captured.
+  remainingDollar: number;
+  // Same formula as the mobile "close for X% annualized" alert
+  // (positionRemainingAnnualizedReturn) — null for anything that isn't a
+  // short CSP/covered-call, same gating as apy/ror above.
+  remainingAnnualized: number | null;
   todayPl: number | null;
   todayPlPct: number | null;
   marketValue: number;
@@ -135,6 +143,8 @@ function buildRow(
     theta: positionDailyTheta(o),
     unrealized: optionPnl(o),
     unrealizedPct: optionPnlPct(o),
+    remainingDollar: Math.abs(marketValue),
+    remainingAnnualized: positionRemainingAnnualizedReturn(o),
     todayPl,
     todayPlPct,
     marketValue,
@@ -215,6 +225,8 @@ function sortValue(r: Row, key: SortKey): number | string {
       return r.ror ?? -Infinity;
     case "unrealized":
       return r.unrealized;
+    case "remApy":
+      return r.remainingAnnualized ?? -Infinity;
     case "todayPl":
       return r.todayPl ?? -Infinity;
     case "marketValue":
@@ -226,6 +238,7 @@ function sortValue(r: Row, key: SortKey): number | string {
 
 function sumRows(rows: Row[]) {
   const unrealized = rows.reduce((s, r) => s + r.unrealized, 0);
+  const remainingDollar = rows.reduce((s, r) => s + r.remainingDollar, 0);
   const todayPl = rows.reduce((s, r) => s + (r.todayPl ?? 0), 0);
   const marketValue = rows.reduce((s, r) => s + r.marketValue, 0);
   const theta = rows.reduce((s, r) => s + r.theta, 0);
@@ -240,7 +253,7 @@ function sumRows(rows: Row[]) {
   // (no per-position day-change data there, see buildRow's own note) should
   // read as unavailable, not flat.
   const hasTodayPl = rows.some((r) => r.todayPl != null);
-  return { unrealized, unrealizedPct, todayPl, todayPlPct, marketValue, theta, hasTodayPl };
+  return { unrealized, unrealizedPct, remainingDollar, todayPl, todayPlPct, marketValue, theta, hasTodayPl };
 }
 
 const COLUMNS: { key: SortKey; label: string }[] = [
@@ -255,6 +268,7 @@ const COLUMNS: { key: SortKey; label: string }[] = [
   { key: "ror", label: "RoR %" },
   { key: "apy", label: "APY" },
   { key: "unrealized", label: "Unrealized" },
+  { key: "remApy", label: "Rem. APY" },
   { key: "todayPl", label: "Today P/L" },
   { key: "marketValue", label: "Market Value" },
   { key: "source", label: "Source" },
@@ -439,8 +453,10 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                       <div className="flex flex-col items-end gap-1">
                         <span className={`font-semibold ${pnlColor(gSum!.unrealized)}`}>{fmtMoney(gSum!.unrealized, { sign: true })}</span>
                         <PctBar pct={gSum!.unrealizedPct} />
+                        <span className="text-[10px] text-muted">{fmtMoney(gSum!.remainingDollar)} left</span>
                       </div>
                     </td>
+                    <td />
                     <td className="px-3 py-2 text-right tabular text-xs">
                       {gSum!.hasTodayPl ? (
                         <>
@@ -487,7 +503,11 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                         <div className="flex flex-col items-end gap-1">
                           <span className={`text-xs font-semibold ${pnlColor(r.unrealized)}`}>{fmtMoney(r.unrealized, { sign: true })}</span>
                           <PctBar pct={r.unrealizedPct} />
+                          <span className="text-[10px] text-muted">{fmtMoney(r.remainingDollar)} left</span>
                         </div>
+                      </td>
+                      <td className="px-3 py-2 text-right tabular text-text">
+                        {r.remainingAnnualized != null ? fmtPct(r.remainingAnnualized, 1) : "-"}
                       </td>
                       <td className="px-3 py-2 text-right tabular">
                         {r.todayPl != null ? (
@@ -517,8 +537,10 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
               <div className="flex flex-col items-end gap-1">
                 <span className={pnlColor(total.unrealized)}>{fmtMoney(total.unrealized, { sign: true })}</span>
                 <PctBar pct={total.unrealizedPct} />
+                <span className="text-[10px] text-muted">{fmtMoney(total.remainingDollar)} left</span>
               </div>
             </td>
+            <td />
             <td className="px-3 py-2.5 text-right tabular text-xs">
               {total.hasTodayPl ? (
                 <span className={pnlColor(total.todayPl)}>
