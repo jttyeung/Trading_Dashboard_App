@@ -7,8 +7,6 @@
 // for what it can and can't capture).
 import { useState } from "react";
 import { Card, Delta } from "@/components/ui";
-import { Amt } from "@/components/privacy";
-import { fmtMoney } from "@/lib/calc";
 import { BenchmarkChart } from "@/components/BenchmarkChart";
 import { RangeTabs } from "@/components/RangeTabs";
 import { resolveRange, inRange, type RangeKey } from "@/lib/date-range";
@@ -67,7 +65,6 @@ export function BenchmarkView({ benchmark }: { benchmark: BenchmarkFile }) {
   // benchmark.DailyExternalFlow for how a real deposit/withdrawal is told
   // apart from Schwab's own internal cash-sweep noise.
   const actualTWR = twrForRange(actualDailyReturns, range);
-  const flowsInRange = actualDailyReturns.filter((r) => r.externalFlow !== 0 && inRange(r.date, range));
 
   // Dollar figures for every line, all directly comparable to each other:
   // Pre-OTU/SPY/QQQ all ask "what if this SAME starting cash (the real
@@ -131,19 +128,6 @@ export function BenchmarkView({ benchmark }: { benchmark: BenchmarkFile }) {
             Actual (time-weighted) <Delta value={actualDollar} pct={actualTWR} />
           </span>
         </div>
-        {flowsInRange.length > 0 && (
-          <div className="mt-3 border-t border-border pt-2 text-[10px] text-muted">
-            <div className="mb-1 uppercase tracking-wide">Deposits/withdrawals excluded from the time-weighted return</div>
-            <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-              {flowsInRange.map((f) => (
-                <span key={f.date} className="tabular">
-                  {f.date}: {f.externalFlow > 0 ? "+" : "−"}
-                  <Amt>{fmtMoney(Math.abs(f.externalFlow))}</Amt>
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
       </Card>
       <p className="mt-1.5 px-1 text-[10px] leading-relaxed text-muted">{meta.note}</p>
     </div>
