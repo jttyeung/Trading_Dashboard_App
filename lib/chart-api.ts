@@ -1,8 +1,24 @@
-// Client-side call into OptionsEvaluator's small localhost-only chart API
+// Client-side call into OptionsEvaluator's small chart API
 // (internal/chartapi) -- mirrors lib/paperbot-api.ts's exact fetch/error
-// shape and same-machine-only caveat: only reachable when the dashboard
-// runs on the SAME machine as the OptionsEvaluator daemon.
-const CHART_API_BASE = "http://localhost:8092"; // matches CHART_API_PORT's own default in config/.env.example
+// shape and same-caveat: only reachable when the OptionsEvaluator daemon
+// is running on whatever host actually serves this dashboard, on
+// CHART_API_PORT (8092 by default).
+//
+// A real bug this fixes, not a stylistic choice: this used to be
+// hardcoded to "http://localhost:8092", which only ever worked when the
+// dashboard was viewed on the SAME machine as the daemon. The account
+// holder views this on their phone over Tailscale -- "localhost" in a
+// fetch made by the PHONE's own browser means the phone itself, which
+// has nothing listening on 8092, so the request could never succeed no
+// matter how the daemon's own CORS/bind settings were configured.
+// window.location.hostname is whatever host the page was ACTUALLY loaded
+// from (a Tailscale IP/hostname, a LAN IP, or localhost), so the chart
+// API request always targets the same real machine the dashboard itself
+// came from.
+function chartAPIBase(): string {
+  if (typeof window === "undefined") return "http://localhost:8092";
+  return `http://${window.location.hostname}:8092`;
+}
 
 export interface BollingerPoint {
   upper: number;
@@ -32,7 +48,7 @@ export interface ChartData {
 }
 
 export async function fetchChart(symbol: string): Promise<ChartData> {
-  const res = await fetch(`${CHART_API_BASE}/chart?symbol=${encodeURIComponent(symbol)}`);
+  const res = await fetch(`${chartAPIBase()}/chart?symbol=${encodeURIComponent(symbol)}`);
   if (!res.ok) {
     throw new Error(`chart API failed for ${symbol}: ${res.status}`);
   }
