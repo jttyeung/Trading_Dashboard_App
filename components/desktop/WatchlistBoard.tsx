@@ -236,9 +236,9 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
                   <span className="text-[9px]">{sortKey === "bb" ? (sortDir === 1 ? "▲" : "▼") : "↕"}</span>
                 </button>
               </th>
-              <th className="px-3 py-2 font-medium">Walls</th>
-              <th className="px-3 py-2 font-medium">MACD</th>
               <th className="px-3 py-2 font-medium">RSI</th>
+              <th className="px-3 py-2 font-medium">MACD</th>
+              <th className="px-3 py-2 font-medium">Walls</th>
               <th className="px-3 py-2 font-medium">IVR</th>
               <th className="px-3 py-2" />
             </tr>
@@ -269,17 +269,17 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
                   )}
                 </td>
                 <td className="px-3 py-2">
-                  {r.currentPrice != null && r.putWall != null && r.callWall != null ? (
-                    <Lever value={r.currentPrice} min={r.putWall} max={r.callWall} label="Walls" />
-                  ) : (
-                    <Lever value={null} min={0} max={1} label="Walls" />
-                  )}
+                  <Lever value={r.rsi14} min={0} max={100} label="RSI" zones={RSI_ZONES} />
                 </td>
                 <td className="px-3 py-2">
                   <MacdBadge line={r.macdLine} signal={r.macdSignal} />
                 </td>
                 <td className="px-3 py-2">
-                  <Lever value={r.rsi14} min={0} max={100} label="RSI" zones={RSI_ZONES} />
+                  {r.currentPrice != null && r.putWall != null && r.callWall != null ? (
+                    <Lever value={r.currentPrice} min={r.putWall} max={r.callWall} label="Walls" />
+                  ) : (
+                    <Lever value={null} min={0} max={1} label="Walls" />
+                  )}
                 </td>
                 <td className="px-3 py-2">
                   <Lever value={r.ivRank} min={0} max={100} label="IVR" buildingSamples={r.ivRankSamples} />
