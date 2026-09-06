@@ -5,12 +5,13 @@ import type { Alert, BotSnapshot } from "@/lib/types";
 import { PositionsTable, type SourcedOption } from "@/components/desktop/PositionsTable";
 import { BotTable } from "@/components/bot/BotTable";
 import { SecurityChart } from "@/components/desktop/SecurityChart";
+import { WatchlistBoard } from "@/components/desktop/WatchlistBoard";
 
-type Tab = "desktop" | "bot-safe" | "bot" | "bot-aggressive" | "chart";
+type Tab = "desktop" | "bot-safe" | "bot" | "bot-aggressive" | "chart" | "watchlist";
 
-// Order: Desktop, 20 Delta Safe, Wheel Bot, Aggressive Bot, Chart — the
-// account holder's own explicit ask for the rail's ordering (Chart
-// appended last, added later than the other four).
+// Order: Desktop, 20 Delta Safe, Wheel Bot, Aggressive Bot, Chart,
+// Watchlist — each appended at the end as it was added, matching Chart's
+// own precedent rather than reordering what's already there.
 const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
   {
     key: "desktop",
@@ -60,6 +61,16 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
       </svg>
     ),
   },
+  {
+    key: "watchlist",
+    label: "Watchlist",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 6h11M9 12h11M9 18h11" />
+        <path d="M4 6h.01M4 12h.01M4 18h.01" />
+      </svg>
+    ),
+  },
 ];
 
 const TAB_KEY = "overviewActiveTab";
@@ -67,7 +78,8 @@ const TAB_KEY = "overviewActiveTab";
 function loadTab(): Tab {
   try {
     const raw = localStorage.getItem(TAB_KEY);
-    if (raw === "desktop" || raw === "bot" || raw === "bot-safe" || raw === "bot-aggressive" || raw === "chart") return raw;
+    if (raw === "desktop" || raw === "bot" || raw === "bot-safe" || raw === "bot-aggressive" || raw === "chart" || raw === "watchlist")
+      return raw;
   } catch {
     /* ignore */
   }
@@ -91,6 +103,10 @@ const HEADINGS: Record<Tab, { title: string; subtitle: string }> = {
   chart: {
     title: "Lookup a Ticker",
     subtitle: "2 years of daily candles with Bollinger Bands, MACD, RSI, 50/200-day SMA with golden/death cross markers, and today's call/put walls — computed on demand for whichever ticker you search.",
+  },
+  watchlist: {
+    title: "Watchlist Board",
+    subtitle: "Every active watchlist ticker with a lever showing where its mark sits on Bollinger Bands, RSI, and IV Rank — add or remove tickers by hand; a manual addition is marked ᴹ and survives the sheet sync.",
   },
 };
 
@@ -204,6 +220,13 @@ export function OverviewShell({
             state and its chart instance alive underneath. */}
         <div className={tab === "chart" ? "" : "hidden"}>
           <SecurityChart watchlist={heldTickers} exampleMode={exampleMode} />
+        </div>
+        {/* Same always-mounted-but-hidden treatment as Chart above — this
+            panel does its own live fetch plus in-flight add/remove state
+            that a conditional mount/unmount would otherwise discard on
+            every tab switch. */}
+        <div className={tab === "watchlist" ? "" : "hidden"}>
+          <WatchlistBoard exampleMode={exampleMode} />
         </div>
       </main>
     </div>
