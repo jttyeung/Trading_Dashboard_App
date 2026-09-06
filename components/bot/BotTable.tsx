@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useState, useMemo } from "react";
 import type { BotTrade, BotGrade, MyGradeSummary } from "@/lib/types";
 import { fmtMoney, fmtPct } from "@/lib/calc";
-import { decideTrade, setPersonallySelected, type BotStatus } from "@/lib/paperbot-api";
+import { decideTrade, setPersonallySelected, annotateTrade, type BotStatus } from "@/lib/paperbot-api";
 import { Stat } from "@/components/ui";
 
 type SortKey =
@@ -171,6 +171,71 @@ function saveCollapsedDates(storageKey: string, dates: Set<string>) {
   } catch {
     /* ignore */
   }
+}
+
+// AnnotationEditor is Phase 3 of the paper-bot feedback-loop plan: the
+// account holder's own "why I thought this was/wasn't a good trade"
+// notes, freeform (tags aren't a fixed enum — the vocabulary is meant to
+// grow organically) and editable any time regardless of the trade's own
+// status. Local draft state so typing doesn't fire a save on every
+// keystroke; "Save" only appears once the draft actually differs from
+// what's persisted.
+function AnnotationEditor({
+  trade,
+  onSaved,
+  onError,
+}: {
+  trade: BotTrade;
+  onSaved: (tags: string, note: string) => void;
+  onError: () => void;
+}) {
+  const [tags, setTags] = useState(trade.annotationTags ?? "");
+  const [note, setNote] = useState(trade.annotationNote ?? "");
+  const [saving, setSaving] = useState(false);
+  const dirty = tags !== (trade.annotationTags ?? "") || note !== (trade.annotationNote ?? "");
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await annotateTrade(trade.id, tags, note);
+      onSaved(tags, note);
+    } catch {
+      onError();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div
+      className="mt-2 flex flex-col gap-1.5 rounded-lg border border-border bg-surface p-2"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="text-[10px] font-semibold uppercase tracking-wide text-muted">Your notes</div>
+      <input
+        value={tags}
+        onChange={(e) => setTags(e.target.value)}
+        placeholder="tags, comma, separated (e.g. strong_support, high_iv)"
+        className="rounded-md bg-surface-2 px-2 py-1 text-xs ring-1 ring-inset ring-border placeholder:text-muted"
+      />
+      <textarea
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder="why do you think this was/wasn't a good trade?"
+        rows={2}
+        className="resize-y rounded-md bg-surface-2 px-2 py-1 text-xs ring-1 ring-inset ring-border placeholder:text-muted"
+      />
+      {dirty && (
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="self-start rounded-md bg-surface-2 px-2 py-1 text-[11px] font-medium ring-1 ring-inset ring-border active:opacity-70 disabled:opacity-50"
+        >
+          {saving ? "Saving…" : "Save"}
+        </button>
+      )}
+    </div>
+  );
 }
 
 export function BotTable({ trades, myGrade, storageKey }: { trades: BotTrade[]; myGrade: MyGradeSummary; storageKey: string }) {
@@ -409,7 +474,14 @@ export function BotTable({ trades, myGrade, storageKey }: { trades: BotTrade[]; 
                 onClick={() => toggleRow(t.id)}
               >
                 <td className="whitespace-nowrap px-2 py-1.5 text-xs text-muted">{t.postedAt.slice(0, 10)}</td>
-                <td className="whitespace-nowrap px-2 py-1.5 font-medium text-text">{t.ticker}</td>
+                <td className="whitespace-nowrap px-2 py-1.5 font-medium text-text">
+                  {t.ticker}
+                  {(t.annotationTags || t.annotationNote) && (
+                    <span title="You've added notes to this trade" className="ml-1 text-[10px]">
+                      📝
+                    </span>
+                  )}
+                </td>
                 <td className="px-2 py-1.5 text-right tabular text-text">{fmtMoney(t.strike)}</td>
                 <td className="whitespace-nowrap px-2 py-1.5 text-xs text-muted">{t.expiration}</td>
                 <td className="px-2 py-1.5 text-right tabular text-text">{t.dteAtPost}</td>
@@ -495,6 +567,48 @@ export function BotTable({ trades, myGrade, storageKey }: { trades: BotTrade[]; 
                     {t.grade && (
                       <div className={`mt-1.5 font-medium ${GRADE_TEXT[t.grade].className}`}>{GRADE_TEXT[t.grade].label}</div>
                     )}
+                    {t.similarTrades && t.similarTrades.length > 0 && (
+                      <div className="mt-2">
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+                          Similar past trades
+                        </div>
+                        <ul className="mt-1 flex flex-col gap-1">
+                          {t.similarTrades.map((s, i) => (
+                            <li key={i} className="flex flex-wrap items-center gap-2 text-[11px]">
+                              <span className="font-medium text-text">{s.ticker}</span>
+                              <span className="text-muted">
+                                {s.strategy} Δ{s.delta.toFixed(2)}
+                              </span>
+                              {s.outcome && (
+                                <span
+                                  className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${
+                                    OUTCOME_STYLE[s.outcome] ?? "bg-surface-2 text-muted ring-border"
+                                  }`}
+                                >
+                                  {s.outcome}
+                                </span>
+                              )}
+                              {s.realizedPnl != null && (
+                                <span className={s.realizedPnl >= 0 ? "text-pos" : "text-neg"}>
+                                  {fmtMoney(s.realizedPnl, { sign: true })}
+                                </span>
+                              )}
+                              {s.annotationTags && <span className="text-info">{s.annotationTags}</span>}
+                              {s.annotationNote && <span className="italic text-muted">&ldquo;{s.annotationNote}&rdquo;</span>}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <AnnotationEditor
+                      trade={t}
+                      onSaved={(tags, note) =>
+                        setLocalTrades((cur) =>
+                          cur.map((x) => (x.id === t.id ? { ...x, annotationTags: tags, annotationNote: note } : x)),
+                        )
+                      }
+                      onError={showApiError}
+                    />
                   </td>
                 </tr>
               )}

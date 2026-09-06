@@ -38,3 +38,7 @@ export function decideTrade(id: number, status: BotStatus): Promise<void> {
 export function setPersonallySelected(id: number, selected: boolean): Promise<void> {
   return post("/paperbot/personal", { id, selected });
 }
+
+export function annotateTrade(id: number, tags: string, note: string): Promise<void> {
+  return post("/paperbot/annotate", { id, tags, note });
+}
