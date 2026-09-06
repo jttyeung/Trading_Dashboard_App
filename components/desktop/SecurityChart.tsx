@@ -155,8 +155,8 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
     );
 
     for (const [price, title, color] of [
-      [data.callWall, "Call Wall", DOWN_COLOR],
-      [data.putWall, "Put Wall", UP_COLOR],
+      [data.callWall, "Call Wall", UP_COLOR],
+      [data.putWall, "Put Wall", DOWN_COLOR],
       [data.gammaFlip, "Gamma Flip", "#a1a1aa"],
     ] as const) {
       if (price == null) continue;
