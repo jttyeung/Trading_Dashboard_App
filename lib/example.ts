@@ -25,6 +25,7 @@ import type {
   StrategyPerformanceFile,
 } from "./types";
 import type { ChartData, BollingerPoint, Cross } from "./chart-api";
+import type { WatchlistRow } from "./watchlist-api";
 
 const ACC = "EX000000"; // primary margin account
 const IRA = "EX000001"; // second account, to exercise the account switcher
@@ -1036,4 +1037,23 @@ export function exampleChartData(symbol: string): ChartData {
     putWall: Math.round((spot * 0.95) / 5) * 5,
     gammaFlip: Math.round(spot * 1.01 * 100) / 100,
   };
+}
+
+// exampleWatchlistBoard is the Watchlist Board tab's demo-mode data --
+// internal/watchlistapi's localhost API can't be reached from a public
+// demo deployment (same reason exampleChartData exists for the Chart
+// tab), so this stands in with a small fixed, internally-consistent
+// roster: mostly sheet-sourced, one manual addition (to demo the "M"
+// badge), and a mix of "building" vs. real IV Rank samples.
+export function exampleWatchlistBoard(): WatchlistRow[] {
+  return [
+    { ticker: "AMD", company: "Advanced Micro Devices Inc", sector: "Semiconductors", category: "wheel", source: "sheet", currentPrice: 187.42, bollingerUpper: 196.5, bollingerMid: 182.3, bollingerLower: 168.1, rsi14: 61.4, ivRank: 58, ivRankSamples: 142 },
+    { ticker: "NVDA", company: "NVIDIA Corp", sector: "AI / Semiconductors", category: "wheel", source: "sheet", currentPrice: 219.74, bollingerUpper: 236.9, bollingerMid: 214.2, bollingerLower: 191.5, rsi14: 72.8, ivRank: 81, ivRankSamples: 210 },
+    { ticker: "GLW", company: "Corning Inc", sector: "Materials - Glass & Fiberoptics", category: "wheel", source: "sheet", currentPrice: 154.3, bollingerUpper: 162.4, bollingerMid: 148.1, bollingerLower: 133.8, rsi14: 48.2, ivRank: 34, ivRankSamples: 96 },
+    { ticker: "SOFI", company: "SoFi Technologies Inc", sector: "Financials", category: "wheel", source: "sheet", currentPrice: 17.66, bollingerUpper: 19.8, bollingerMid: 17.9, bollingerLower: 16.0, rsi14: 29.6, ivRank: 22, ivRankSamples: 88 },
+    { ticker: "MU", company: "Micron Technology Inc", sector: "Semiconductors", category: "wheel", source: "sheet", currentPrice: 940.76, bollingerUpper: 1010.0, bollingerMid: 880.0, bollingerLower: 750.0, rsi14: 66.1, ivRank: 47, ivRankSamples: 175 },
+    { ticker: "BRK.B", company: "Berkshire Hathaway Inc Class B", sector: "Conglomerate", category: "safe_haven", source: "sheet", currentPrice: 502.96, bollingerUpper: 512.0, bollingerMid: 499.0, bollingerLower: 486.0, rsi14: 52.9, ivRank: 12, ivRankSamples: 130 },
+    { ticker: "COHR", company: "Coherent Corp", sector: "Photonics - Semiconductor", category: "wheel", source: "sheet", currentPrice: 306.43, bollingerUpper: 330.0, bollingerMid: 295.0, bollingerLower: 260.0, rsi14: 55.7, ivRank: null, ivRankSamples: 9 },
+    { ticker: "PANW", company: "Palo Alto Networks Inc", sector: "Cybersecurity", category: "wheel", source: "manual", currentPrice: 333.26, bollingerUpper: 355.0, bollingerMid: 320.0, bollingerLower: 285.0, rsi14: 44.1, ivRank: null, ivRankSamples: 3 },
+  ];
 }
