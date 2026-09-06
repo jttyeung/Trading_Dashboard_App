@@ -33,6 +33,7 @@ export interface Cross {
 
 export interface ChartData {
   symbol: string;
+  companyName?: string;
   spotPrice: number;
   dates: string[];
   open: number[];
