@@ -9,9 +9,10 @@ import { WatchlistBoard } from "@/components/desktop/WatchlistBoard";
 
 type Tab = "desktop" | "bot-safe" | "bot" | "bot-aggressive" | "chart" | "watchlist";
 
-// Order: Desktop, 20 Delta Safe, Wheel Bot, Aggressive Bot, Chart,
-// Watchlist — each appended at the end as it was added, matching Chart's
-// own precedent rather than reordering what's already there.
+// Order: Desktop, 20 Delta Safe, Wheel Bot, Aggressive Bot, Watchlist,
+// Chart — Watchlist moved just above Chart per the account holder's own
+// explicit ask, since browsing the watchlist board naturally leads into
+// looking up one specific ticker's full chart.
 const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
   {
     key: "desktop",
@@ -52,22 +53,22 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
     ),
   },
   {
-    key: "chart",
-    label: "Chart",
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 17l5-5 4 3 5-7 4 4" />
-        <path d="M3 21h18" />
-      </svg>
-    ),
-  },
-  {
     key: "watchlist",
     label: "Watchlist",
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
         <path d="M9 6h11M9 12h11M9 18h11" />
         <path d="M4 6h.01M4 12h.01M4 18h.01" />
+      </svg>
+    ),
+  },
+  {
+    key: "chart",
+    label: "Chart",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 17l5-5 4 3 5-7 4 4" />
+        <path d="M3 21h18" />
       </svg>
     ),
   },
@@ -212,6 +213,13 @@ export function OverviewShell({
           <BotTable trades={aggressiveBot.trades} myGrade={aggressiveBot.myGrade} storageKey="aggressive" />
         )}
         {/* Always mounted (just hidden), unlike the other four tabs above --
+            this panel does its own live fetch plus in-flight add/remove
+            state that a conditional mount/unmount would otherwise discard
+            on every tab switch. */}
+        <div className={tab === "watchlist" ? "" : "hidden"}>
+          <WatchlistBoard exampleMode={exampleMode} />
+        </div>
+        {/* Same always-mounted-but-hidden treatment as Watchlist above --
             a chart search does its own on-demand chartapi fetch + builds a
             real lightweight-charts instance with draggable-line state, all
             of which a conditional mount/unmount would throw away every time
@@ -220,13 +228,6 @@ export function OverviewShell({
             state and its chart instance alive underneath. */}
         <div className={tab === "chart" ? "" : "hidden"}>
           <SecurityChart watchlist={heldTickers} exampleMode={exampleMode} />
-        </div>
-        {/* Same always-mounted-but-hidden treatment as Chart above — this
-            panel does its own live fetch plus in-flight add/remove state
-            that a conditional mount/unmount would otherwise discard on
-            every tab switch. */}
-        <div className={tab === "watchlist" ? "" : "hidden"}>
-          <WatchlistBoard exampleMode={exampleMode} />
         </div>
       </main>
     </div>

@@ -24,6 +24,11 @@ export interface WatchlistRow {
   rsi14: number | null;
   ivRank: number | null;
   ivRankSamples: number;
+  macdLine: number | null;
+  macdSignal: number | null;
+  macdHistogram: number | null;
+  callWall: number | null;
+  putWall: number | null;
 }
 
 export async function fetchWatchlist(): Promise<WatchlistRow[]> {

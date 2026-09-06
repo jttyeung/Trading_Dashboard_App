@@ -2,14 +2,15 @@
 
 // Every active watchlist ticker (sheet-synced + manually added) with a
 // small visual "lever" per ticker showing where its current mark sits on
-// Bollinger Bands, RSI(14), and IV Rank -- plus the ability to add/remove
-// tickers by hand. Talks to internal/watchlistapi's localhost-only API
-// (see lib/watchlist-api.ts), fully live-fetched rather than backed by a
+// Bollinger Bands, the put/call gamma walls, RSI(14), and IV Rank, plus a
+// MACD momentum badge -- plus the ability to add/remove tickers by hand.
+// Talks to internal/watchlistapi's localhost-only API (see
+// lib/watchlist-api.ts), fully live-fetched rather than backed by a
 // static data/*.json export -- same "on demand, not pre-built" shape as
 // the Chart tab, and the right one here specifically because this panel
 // needs a real add/remove write-back path, unlike every other static
 // dashboard screen.
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui";
 import {
   fetchWatchlist,
@@ -40,7 +41,10 @@ function Lever({
     <div className="flex w-24 flex-col gap-0.5">
       <div className="flex items-center justify-between text-[10px] uppercase tracking-wide text-muted">
         <span>{label}</span>
-        <span className="tabular text-text">{value != null ? value.toFixed(0) : "—"}</span>
+        {/* Only shown once there's a real value -- showing both "—" here
+            AND "building"/"no data" below it was a redundant double
+            "no value" signal. */}
+        {value != null && <span className="tabular text-text">{value.toFixed(0)}</span>}
       </div>
       {value == null ? (
         <div className="flex h-1.5 items-center">
@@ -74,6 +78,37 @@ const RSI_ZONES = [
   { from: 70, to: 100, className: "bg-rose-400/20" },
 ];
 
+// MacdBadge -- MACD's histogram has no natural fixed bound the way
+// RSI/IVR do (0-100) or price bands do (a real range), so rather than
+// force it into the same gauge shape, this reads it the way MACD is
+// actually used: is the line above or below its own signal (bullish/
+// bearish), with the histogram's own magnitude (line minus signal) shown
+// as the number that magnitude represents.
+function MacdBadge({ line, signal }: { line: number | null; signal: number | null }) {
+  if (line == null || signal == null) {
+    return <span className="text-[10px] text-muted">no data</span>;
+  }
+  const bullish = line >= signal;
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs font-medium tabular ${bullish ? "text-pos" : "text-neg"}`}>
+      {bullish ? "▲" : "▼"} {(line - signal).toFixed(2)}
+    </span>
+  );
+}
+
+// bbPosition is where currentPrice sits within [bollingerLower,
+// bollingerUpper] as a 0-1 fraction (same math the BB Lever itself uses
+// to place its marker) -- null when any of the three inputs is missing,
+// so sorting can push those rows to the end regardless of direction.
+function bbPosition(r: WatchlistRow): number | null {
+  if (r.currentPrice == null || r.bollingerLower == null || r.bollingerUpper == null) return null;
+  const range = r.bollingerUpper - r.bollingerLower;
+  if (range === 0) return 0.5;
+  return (r.currentPrice - r.bollingerLower) / range;
+}
+
+type SortKey = "ticker" | "bb";
+
 export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
   const [rows, setRows] = useState<WatchlistRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,6 +116,30 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
   const [newTicker, setNewTicker] = useState("");
   const [adding, setAdding] = useState(false);
   const [busyTicker, setBusyTicker] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>("ticker");
+  const [sortDir, setSortDir] = useState<1 | -1>(1);
+
+  function toggleSort(key: SortKey) {
+    if (key === sortKey) setSortDir((d) => (d === 1 ? -1 : 1));
+    else {
+      setSortKey(key);
+      setSortDir(1);
+    }
+  }
+
+  const sorted = useMemo(() => {
+    const list = [...rows];
+    list.sort((a, b) => {
+      if (sortKey === "ticker") return a.ticker.localeCompare(b.ticker) * sortDir;
+      const av = bbPosition(a);
+      const bv = bbPosition(b);
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1; // missing BB data always sorts to the end, regardless of direction
+      if (bv == null) return -1;
+      return (av - bv) * sortDir;
+    });
+    return list;
+  }, [rows, sortKey, sortDir]);
 
   useEffect(() => {
     if (exampleMode) {
@@ -145,7 +204,7 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
           value={newTicker}
           onChange={(e) => setNewTicker(e.target.value.toUpperCase())}
           onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-          placeholder="Add a ticker (e.g. PANW)"
+          placeholder="Add a ticker"
           className="w-44 rounded-md bg-surface-2 px-3 py-1.5 text-sm ring-1 ring-inset ring-border placeholder:text-muted"
         />
         <button
@@ -160,20 +219,32 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
       </div>
 
       <Card className="mt-1 w-full overflow-x-auto">
-        <table className="w-full min-w-[820px] border-collapse text-sm">
+        <table className="w-full min-w-[980px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted">
-              <th className="px-3 py-2 font-medium">Ticker</th>
+              <th className="px-3 py-2 font-medium">
+                <button onClick={() => toggleSort("ticker")} className="flex items-center gap-1 hover:text-text">
+                  Ticker
+                  <span className="text-[9px]">{sortKey === "ticker" ? (sortDir === 1 ? "▲" : "▼") : "↕"}</span>
+                </button>
+              </th>
               <th className="px-3 py-2 font-medium">Sector</th>
               <th className="px-3 py-2 text-right font-medium">Price</th>
-              <th className="px-3 py-2 font-medium">BB</th>
+              <th className="px-3 py-2 font-medium">
+                <button onClick={() => toggleSort("bb")} className="flex items-center gap-1 hover:text-text">
+                  BB
+                  <span className="text-[9px]">{sortKey === "bb" ? (sortDir === 1 ? "▲" : "▼") : "↕"}</span>
+                </button>
+              </th>
+              <th className="px-3 py-2 font-medium">Walls</th>
+              <th className="px-3 py-2 font-medium">MACD</th>
               <th className="px-3 py-2 font-medium">RSI</th>
               <th className="px-3 py-2 font-medium">IVR</th>
               <th className="px-3 py-2" />
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
+            {sorted.map((r) => (
               <tr key={r.ticker} className="border-b border-border/60 hover:bg-surface-2/40">
                 <td className="whitespace-nowrap px-3 py-2 font-medium text-text">
                   {r.ticker}
@@ -198,6 +269,16 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
                   )}
                 </td>
                 <td className="px-3 py-2">
+                  {r.currentPrice != null && r.putWall != null && r.callWall != null ? (
+                    <Lever value={r.currentPrice} min={r.putWall} max={r.callWall} label="Walls" />
+                  ) : (
+                    <Lever value={null} min={0} max={1} label="Walls" />
+                  )}
+                </td>
+                <td className="px-3 py-2">
+                  <MacdBadge line={r.macdLine} signal={r.macdSignal} />
+                </td>
+                <td className="px-3 py-2">
                   <Lever value={r.rsi14} min={0} max={100} label="RSI" zones={RSI_ZONES} />
                 </td>
                 <td className="px-3 py-2">
@@ -217,7 +298,7 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
             ))}
             {!loading && rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-3 py-8 text-center text-sm text-muted">
+                <td colSpan={9} className="px-3 py-8 text-center text-sm text-muted">
                   No active watchlist tickers.
                 </td>
               </tr>
