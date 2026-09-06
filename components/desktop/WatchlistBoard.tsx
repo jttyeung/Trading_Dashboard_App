@@ -2,8 +2,10 @@
 
 // Every active watchlist ticker (sheet-synced + manually added) with a
 // small visual "lever" per ticker showing where its current mark sits on
-// Bollinger Bands, the put/call gamma walls, RSI(14), and IV Rank, plus a
-// MACD momentum badge -- plus the ability to add/remove tickers by hand.
+// Bollinger Bands and RSI(14), IV Rank, a MACD momentum badge, and price
+// read against today's put/call gamma walls (replacing a plain Price
+// column -- see PriceWallsCell) -- plus the ability to add/remove
+// tickers by hand.
 // Talks to internal/watchlistapi's localhost-only API (see
 // lib/watchlist-api.ts), fully live-fetched rather than backed by a
 // static data/*.json export -- same "on demand, not pre-built" shape as
@@ -77,6 +79,52 @@ const RSI_ZONES = [
   { from: 0, to: 30, className: "bg-rose-400/20" },
   { from: 70, to: 100, className: "bg-rose-400/20" },
 ];
+
+// PriceWallsCell replaces a plain Price column with price read in context
+// of today's gamma walls -- put wall (downside), the actual price, and
+// call wall (upside) all spelled out as numbers, with a gauge showing
+// where price actually sits between them (marker turns rose if price has
+// genuinely broken through either wall).
+function PriceWallsCell({
+  price,
+  putWall,
+  callWall,
+}: {
+  price: number | null;
+  putWall: number | null;
+  callWall: number | null;
+}) {
+  if (price == null) {
+    return <span className="text-sm text-muted">—</span>;
+  }
+  if (putWall == null || callWall == null) {
+    return (
+      <div className="flex w-32 flex-col gap-0.5">
+        <span className="tabular text-sm font-medium text-text">${price.toFixed(2)}</span>
+        <span className="text-[9px] text-muted">no wall data</span>
+      </div>
+    );
+  }
+  const pct = Math.min(Math.max(((price - putWall) / (callWall - putWall)) * 100, 0), 100);
+  const outOfRange = price < putWall || price > callWall;
+  return (
+    <div className="flex w-32 flex-col gap-0.5">
+      <div className="flex items-center justify-between text-[10px] tabular">
+        <span className="text-neg">${putWall.toFixed(0)}</span>
+        <span className="font-medium text-text">${price.toFixed(2)}</span>
+        <span className="text-pos">${callWall.toFixed(0)}</span>
+      </div>
+      <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
+        <div
+          className={`absolute top-1/2 h-2.5 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full ${
+            outOfRange ? "bg-rose-400" : "bg-accent"
+          }`}
+          style={{ left: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
 
 // MacdBadge -- MACD's histogram has no natural fixed bound the way
 // RSI/IVR do (0-100) or price bands do (a real range), so rather than
@@ -229,7 +277,7 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
                 </button>
               </th>
               <th className="px-3 py-2 font-medium">Sector</th>
-              <th className="px-3 py-2 text-right font-medium">Price</th>
+              <th className="px-3 py-2 font-medium">Price vs Walls</th>
               <th className="px-3 py-2 font-medium">
                 <button onClick={() => toggleSort("bb")} className="flex items-center gap-1 hover:text-text">
                   BB
@@ -238,7 +286,6 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
               </th>
               <th className="px-3 py-2 font-medium">RSI</th>
               <th className="px-3 py-2 font-medium">MACD</th>
-              <th className="px-3 py-2 font-medium">Walls</th>
               <th className="px-3 py-2 font-medium">IVR</th>
               <th className="px-3 py-2" />
             </tr>
@@ -258,8 +305,8 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
                   )}
                 </td>
                 <td className="max-w-[180px] truncate px-3 py-2 text-xs text-muted">{r.sector || "—"}</td>
-                <td className="px-3 py-2 text-right tabular">
-                  {r.currentPrice != null ? `$${r.currentPrice.toFixed(2)}` : "—"}
+                <td className="px-3 py-2">
+                  <PriceWallsCell price={r.currentPrice} putWall={r.putWall} callWall={r.callWall} />
                 </td>
                 <td className="px-3 py-2">
                   {r.currentPrice != null && r.bollingerLower != null && r.bollingerUpper != null ? (
@@ -273,13 +320,6 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
                 </td>
                 <td className="px-3 py-2">
                   <MacdBadge line={r.macdLine} signal={r.macdSignal} />
-                </td>
-                <td className="px-3 py-2">
-                  {r.currentPrice != null && r.putWall != null && r.callWall != null ? (
-                    <Lever value={r.currentPrice} min={r.putWall} max={r.callWall} label="Walls" />
-                  ) : (
-                    <Lever value={null} min={0} max={1} label="Walls" />
-                  )}
                 </td>
                 <td className="px-3 py-2">
                   <Lever value={r.ivRank} min={0} max={100} label="IVR" buildingSamples={r.ivRankSamples} />
@@ -298,7 +338,7 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
             ))}
             {!loading && rows.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-3 py-8 text-center text-sm text-muted">
+                <td colSpan={8} className="px-3 py-8 text-center text-sm text-muted">
                   No active watchlist tickers.
                 </td>
               </tr>
