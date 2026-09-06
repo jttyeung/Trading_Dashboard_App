@@ -155,7 +155,48 @@ function bbPosition(r: WatchlistRow): number | null {
   return (r.currentPrice - r.bollingerLower) / range;
 }
 
-type SortKey = "ticker" | "bb";
+// wallsPosition mirrors bbPosition exactly, using the put/call gamma
+// walls as the range instead of the Bollinger Band -- same PriceWallsCell
+// math, same null-means-sort-to-the-end handling.
+function wallsPosition(r: WatchlistRow): number | null {
+  if (r.currentPrice == null || r.putWall == null || r.callWall == null) return null;
+  const range = r.callWall - r.putWall;
+  if (range === 0) return 0.5;
+  return (r.currentPrice - r.putWall) / range;
+}
+
+// compareNullable sorts two possibly-missing numbers, always pushing a
+// missing value to the end regardless of sort direction (matching every
+// other lever's own "no data" convention on this board).
+function compareNullable(av: number | null, bv: number | null, dir: 1 | -1): number {
+  if (av == null && bv == null) return 0;
+  if (av == null) return 1;
+  if (bv == null) return -1;
+  return (av - bv) * dir;
+}
+
+type SortKey = "ticker" | "bb" | "walls" | "rsi";
+
+function SortHeader({
+  label,
+  sortKeyName,
+  active,
+  dir,
+  onClick,
+}: {
+  label: string;
+  sortKeyName: SortKey;
+  active: SortKey;
+  dir: 1 | -1;
+  onClick: (key: SortKey) => void;
+}) {
+  return (
+    <button onClick={() => onClick(sortKeyName)} className="flex items-center gap-1 hover:text-text">
+      {label}
+      <span className="text-[9px]">{active === sortKeyName ? (dir === 1 ? "▲" : "▼") : "↕"}</span>
+    </button>
+  );
+}
 
 export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
   const [rows, setRows] = useState<WatchlistRow[]>([]);
@@ -178,13 +219,16 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
   const sorted = useMemo(() => {
     const list = [...rows];
     list.sort((a, b) => {
-      if (sortKey === "ticker") return a.ticker.localeCompare(b.ticker) * sortDir;
-      const av = bbPosition(a);
-      const bv = bbPosition(b);
-      if (av == null && bv == null) return 0;
-      if (av == null) return 1; // missing BB data always sorts to the end, regardless of direction
-      if (bv == null) return -1;
-      return (av - bv) * sortDir;
+      switch (sortKey) {
+        case "ticker":
+          return a.ticker.localeCompare(b.ticker) * sortDir;
+        case "bb":
+          return compareNullable(bbPosition(a), bbPosition(b), sortDir);
+        case "walls":
+          return compareNullable(wallsPosition(a), wallsPosition(b), sortDir);
+        case "rsi":
+          return compareNullable(a.rsi14, b.rsi14, sortDir);
+      }
     });
     return list;
   }, [rows, sortKey, sortDir]);
@@ -271,20 +315,18 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
           <thead>
             <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted">
               <th className="px-3 py-2 font-medium">
-                <button onClick={() => toggleSort("ticker")} className="flex items-center gap-1 hover:text-text">
-                  Ticker
-                  <span className="text-[9px]">{sortKey === "ticker" ? (sortDir === 1 ? "▲" : "▼") : "↕"}</span>
-                </button>
+                <SortHeader label="Ticker" sortKeyName="ticker" active={sortKey} dir={sortDir} onClick={toggleSort} />
               </th>
               <th className="px-3 py-2 font-medium">Sector</th>
-              <th className="px-3 py-2 font-medium">Price vs Walls</th>
               <th className="px-3 py-2 font-medium">
-                <button onClick={() => toggleSort("bb")} className="flex items-center gap-1 hover:text-text">
-                  BB
-                  <span className="text-[9px]">{sortKey === "bb" ? (sortDir === 1 ? "▲" : "▼") : "↕"}</span>
-                </button>
+                <SortHeader label="Price vs Walls" sortKeyName="walls" active={sortKey} dir={sortDir} onClick={toggleSort} />
               </th>
-              <th className="px-3 py-2 font-medium">RSI</th>
+              <th className="px-3 py-2 font-medium">
+                <SortHeader label="BB" sortKeyName="bb" active={sortKey} dir={sortDir} onClick={toggleSort} />
+              </th>
+              <th className="px-3 py-2 font-medium">
+                <SortHeader label="RSI" sortKeyName="rsi" active={sortKey} dir={sortDir} onClick={toggleSort} />
+              </th>
               <th className="px-3 py-2 font-medium">MACD</th>
               <th className="px-3 py-2 font-medium">IVR</th>
               <th className="px-3 py-2" />
