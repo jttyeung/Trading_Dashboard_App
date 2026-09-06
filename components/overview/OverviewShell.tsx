@@ -205,12 +205,14 @@ export function OverviewShell({
         </div>
 
         {tab === "desktop" && <PositionsTable options={options} alerts={alerts} />}
-        {tab === "bot" && <BotTable trades={generalBot.trades} myGrade={generalBot.myGrade} storageKey="general" />}
+        {tab === "bot" && (
+          <BotTable trades={generalBot.trades} myGrade={generalBot.myGrade} storageKey="general" exampleMode={exampleMode} />
+        )}
         {tab === "bot-safe" && (
-          <BotTable trades={safeBot.trades} myGrade={safeBot.myGrade} storageKey="20_delta_safe" />
+          <BotTable trades={safeBot.trades} myGrade={safeBot.myGrade} storageKey="20_delta_safe" exampleMode={exampleMode} />
         )}
         {tab === "bot-aggressive" && (
-          <BotTable trades={aggressiveBot.trades} myGrade={aggressiveBot.myGrade} storageKey="aggressive" />
+          <BotTable trades={aggressiveBot.trades} myGrade={aggressiveBot.myGrade} storageKey="aggressive" exampleMode={exampleMode} />
         )}
         {/* Always mounted (just hidden), unlike the other four tabs above --
             this panel does its own live fetch plus in-flight add/remove

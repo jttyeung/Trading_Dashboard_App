@@ -4,11 +4,12 @@
 // /bot renders full-width instead of the phone-frame shell.
 import { getGeneralBot } from "@/lib/bot";
 import { BotTable } from "@/components/bot/BotTable";
+import { isExampleMode } from "@/lib/example-mode";
 
 export const dynamic = "force-dynamic";
 
 export default async function GeneralBotPage() {
-  const snap = await getGeneralBot();
+  const [snap, exampleMode] = await Promise.all([getGeneralBot(), isExampleMode()]);
 
   return (
     <main className="min-h-screen w-full bg-bg px-6 py-6 text-text">
@@ -19,7 +20,7 @@ export default async function GeneralBotPage() {
           reasoning as the real digest, tracked here for review before it ever touches a real order.
         </p>
       </div>
-      <BotTable trades={snap.trades} myGrade={snap.myGrade} storageKey="general" />
+      <BotTable trades={snap.trades} myGrade={snap.myGrade} storageKey="general" exampleMode={exampleMode} />
     </main>
   );
 }

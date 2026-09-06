@@ -5,11 +5,12 @@
 // for why this renders full-width instead of the phone-frame shell.
 import { get20DeltaSafeBot } from "@/lib/bot";
 import { BotTable } from "@/components/bot/BotTable";
+import { isExampleMode } from "@/lib/example-mode";
 
 export const dynamic = "force-dynamic";
 
 export default async function DeltaSafeBotPage() {
-  const snap = await get20DeltaSafeBot();
+  const [snap, exampleMode] = await Promise.all([get20DeltaSafeBot(), isExampleMode()]);
 
   return (
     <main className="min-h-screen w-full bg-bg px-6 py-6 text-text">
@@ -20,7 +21,7 @@ export default async function DeltaSafeBotPage() {
           for near-zero assignment odds. Same review-queue workflow as the general bot.
         </p>
       </div>
-      <BotTable trades={snap.trades} myGrade={snap.myGrade} storageKey="20_delta_safe" />
+      <BotTable trades={snap.trades} myGrade={snap.myGrade} storageKey="20_delta_safe" exampleMode={exampleMode} />
     </main>
   );
 }
