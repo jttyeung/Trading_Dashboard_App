@@ -226,6 +226,27 @@ export interface BotTrade {
   itmOtm?: "ITM" | "OTM";
   personallySelected: boolean;
   grade?: BotGrade;
+  // annotationTags/annotationNote are the account holder's own freeform
+  // "why I thought this was/wasn't a good trade" notes -- editable any
+  // time via the dashboard, not frozen at post time.
+  annotationTags?: string;
+  annotationNote?: string;
+  // similarTrades surfaces past resolved trades that look like a
+  // plausible reference point for this one (same ticker first, then same
+  // strategy within a close delta band) -- cross-referenced at decision
+  // time instead of something to go dig up separately.
+  similarTrades?: SimilarTrade[];
+}
+
+export interface SimilarTrade {
+  ticker: string;
+  strategy: string;
+  delta: number;
+  outcome: string;
+  realizedPnl?: number;
+  annotationTags?: string;
+  annotationNote?: string;
+  closedAt?: string;
 }
 
 // The account holder's own approve/reject track record — a mirror for
