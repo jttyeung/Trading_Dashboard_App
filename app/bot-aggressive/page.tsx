@@ -10,11 +10,12 @@
 // the phone-frame shell.
 import { getAggressiveBot } from "@/lib/bot";
 import { BotTable } from "@/components/bot/BotTable";
+import { isExampleMode } from "@/lib/example-mode";
 
 export const dynamic = "force-dynamic";
 
 export default async function AggressiveBotPage() {
-  const snap = await getAggressiveBot();
+  const [snap, exampleMode] = await Promise.all([getAggressiveBot(), isExampleMode()]);
 
   return (
     <main className="min-h-screen w-full bg-bg px-6 py-6 text-text">
@@ -25,7 +26,7 @@ export default async function AggressiveBotPage() {
           paperbot-only, never a real suggestion. Same review-queue workflow as the other bots.
         </p>
       </div>
-      <BotTable trades={snap.trades} myGrade={snap.myGrade} storageKey="aggressive" />
+      <BotTable trades={snap.trades} myGrade={snap.myGrade} storageKey="aggressive" exampleMode={exampleMode} />
     </main>
   );
 }

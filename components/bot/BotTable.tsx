@@ -184,10 +184,12 @@ function AnnotationEditor({
   trade,
   onSaved,
   onError,
+  exampleMode,
 }: {
   trade: BotTrade;
   onSaved: (tags: string, note: string) => void;
   onError: () => void;
+  exampleMode: boolean;
 }) {
   const [tags, setTags] = useState(trade.annotationTags ?? "");
   const [note, setNote] = useState(trade.annotationNote ?? "");
@@ -195,6 +197,15 @@ function AnnotationEditor({
   const dirty = tags !== (trade.annotationTags ?? "") || note !== (trade.annotationNote ?? "");
 
   async function handleSave() {
+    // Example mode never calls the real localhost API -- there's no
+    // daemon to reach on a demo deployment, and even on the account
+    // holder's own machine this must never write real annotation data
+    // over a frozen demo row. Just update local state so the editor
+    // still feels interactive.
+    if (exampleMode) {
+      onSaved(tags, note);
+      return;
+    }
     setSaving(true);
     try {
       await annotateTrade(trade.id, tags, note);
@@ -238,7 +249,17 @@ function AnnotationEditor({
   );
 }
 
-export function BotTable({ trades, myGrade, storageKey }: { trades: BotTrade[]; myGrade: MyGradeSummary; storageKey: string }) {
+export function BotTable({
+  trades,
+  myGrade,
+  storageKey,
+  exampleMode = false,
+}: {
+  trades: BotTrade[];
+  myGrade: MyGradeSummary;
+  storageKey: string;
+  exampleMode?: boolean;
+}) {
   const [localTrades, setLocalTrades] = useState(trades);
   useEffect(() => setLocalTrades(trades), [trades]);
 
@@ -325,6 +346,11 @@ export function BotTable({ trades, myGrade, storageKey }: { trades: BotTrade[]; 
     const next: BotStatus = t.status === target ? "pending_approval" : target; // click an active thumb again to undo
     const prevStatus = t.status;
     setLocalTrades((cur) => cur.map((x) => (x.id === t.id ? { ...x, status: next } : x)));
+    // Example mode never calls the real localhost API -- no daemon to
+    // reach on a demo deployment, and even locally this must never write
+    // a real decision over a frozen demo row's fake id. The click still
+    // updates local state above so the table feels interactive.
+    if (exampleMode) return;
     try {
       await decideTrade(t.id, next);
     } catch {
@@ -336,6 +362,7 @@ export function BotTable({ trades, myGrade, storageKey }: { trades: BotTrade[]; 
   async function handlePersonalToggle(t: BotTrade) {
     const next = !t.personallySelected;
     setLocalTrades((cur) => cur.map((x) => (x.id === t.id ? { ...x, personallySelected: next } : x)));
+    if (exampleMode) return;
     try {
       await setPersonallySelected(t.id, next);
     } catch {
@@ -608,6 +635,7 @@ export function BotTable({ trades, myGrade, storageKey }: { trades: BotTrade[]; 
                         )
                       }
                       onError={showApiError}
+                      exampleMode={exampleMode}
                     />
                   </td>
                 </tr>

@@ -23,6 +23,8 @@ import type {
   SpreadCandidatesFile,
   SuggestionPerformanceFile,
   StrategyPerformanceFile,
+  BotSnapshot,
+  BotTrade,
 } from "./types";
 import type { ChartData, BollingerPoint, Cross } from "./chart-api";
 import type { WatchlistRow } from "./watchlist-api";
@@ -1061,4 +1063,126 @@ export function exampleWatchlistBoard(): WatchlistRow[] {
     { ticker: "COHR", company: "Coherent Corp", sector: "Photonics - Semiconductor", category: "wheel", source: "sheet", currentPrice: 306.43, bollingerUpper: 330.0, bollingerMid: 295.0, bollingerLower: 260.0, rsi14: 55.7, ivRank: null, ivRankSamples: 9, macdLine: 4.2, macdSignal: 3.1, macdHistogram: 1.1, callWall: 320.0, putWall: 290.0 },
     { ticker: "PANW", company: "Palo Alto Networks Inc", sector: "Cybersecurity", category: "wheel", source: "manual", currentPrice: 333.26, bollingerUpper: 355.0, bollingerMid: 320.0, bollingerLower: 285.0, rsi14: 44.1, ivRank: null, ivRankSamples: 3, macdLine: -1.2, macdSignal: -0.6, macdHistogram: -0.6, callWall: null, putWall: null },
   ];
+}
+
+// exampleBotTrade fills in every field a real BotTrade row needs, with
+// sensible always-off defaults for the ones the account holder explicitly
+// asked NOT to expose in demo mode: status is always "pending_approval"
+// (no approve/reject judgment shown) and personallySelected is always
+// false (no "Mine" state shown) -- see the three exampleXBot functions
+// below for why. decidedAt/outcome/grade/annotationTags/annotationNote/
+// similarTrades are all omitted for the same reason -- none of it is
+// real judgment or real outcome data to reveal.
+function exampleBotTrade(base: {
+  id: number;
+  ticker: string;
+  strategy: string;
+  strike: number;
+  expiration: string;
+  dteAtPost: number;
+  delta: number;
+  ivPercent: number;
+  premium: number;
+  rorPct: number;
+  annualizedRorPct: number;
+  score: number;
+  rationale: string;
+  stockPriceAtPost: number;
+  postedAt: string;
+}): BotTrade {
+  const occExp = base.expiration.replace(/-/g, "").slice(2); // "2026-10-02" -> "261002"
+  const strikeStr = String(Math.round(base.strike * 1000)).padStart(8, "0");
+  return {
+    id: base.id,
+    ticker: base.ticker,
+    strategy: base.strategy,
+    // Every wheel-bot strategy here (CSP/CSP_SAFE/CSP_AGGRESSIVE) is a
+    // short put, so the OCC symbol's put/call letter is always "P".
+    contractSymbol: `${base.ticker.padEnd(6)}${occExp}P${strikeStr}`,
+    strike: base.strike,
+    expiration: base.expiration,
+    dteAtPost: base.dteAtPost,
+    delta: base.delta,
+    ivPercent: base.ivPercent,
+    premium: base.premium,
+    premiumTotal: Math.round(base.premium * 100 * 100) / 100,
+    breakeven: Math.round((base.strike - base.premium) * 100) / 100,
+    rorPct: base.rorPct,
+    annualizedRorPct: base.annualizedRorPct,
+    score: base.score,
+    rationale: base.rationale,
+    stockPriceAtPost: base.stockPriceAtPost,
+    postedAt: base.postedAt,
+    status: "pending_approval",
+    personallySelected: false,
+  };
+}
+
+function exampleMyGrade(tradeCount: number) {
+  return { goodCalls: 0, riskRealized: 0, missedWins: 0, goodPasses: 0, ungraded: tradeCount };
+}
+
+// exampleGeneralBot/example20DeltaSafeBot/exampleAggressiveBot are the
+// three paper-bot review tables' demo-mode data. Per the account
+// holder's own explicit ask: real numbers (strike/delta/premium/ROR/
+// score, in the same ballpark as this app's own real historical trades
+// for these same shortlist tickers) frozen at two fixed past dates,
+// rather than a live/procedural feed -- but with fresh, hand-written
+// rationale text (not copied from any real row) and status/
+// personallySelected always at their neutral defaults, since a demo
+// viewer should never see the account holder's own real approve/reject
+// judgment or "Mine" picks. Uses the same shortlist roster as
+// exampleWatchlistBoard above, for consistency across the demo dataset.
+export function exampleGeneralBot(): BotSnapshot {
+  const trades = [
+    exampleBotTrade({
+      id: 9001, ticker: "COHR", strategy: "CSP", strike: 250, expiration: "2026-10-02", dteAtPost: 31,
+      delta: -0.3, ivPercent: 66.5, premium: 11.3, rorPct: 4.52, annualizedRorPct: 53.2, score: 8.8,
+      rationale: "Near the lower Bollinger band with a supportive put wall at $250; positive theta of $30/day; within sector and portfolio allocation caps.",
+      stockPriceAtPost: 271.17, postedAt: "2026-09-01T20:01:50Z",
+    }),
+    exampleBotTrade({
+      id: 9002, ticker: "SOFI", strategy: "CSP", strike: 16.5, expiration: "2026-09-25", dteAtPost: 23,
+      delta: -0.33, ivPercent: 46.3, premium: 0.46, rorPct: 2.79, annualizedRorPct: 44.2, score: 8.9,
+      rationale: "At/below the lower Bollinger band with a supportive put wall at $17; positive gamma (stable); within sector and portfolio allocation caps.",
+      stockPriceAtPost: 17.22, postedAt: "2026-09-02T13:46:44Z",
+    }),
+  ];
+  return { generatedAt: "2026-09-02T13:46:44Z", bot: "general", trades, myGrade: exampleMyGrade(trades.length) };
+}
+
+export function example20DeltaSafeBot(): BotSnapshot {
+  const trades = [
+    exampleBotTrade({
+      id: 9101, ticker: "SOFI", strategy: "CSP_SAFE", strike: 15.0, expiration: "2026-09-25", dteAtPost: 24,
+      delta: -0.12, ivPercent: 47.5, premium: 0.135, rorPct: 0.9, annualizedRorPct: 13.7, score: 4.3,
+      rationale: "Deep OTM 0.12 delta, near-zero assignment odds by design; MACD just crossed bearish; positive gamma (stable).",
+      stockPriceAtPost: 17.16, postedAt: "2026-09-01T20:01:50Z",
+    }),
+    exampleBotTrade({
+      id: 9102, ticker: "COHR", strategy: "CSP_SAFE", strike: 210.0, expiration: "2026-10-16", dteAtPost: 45,
+      delta: -0.12, ivPercent: 71.0, premium: 4.45, rorPct: 2.12, annualizedRorPct: 17.2, score: 4.0,
+      rationale: "Near the lower Bollinger band, deep OTM 0.12 delta; negative gamma (volatile), a secondary caution flag only.",
+      stockPriceAtPost: 271.17, postedAt: "2026-09-01T20:01:50Z",
+    }),
+  ];
+  return { generatedAt: "2026-09-01T20:01:50Z", bot: "20_delta_safe", trades, myGrade: exampleMyGrade(trades.length) };
+}
+
+export function exampleAggressiveBot(): BotSnapshot {
+  const trades = [
+    exampleBotTrade({
+      id: 9201, ticker: "AMD", strategy: "CSP_AGGRESSIVE", strike: 437.5, expiration: "2026-09-11", dteAtPost: 8,
+      delta: -0.25, ivPercent: 43.8, premium: 4.55, rorPct: 1.04, annualizedRorPct: 47.5, score: 7.7,
+      rationale: "Short-dated 8 DTE, 0.25 delta; near the lower Bollinger band; clears the 40%+ annualized-return floor this bot requires.",
+      stockPriceAtPost: 455.89, postedAt: "2026-09-03T20:32:55Z",
+    }),
+    exampleBotTrade({
+      id: 9202, ticker: "NVDA", strategy: "CSP_AGGRESSIVE", strike: 225, expiration: "2026-09-12", dteAtPost: 10,
+      delta: -0.22, ivPercent: 48.0, premium: 2.5, rorPct: 1.11, annualizedRorPct: 40.6, score: 6.9,
+      rationale: "Short-dated 10 DTE, 0.22 delta; at the put wall; clears the 40%+ annualized-return floor this bot requires.",
+      stockPriceAtPost: 235.4, postedAt: "2026-09-02T18:10:00Z",
+    }),
+  ];
+  return { generatedAt: "2026-09-03T20:32:55Z", bot: "aggressive", trades, myGrade: exampleMyGrade(trades.length) };
 }
