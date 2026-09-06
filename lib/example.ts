@@ -1021,6 +1021,10 @@ export function exampleChartData(symbol: string): ChartData {
 
   return {
     symbol,
+    // No real company database for an arbitrary searched symbol in demo
+    // mode -- a plain placeholder, same "plausible but plainly synthetic"
+    // spirit as the rest of this file's example data.
+    companyName: `${symbol} Corp`,
     spotPrice: spot,
     dates,
     open,

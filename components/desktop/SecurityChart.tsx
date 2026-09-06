@@ -313,8 +313,11 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
       {data && (
         <Card className="mt-1 px-2 py-2">
           <div className="mb-1 flex items-center justify-between px-2 text-xs text-muted">
-            <span className="font-medium text-text">{data.symbol}</span>
-            <span className="tabular">${data.spotPrice.toFixed(2)}</span>
+            <span className="min-w-0 truncate">
+              <span className="font-medium text-text">{data.symbol}</span>
+              {data.companyName && <span className="ml-1.5 truncate">{data.companyName}</span>}
+            </span>
+            <span className="tabular shrink-0">${data.spotPrice.toFixed(2)}</span>
           </div>
           <div className="mb-1 flex items-center gap-3 px-2 text-xs text-muted">
             <span className="flex items-center gap-1">
