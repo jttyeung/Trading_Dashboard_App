@@ -36,7 +36,10 @@ const BAND_COLOR = "#60a5fa";
 const SMA50_COLOR = "#c084fc";
 const SMA200_COLOR = "#f59e0b";
 const MACD_LINE_COLOR = "#60a5fa";
-const MACD_SIGNAL_COLOR = "#f59e0b";
+// Light gray, not orange -- orange was also SMA200's color one pane up,
+// and (per the account holder's own ask) too close in weight to the blue
+// MACD line to tell at a glance which one crosses which.
+const MACD_SIGNAL_COLOR = "#9ca3af";
 const RSI_COLOR = "#a78bfa";
 
 function toTime(dateStr: string): UTCTimestamp {
