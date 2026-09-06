@@ -2,14 +2,13 @@
 
 // On-demand 2-year daily chart: candles + Bollinger Bands + 50/200-day SMA
 // overlaid on the main pane (with golden/death cross markers where the two
-// SMAs cross), call/put-wall + gamma-flip reference lines, MACD/RSI in
-// their own panes underneath, and a draggable price/date ruler (see "+
-// Price line" below). Talks to internal/chartapi's localhost-only API
-// (see lib/chart-api.ts) -- computed fresh per search rather than
+// SMAs cross), call/put-wall + gamma-flip reference lines, and MACD/RSI in
+// their own panes underneath. Talks to internal/chartapi's localhost-only
+// API (see lib/chart-api.ts) -- computed fresh per search rather than
 // pre-built for the whole watchlist, since most of the ~70+ watchlist
 // names won't be looked at in a given session (see CLAUDE.md's
 // "on-demand security chart" entry).
-import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   createChart,
   createSeriesMarkers,
@@ -50,22 +49,6 @@ function toTime(dateStr: string): UTCTimestamp {
   return (Date.parse(dateStr + "T00:00:00Z") / 1000) as UTCTimestamp;
 }
 
-function formatUTCDate(ts: number): string {
-  return new Date(ts * 1000).toLocaleDateString(undefined, {
-    timeZone: "UTC",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-interface Pin {
-  top: number; // px within the chart container, clamped to the main pane
-  left: number; // px within the chart container
-  price: number;
-  date: string | null; // null when dragged over an area with no plotted bar
-}
-
 export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[]; exampleMode: boolean }) {
   const [symbolInput, setSymbolInput] = useState("");
   const [activeSymbol, setActiveSymbol] = useState<string | null>(null);
@@ -75,68 +58,6 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
 
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
-  const draggingRef = useRef(false);
-
-  // A draggable horizontal ruler pinned over the candles -- drag it to any
-  // (x, y) and it reports the price at that height plus the date under the
-  // cursor at drop time, so you can read off "what price/date am I at"
-  // without needing to hold the mouse in place (unlike the library's own
-  // hover-only crosshair, this stays put after you let go).
-  const [pin, setPin] = useState<Pin | null>(null);
-
-  const computePin = useCallback((clientX: number, clientY: number) => {
-    const container = containerRef.current;
-    const chart = chartRef.current;
-    const series = candleSeriesRef.current;
-    if (!container || !chart || !series) return;
-    const rect = container.getBoundingClientRect();
-    const mainPaneHeight = chart.panes()[0]?.getHeight() ?? rect.height;
-    const x = Math.min(Math.max(clientX - rect.left, 0), rect.width);
-    const y = Math.min(Math.max(clientY - rect.top, 0), mainPaneHeight);
-    const price = series.coordinateToPrice(y);
-    if (price == null) return;
-    const time = chart.timeScale().coordinateToTime(x);
-    setPin({ top: y, left: x, price, date: time != null ? formatUTCDate(time as number) : null });
-  }, []);
-
-  const startDrag = useCallback(
-    (e: ReactMouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      draggingRef.current = true;
-      computePin(e.clientX, e.clientY);
-      const onMove = (ev: MouseEvent) => {
-        if (draggingRef.current) computePin(ev.clientX, ev.clientY);
-      };
-      const onUp = () => {
-        draggingRef.current = false;
-        window.removeEventListener("mousemove", onMove);
-        window.removeEventListener("mouseup", onUp);
-      };
-      window.addEventListener("mousemove", onMove);
-      window.addEventListener("mouseup", onUp);
-    },
-    [computePin],
-  );
-
-  function addPriceLine() {
-    // Anchors the new line at today's spot price and the chart's last
-    // plotted date (converted to pixels via priceToCoordinate/
-    // timeToCoordinate) rather than the raw geometric center of the
-    // canvas -- the earlier version always landed at the exact same
-    // pixel regardless of ticker or price history, which meant "+ Price
-    // line" always reported the same price/date, since a fixed pixel
-    // position has no relationship to the data underneath it.
-    const chart = chartRef.current;
-    const series = candleSeriesRef.current;
-    if (!chart || !series || !data || data.dates.length === 0) return;
-    const lastTime = toTime(data.dates[data.dates.length - 1]);
-    const top = series.priceToCoordinate(data.spotPrice);
-    const left = chart.timeScale().timeToCoordinate(lastTime);
-    if (top == null || left == null) return;
-    setPin({ top, left, price: data.spotPrice, date: formatUTCDate(lastTime) });
-  }
 
   function search(symbol: string) {
     const s = symbol.trim().toUpperCase();
@@ -179,7 +100,6 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
 
   useEffect(() => {
     if (!data || !containerRef.current) return;
-    setPin(null); // stale pixel coordinates from the previous chart instance
 
     const chart = createChart(containerRef.current, {
       layout: { background: { color: "transparent" }, textColor: "#9ca3af" },
@@ -201,7 +121,6 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
       height: 720,
     });
     chartRef.current = chart;
-    candleSeriesRef.current = null;
 
     const times = data.dates.map(toTime);
 
@@ -222,7 +141,6 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
         close: data.close[i],
       })),
     );
-    candleSeriesRef.current = candleSeries;
 
     const bandSeries: ISeriesApi<"Line">[] = [];
     (["upper", "mid", "lower"] as const).forEach((key, idx) => {
@@ -363,7 +281,6 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
       window.removeEventListener("resize", resize);
       chart.remove();
       chartRef.current = null;
-      candleSeriesRef.current = null;
     };
   }, [data]);
 
@@ -389,14 +306,6 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
         >
           Chart
         </button>
-        {data && (
-          <button
-            onClick={() => (pin ? setPin(null) : addPriceLine())}
-            className="rounded-md bg-surface-2 px-3 py-1.5 text-sm font-medium ring-1 ring-inset ring-border active:opacity-70"
-          >
-            {pin ? "Remove line" : "+ Price line"}
-          </button>
-        )}
         {loading && <span className="text-xs text-muted">loading…</span>}
         {error && <span className="text-xs text-rose-400">{error}</span>}
       </div>
@@ -427,39 +336,7 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
               Last Close
             </span>
           </div>
-          <div className="relative">
-            <div ref={containerRef} />
-            {pin && (
-              <>
-                {/* Visible dashed ruler line -- z-10 is required: lightweight-charts'
-                    own canvas elements are inline-styled to z-index: 2, which sits
-                    above an unstyled (z-index: auto) sibling regardless of DOM order. */}
-                <div
-                  className="pointer-events-none absolute left-0 right-0 z-10 border-t border-dashed border-text/50"
-                  style={{ top: pin.top }}
-                />
-                {/* Wider invisible strip for an easy drag target */}
-                <div
-                  onMouseDown={startDrag}
-                  className="absolute left-0 right-0 z-10 cursor-ns-resize"
-                  style={{ top: pin.top - 5, height: 10 }}
-                  title="Drag to read off price and date"
-                />
-                {/* Price + date readout, follows the last drag position */}
-                <div
-                  className="pointer-events-none absolute z-10 flex items-center gap-1 whitespace-nowrap rounded-md bg-surface-2 px-2 py-1 text-xs font-medium tabular text-text shadow-sm ring-1 ring-inset ring-border"
-                  style={{
-                    top: pin.top,
-                    left: Math.min(Math.max(pin.left, 60), (containerRef.current?.clientWidth ?? 200) - 60),
-                    transform: "translate(-50%, -50%)",
-                  }}
-                >
-                  ${pin.price.toFixed(2)}
-                  {pin.date && <span className="text-muted">· {pin.date}</span>}
-                </div>
-              </>
-            )}
-          </div>
+          <div ref={containerRef} />
         </Card>
       )}
 
