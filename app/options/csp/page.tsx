@@ -12,11 +12,24 @@ import { getClosedCsps } from "@/lib/csp-closed";
 import { getClosedLeaps } from "@/lib/leaps-closed";
 import { getCspCandidates } from "@/lib/csp-candidates";
 import { parseClosedWindow } from "@/lib/date-range";
-import type { OptionPosition } from "@/lib/types";
+import { annualizedReturn } from "@/lib/csp-model";
+import type { CSPCandidate, OptionPosition } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 const isCsp = (o: OptionPosition) => o.kind === "csp";
+
+// Beyond 20 DTE, tying up capital longer only makes sense at a real yield —
+// the account holder's own floor, given directly: nothing past 20 DTE under
+// a 20% annualized return. 20 DTE and under has no such floor.
+const CANDIDATE_MAX_DTE = 35;
+const CANDIDATE_LONG_DTE_FLOOR = 20;
+const CANDIDATE_LONG_DTE_MIN_ANNUALIZED = 0.20;
+function passesCandidateFilters(c: CSPCandidate): boolean {
+  if (c.dte > CANDIDATE_MAX_DTE) return false;
+  if (c.dte > CANDIDATE_LONG_DTE_FLOOR && annualizedReturn(c) < CANDIDATE_LONG_DTE_MIN_ANNUALIZED) return false;
+  return true;
+}
 
 function toCspFilter(v: string | undefined): CspFilter | undefined {
   return v === "atrisk" || v === "rollable" || v === "hold" ? v : undefined;
@@ -45,7 +58,7 @@ export default async function OptionsCspPage({
   const closedCsps = (await getClosedCsps()).closed.filter((c) => !sym || c.symbol.toUpperCase() === sym);
   const closedLeaps = (await getClosedLeaps()).closed.filter((c) => !sym || c.symbol.toUpperCase() === sym);
   const cspCandidates = (await getCspCandidates()).candidates.filter(
-    (c) => c.dte <= 35 && (!sym || c.symbol.toUpperCase() === sym),
+    (c) => passesCandidateFilters(c) && (!sym || c.symbol.toUpperCase() === sym),
   );
 
   return (
