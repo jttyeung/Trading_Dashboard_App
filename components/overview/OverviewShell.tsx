@@ -195,7 +195,16 @@ export function OverviewShell({
         {tab === "bot-aggressive" && (
           <BotTable trades={aggressiveBot.trades} myGrade={aggressiveBot.myGrade} storageKey="aggressive" />
         )}
-        {tab === "chart" && <SecurityChart watchlist={heldTickers} exampleMode={exampleMode} />}
+        {/* Always mounted (just hidden), unlike the other four tabs above --
+            a chart search does its own on-demand chartapi fetch + builds a
+            real lightweight-charts instance with draggable-line state, all
+            of which a conditional mount/unmount would throw away every time
+            you switched tabs and come back to an empty "search a ticker"
+            placeholder. `hidden` (display: none) keeps SecurityChart's own
+            state and its chart instance alive underneath. */}
+        <div className={tab === "chart" ? "" : "hidden"}>
+          <SecurityChart watchlist={heldTickers} exampleMode={exampleMode} />
+        </div>
       </main>
     </div>
   );
