@@ -383,6 +383,16 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
             <span className="font-medium text-text">{data.symbol}</span>
             <span className="tabular">${data.spotPrice.toFixed(2)}</span>
           </div>
+          <div className="mb-1 flex items-center gap-3 px-2 text-xs text-muted">
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-0.5 w-3" style={{ backgroundColor: SMA50_COLOR }} />
+              SMA 50
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-0.5 w-3" style={{ backgroundColor: SMA200_COLOR }} />
+              SMA 200
+            </span>
+          </div>
           <div className="relative">
             <div ref={containerRef} />
             {pin && (
