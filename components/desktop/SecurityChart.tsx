@@ -1,8 +1,9 @@
 "use client";
 
-// On-demand 2-year daily chart: candles + Bollinger Bands + 200-day SMA
-// overlaid on the main pane, call/put-wall + gamma-flip reference lines,
-// and MACD/RSI in their own panes underneath. Talks to
+// On-demand 2-year daily chart: candles + Bollinger Bands + 50/200-day SMA
+// overlaid on the main pane (with golden/death cross markers where the two
+// SMAs cross), call/put-wall + gamma-flip reference lines, and MACD/RSI in
+// their own panes underneath. Talks to
 // internal/chartapi's localhost-only API (see lib/chart-api.ts) --
 // computed fresh per search rather than pre-built for the whole
 // watchlist, since most of the ~70+ watchlist names won't be looked at in
@@ -10,11 +11,13 @@
 import { useEffect, useRef, useState } from "react";
 import {
   createChart,
+  createSeriesMarkers,
   CandlestickSeries,
   LineSeries,
   HistogramSeries,
   type IChartApi,
   type ISeriesApi,
+  type SeriesMarker,
   type UTCTimestamp,
 } from "lightweight-charts";
 import { Card } from "@/components/ui";
@@ -24,6 +27,7 @@ import { exampleChartData } from "@/lib/example";
 const UP_COLOR = "#34d399";
 const DOWN_COLOR = "#f87171";
 const BAND_COLOR = "#60a5fa";
+const SMA50_COLOR = "#c084fc";
 const SMA200_COLOR = "#f59e0b";
 const MACD_LINE_COLOR = "#60a5fa";
 const MACD_SIGNAL_COLOR = "#f59e0b";
@@ -141,6 +145,19 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
       bandSeries.push(s);
     });
 
+    const sma50Series = chart.addSeries(LineSeries, {
+      color: SMA50_COLOR,
+      lineWidth: 1,
+      crosshairMarkerVisible: false,
+      lastValueVisible: false,
+      priceLineVisible: false,
+    });
+    sma50Series.setData(
+      times
+        .map((time, i) => ({ time, value: data.sma50[i] }))
+        .filter((p): p is { time: UTCTimestamp; value: number } => p.value != null),
+    );
+
     const sma200Series = chart.addSeries(LineSeries, {
       color: SMA200_COLOR,
       lineWidth: 2,
@@ -153,6 +170,21 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
         .map((time, i) => ({ time, value: data.sma200[i] }))
         .filter((p): p is { time: UTCTimestamp; value: number } => p.value != null),
     );
+
+    // Golden cross (50-day SMA crossing above the 200-day) / death cross
+    // (crossing below) -- every occurrence in the 2-year window, not just
+    // the latest, mirroring quant/indicators.py's detect_all_crosses.
+    // Placed on the candle series (not either SMA line) so the marker sits
+    // relative to real price action, which is what the crossover is meant
+    // to say something about.
+    const crossMarkers: SeriesMarker<UTCTimestamp>[] = data.crosses.map((c) => ({
+      time: toTime(c.date),
+      position: c.type === "golden" ? "belowBar" : "aboveBar",
+      color: c.type === "golden" ? UP_COLOR : DOWN_COLOR,
+      shape: c.type === "golden" ? "arrowUp" : "arrowDown",
+      text: c.type === "golden" ? "✨ Golden Cross" : "💀 Death Cross",
+    }));
+    createSeriesMarkers(candleSeries, crossMarkers);
 
     for (const [price, title, color] of [
       [data.callWall, "Call Wall", UP_COLOR],
@@ -275,8 +307,8 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
 
       {!data && !loading && !error && (
         <Card className="mt-1 px-4 py-8 text-center text-sm text-muted">
-          Search a ticker above for a 2-year daily chart with Bollinger Bands, MACD, RSI, 200-day SMA, and today's
-          call/put walls.
+          Search a ticker above for a 2-year daily chart with Bollinger Bands, MACD, RSI, 50/200-day SMA with
+          golden/death cross markers, and today's call/put walls.
         </Card>
       )}
     </div>

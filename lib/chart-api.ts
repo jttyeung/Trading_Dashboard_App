@@ -26,6 +26,11 @@ export interface BollingerPoint {
   lower: number;
 }
 
+export interface Cross {
+  date: string;
+  type: "golden" | "death";
+}
+
 export interface ChartData {
   symbol: string;
   spotPrice: number;
@@ -41,7 +46,10 @@ export interface ChartData {
     histogram: (number | null)[];
   };
   rsi14: (number | null)[];
+  sma50: (number | null)[];
   sma200: (number | null)[];
+  // Every 50/200-day SMA golden/death cross across the chart's history.
+  crosses: Cross[];
   callWall: number | null;
   putWall: number | null;
   gammaFlip: number | null;
