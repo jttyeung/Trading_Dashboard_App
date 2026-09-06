@@ -14,6 +14,7 @@ import {
   createChart,
   createSeriesMarkers,
   CandlestickSeries,
+  CrosshairMode,
   LineSeries,
   HistogramSeries,
   type IChartApi,
@@ -185,6 +186,12 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
       grid: { vertLines: { color: "#27272a" }, horzLines: { color: "#27272a" } },
       rightPriceScale: { borderColor: "#3f3f46" },
       timeScale: { borderColor: "#3f3f46", timeVisible: false },
+      // Default is CrosshairMode.Magnet, which snaps the horizontal line
+      // to each bar's close price instead of tracking the actual cursor
+      // position -- read by the account holder as the crosshair "not
+      // moving smoothly." Normal lets both lines follow the mouse
+      // continuously.
+      crosshair: { mode: CrosshairMode.Normal },
       // Total height across all three panes combined -- the container div
       // has no CSS height of its own, and lightweight-charts sizes off this
       // value at creation time; leaving it unset (or too small) collapses
