@@ -4,6 +4,7 @@
 // CSP board (tap a row for the full read), the VRP heat map by group, and a
 // collapsible steer-clear list of names that failed the gates.
 import { Fragment, useMemo } from "react";
+import Link from "next/link";
 import { usePersistentState } from "@/lib/view-state";
 import { Card } from "@/components/ui";
 import { DataRefresh } from "@/components/DataRefresh";
@@ -233,6 +234,12 @@ function BoardRow({ row, highlight = false }: { row: AmBoardRow; highlight?: boo
             {g && (<><span>Gamma</span><span className="text-right text-text">{g.net === "pos" ? "positive" : "negative"} · flip {g.flip != null ? `$${g.flip}` : "—"} · wall ${g.callWall ?? "—"}/{g.putWall ?? "—"}</span></>)}
             <span>Group</span><span className="text-right text-text">{row.group}</span>
           </div>
+          <Link
+            href={`/options/csp?view=candidates&symbol=${row.sym}`}
+            className="mt-2 block rounded bg-surface-2 px-2 py-1.5 text-center text-[11px] font-medium text-accent hover:bg-surface-2/70"
+          >
+            View all {row.sym} strikes in Candidates →
+          </Link>
         </div>
       )}
     </div>
