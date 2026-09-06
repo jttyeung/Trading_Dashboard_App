@@ -90,7 +90,7 @@ const HEADINGS: Record<Tab, { title: string; subtitle: string }> = {
   },
   chart: {
     title: "Lookup a Ticker",
-    subtitle: "2 years of daily candles with Bollinger Bands, MACD, RSI, 200-day SMA, and today's call/put walls — computed on demand for whichever ticker you search.",
+    subtitle: "2 years of daily candles with Bollinger Bands, MACD, RSI, 50/200-day SMA with golden/death cross markers, and today's call/put walls — computed on demand for whichever ticker you search.",
   },
 };
 
