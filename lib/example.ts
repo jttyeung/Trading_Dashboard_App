@@ -24,7 +24,7 @@ import type {
   SuggestionPerformanceFile,
   StrategyPerformanceFile,
 } from "./types";
-import type { ChartData, BollingerPoint } from "./chart-api";
+import type { ChartData, BollingerPoint, Cross } from "./chart-api";
 
 const ACC = "EX000000"; // primary margin account
 const IRA = "EX000001"; // second account, to exercise the account switcher
@@ -957,6 +957,25 @@ function bollingerSeriesTS(closes: number[], period = 20, numStd = 2): (Bollinge
   return result;
 }
 
+// Mirrors quant/indicators.py's detect_all_crosses -- every 50/200-day SMA
+// golden/death cross across the full history, not just the latest one.
+function detectAllCrossesTS(dates: string[], short: (number | null)[], long_: (number | null)[]): Cross[] {
+  const validIdxs: number[] = [];
+  for (let i = 0; i < short.length; i++) {
+    if (short[i] != null && long_[i] != null) validIdxs.push(i);
+  }
+  const crosses: Cross[] = [];
+  for (let k = 0; k < validIdxs.length - 1; k++) {
+    const prevI = validIdxs[k];
+    const curI = validIdxs[k + 1];
+    const prevDiff = (short[prevI] as number) - (long_[prevI] as number);
+    const curDiff = (short[curI] as number) - (long_[curI] as number);
+    if (prevDiff <= 0 && curDiff > 0) crosses.push({ date: dates[curI], type: "golden" });
+    else if (prevDiff >= 0 && curDiff < 0) crosses.push({ date: dates[curI], type: "death" });
+  }
+  return crosses;
+}
+
 const CHART_DAYS = 504; // ~2 trading years, matching a real chartapi response
 
 function chartTradingDates(days: number): string[] {
@@ -996,6 +1015,8 @@ export function exampleChartData(symbol: string): ChartData {
   const high = closes.map((c, i) => Math.round(Math.max(c, open[i]) * (1 + Math.abs(Math.sin(i * 0.9)) * 0.006) * 100) / 100);
   const low = closes.map((c, i) => Math.round(Math.min(c, open[i]) * (1 - Math.abs(Math.cos(i * 0.9)) * 0.006) * 100) / 100);
   const spot = closes[closes.length - 1];
+  const sma50 = smaSeriesTS(closes, 50);
+  const sma200 = smaSeriesTS(closes, 200);
 
   return {
     symbol,
@@ -1008,7 +1029,9 @@ export function exampleChartData(symbol: string): ChartData {
     bollinger: bollingerSeriesTS(closes),
     macd: macdTS(closes),
     rsi14: rsiSeriesTS(closes),
-    sma200: smaSeriesTS(closes, 200),
+    sma50,
+    sma200,
+    crosses: detectAllCrossesTS(dates, sma50, sma200),
     callWall: Math.round((spot * 1.05) / 5) * 5,
     putWall: Math.round((spot * 0.95) / 5) * 5,
     gammaFlip: Math.round(spot * 1.01 * 100) / 100,
