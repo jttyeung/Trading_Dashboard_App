@@ -27,6 +27,11 @@ import { exampleChartData } from "@/lib/example";
 
 const UP_COLOR = "#34d399";
 const DOWN_COLOR = "#f87171";
+// A distinct green from UP_COLOR -- Call Wall used to share the exact same
+// shade as up-candles/the Last Close line, which read as "one thing," not
+// three. Teal reads as clearly green (still "the bullish-ish side") without
+// being visually interchangeable with them.
+const CALL_WALL_COLOR = "#0d9488";
 const BAND_COLOR = "#60a5fa";
 const SMA50_COLOR = "#c084fc";
 const SMA200_COLOR = "#f59e0b";
@@ -112,12 +117,21 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
   );
 
   function addPriceLine() {
-    const container = containerRef.current;
+    // Anchors the new line at today's spot price and the chart's last
+    // plotted date (converted to pixels via priceToCoordinate/
+    // timeToCoordinate) rather than the raw geometric center of the
+    // canvas -- the earlier version always landed at the exact same
+    // pixel regardless of ticker or price history, which meant "+ Price
+    // line" always reported the same price/date, since a fixed pixel
+    // position has no relationship to the data underneath it.
     const chart = chartRef.current;
-    if (!container || !chart) return;
-    const rect = container.getBoundingClientRect();
-    const mainPaneHeight = chart.panes()[0]?.getHeight() ?? rect.height;
-    computePin(rect.left + rect.width / 2, rect.top + mainPaneHeight / 2);
+    const series = candleSeriesRef.current;
+    if (!chart || !series || !data || data.dates.length === 0) return;
+    const lastTime = toTime(data.dates[data.dates.length - 1]);
+    const top = series.priceToCoordinate(data.spotPrice);
+    const left = chart.timeScale().timeToCoordinate(lastTime);
+    if (top == null || left == null) return;
+    setPin({ top, left, price: data.spotPrice, date: formatUTCDate(lastTime) });
   }
 
   function search(symbol: string) {
@@ -260,7 +274,7 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
     createSeriesMarkers(candleSeries, crossMarkers);
 
     for (const [price, title, color] of [
-      [data.callWall, "Call Wall", UP_COLOR],
+      [data.callWall, "Call Wall", CALL_WALL_COLOR],
       [data.putWall, "Put Wall", DOWN_COLOR],
       [data.gammaFlip, "Gamma Flip", "#a1a1aa"],
     ] as const) {
