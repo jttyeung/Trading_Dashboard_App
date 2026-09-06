@@ -392,6 +392,16 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
               <span className="inline-block h-0.5 w-3" style={{ backgroundColor: SMA200_COLOR }} />
               SMA 200
             </span>
+            <span className="flex items-center gap-1">
+              <span
+                className="inline-block h-0.5 w-3"
+                style={{
+                  backgroundColor:
+                    data.close[data.close.length - 1] >= data.open[data.open.length - 1] ? UP_COLOR : DOWN_COLOR,
+                }}
+              />
+              Last Close
+            </span>
           </div>
           <div className="relative">
             <div ref={containerRef} />
