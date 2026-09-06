@@ -93,13 +93,13 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
       grid: { vertLines: { color: "#27272a" }, horzLines: { color: "#27272a" } },
       rightPriceScale: { borderColor: "#3f3f46" },
       timeScale: { borderColor: "#3f3f46", timeVisible: false },
-      // Total height, not just the main pane's -- the container div has no
-      // CSS height of its own, and lightweight-charts sizes off this value
-      // at creation time. Sized to comfortably fit all three panes' own
-      // setHeight calls below (360 + 140 + 140); leaving this unset (or
-      // too small) collapses the container to zero/near-zero height, since
-      // a later panes[i].setHeight() doesn't retroactively grow it.
-      height: 640,
+      // Total height across all three panes combined -- the container div
+      // has no CSS height of its own, and lightweight-charts sizes off this
+      // value at creation time; leaving it unset (or too small) collapses
+      // the container to zero/near-zero height. The panes' own relative
+      // split below (setStretchFactor) divides this total, so it's this
+      // number alone that controls how tall the whole chart actually is.
+      height: 720,
     });
     chartRef.current = chart;
 
@@ -208,10 +208,19 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
     rsiSeries.createPriceLine({ price: 70, color: "#52525b", lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: "70" });
     rsiSeries.createPriceLine({ price: 30, color: "#52525b", lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: "30" });
 
+    // lightweight-charts v5 sizes panes by RELATIVE stretch factor, not a
+    // persistent pixel height -- setHeight() exists but only converts to an
+    // equivalent stretch factor at that exact moment, which then gets
+    // recomputed (and effectively discarded) as later series/panes are
+    // still being added, confirmed live: calling setHeight() here, even
+    // repeatedly across animation frames, never stuck, while
+    // setStretchFactor() does. 5:3:2 (main:MACD:RSI) makes MACD noticeably
+    // taller than RSI, per the account holder's own ask (MACD was hard to
+    // read at the original, roughly-equal 360:140:140 mix).
     const panes = chart.panes();
-    if (panes[0]) panes[0].setHeight(360);
-    if (panes[1]) panes[1].setHeight(140);
-    if (panes[2]) panes[2].setHeight(140);
+    if (panes[0]) panes[0].setStretchFactor(5);
+    if (panes[1]) panes[1].setStretchFactor(3);
+    if (panes[2]) panes[2].setStretchFactor(2);
 
     chart.timeScale().fitContent();
 
