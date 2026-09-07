@@ -21,7 +21,6 @@ import { dailyThetaBreakdown } from "@/lib/theta";
 import { getSelectedAccount } from "@/lib/account";
 import { getVixSnapshot } from "@/lib/vix-data";
 import { getBtcQuote, fmtBtc } from "@/lib/btc-data";
-import { isRegularSession } from "@/lib/market-hours";
 import { getRefreshStatus } from "@/lib/refresh-status";
 import { DataRefresh } from "@/components/DataRefresh";
 import { assessVix, REGIME_COLORS } from "@/lib/vix";
@@ -293,7 +292,7 @@ export default async function HomePage() {
 
       {/* Top movers — day's change in net market value per ticker. Off-hours the
           option day P&L is frozen, so TopMovers projects it via Simulate instead. */}
-      <TopMovers equities={equities} options={options} marketOpen={isRegularSession()} />
+      <TopMovers equities={equities} options={options} />
 
       {/* VIX regime + portfolio fit — one concept (the regime sets how your cash
           should be positioned), so they share a card that taps through to /vix. */}

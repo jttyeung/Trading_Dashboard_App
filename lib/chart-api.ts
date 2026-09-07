@@ -63,3 +63,25 @@ export async function fetchChart(symbol: string): Promise<ChartData> {
   }
   return res.json();
 }
+
+// MarketStatus mirrors internal/chartapi's MarketStatusResponse -- the
+// same real, Schwab-confirmed exchange-calendar check
+// (marketclock.IsTradingDay) the daemon's own scheduler uses to skip a
+// holiday like Labor Day, exposed read-only here so the dashboard's own
+// "MARKET OPEN"/"MARKET CLOSED" indicator can agree with it instead of
+// relying solely on lib/market-hours.ts's pure weekday+time math (which
+// has no holiday awareness by design, and is what showed "open" on a
+// real Labor Day).
+export interface MarketStatus {
+  date: string;
+  isTradingDay: boolean;
+  isOpen: boolean;
+}
+
+export async function fetchMarketStatus(): Promise<MarketStatus> {
+  const res = await fetch(`${chartAPIBase()}/market-status`);
+  if (!res.ok) {
+    throw new Error(`market-status API failed: ${res.status}`);
+  }
+  return res.json();
+}
