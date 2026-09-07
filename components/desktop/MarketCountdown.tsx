@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { nextMarketTransition } from "@/lib/market-hours";
+import { useMarketStatus } from "@/lib/use-market-status";
 
 // formatCountdown renders "hours down to seconds" literally — H:MM:SS,
 // no leading zero on the hour (a countdown reading "0:04:12" near close
@@ -25,18 +26,31 @@ function formatCountdown(ms: number): string {
 // the market actually opens or closes.
 export function MarketCountdown() {
   const [state, setState] = useState<{ open: boolean; remainingMs: number } | null>(null);
+  const { isTradingDay } = useMarketStatus();
 
   useEffect(() => {
     function tick() {
       const t = nextMarketTransition();
-      setState({ open: t.open, remainingMs: t.at.getTime() - Date.now() });
+      // isTradingDay === false means today is a real, Schwab-confirmed
+      // market holiday -- override the pure weekday+time math, which has
+      // no holiday awareness by design (see lib/market-hours.ts). Real
+      // bug this fixes: a holiday Monday like Labor Day read as "MARKET
+      // OPEN" under the pure check alone.
+      const open = isTradingDay === false ? false : t.open;
+      setState({ open, remainingMs: t.at.getTime() - Date.now() });
     }
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [isTradingDay]);
 
   if (!state) return null;
+
+  // A holiday's own "next open" isn't computed precisely here (the pure
+  // math below has no holiday calendar to walk forward against) -- rather
+  // than show a countdown that's confidently wrong, just say "holiday"
+  // once we know today isn't a real trading day at all.
+  const holiday = isTradingDay === false;
 
   const style = state.open
     ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
@@ -44,7 +58,8 @@ export function MarketCountdown() {
 
   return (
     <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset ${style}`}>
-      {state.open ? "MARKET OPEN" : "MARKET CLOSED"} · {state.open ? "closes in" : "opens in"} {formatCountdown(state.remainingMs)}
+      {state.open ? "MARKET OPEN" : "MARKET CLOSED"} ·{" "}
+      {holiday ? "holiday" : `${state.open ? "closes in" : "opens in"} ${formatCountdown(state.remainingMs)}`}
     </span>
   );
 }

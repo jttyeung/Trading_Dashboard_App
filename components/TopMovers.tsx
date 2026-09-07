@@ -13,6 +13,7 @@ import { compactMoney } from "@/components/OptionRow";
 import { equityValue, isCashEquivalent, optionNetValue } from "@/lib/calc";
 import { simulatePosition } from "@/lib/simulate";
 import { useIvSkew } from "@/lib/simConfig";
+import { useMarketStatus } from "@/lib/use-market-status";
 import type { Equity, OptionPosition } from "@/lib/types";
 
 type Mover = {
@@ -72,12 +73,21 @@ function Tile({ m }: { m: Mover }) {
 export function TopMovers({
   equities,
   options,
-  marketOpen = true,
+  marketOpen,
 }: {
   equities: Equity[];
   options: OptionPosition[];
+  // Optional override (tests, storybook) -- when omitted, this is
+  // determined live via useMarketStatus, the same real, holiday-aware
+  // check MarketCountdown.tsx uses. Real bug this fixes: a caller used
+  // to pass the pure, holiday-unaware isRegularSession() in here, which
+  // read "open" on a real market holiday like Labor Day -- meaning this
+  // used Schwab's own frozen $0 dayValueChange for that day instead of
+  // the live Simulate projection the closed-market branch is for.
   marketOpen?: boolean;
 }) {
+  const { open: liveMarketOpen } = useMarketStatus();
+  const effectiveMarketOpen = marketOpen ?? liveMarketOpen;
   const [ivSkew] = useIvSkew();
   const agg = new Map<string, Mover>();
   const get = (sym: string): Mover => {
@@ -104,7 +114,7 @@ export function TopMovers({
     // Once the market closes that figure freezes/zeroes, so instead project the leg's
     // move from the underlying's drift since the close via the Simulate engine
     // (Δ/Γ + auto-IV-skew) — ~0 on weekends, live during weeknight extended hours.
-    m.dayValue += marketOpen
+    m.dayValue += effectiveMarketOpen
       ? o.dayValueChange ?? 0
       : optionNetValue(simulatePosition(o, { ivSkew })) - optionNetValue(o);
     m.netValue += optionNetValue(o);
