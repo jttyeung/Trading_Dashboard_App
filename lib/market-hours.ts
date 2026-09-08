@@ -51,6 +51,17 @@ function marketDateParts(now: Date) {
   };
 }
 
+// etDateString returns `now`'s own America/New_York calendar date as
+// YYYY-MM-DD -- the same format OptionsEvaluator's GET /market-status?date=
+// expects, so a caller walking forward day by day to find the next real
+// (non-holiday, non-weekend) trading day can ask the live backend about
+// each candidate date directly rather than re-deriving Schwab's own
+// exchange calendar client-side.
+export function etDateString(now: Date): string {
+  const p = marketDateParts(now);
+  return `${p.year}-${String(p.month).padStart(2, "0")}-${String(p.day).padStart(2, "0")}`;
+}
+
 // etOffsetMinutes derives how far America/New_York is behind UTC right
 // now (240 in EDT, 300 in EST) from `now` itself, rather than a
 // hardcoded DST table — comparing the real UTC instant against a
@@ -70,6 +81,16 @@ function etDateTime(now: Date, year: number, month: number, day: number, hour: n
   const offset = etOffsetMinutes(now);
   const asIfUTC = Date.UTC(year, month - 1, day, hour, minute, 0);
   return new Date(asIfUTC + offset * 60000);
+}
+
+// etOpenAt returns the real 9:30 ET moment for the given Date's own
+// America/New_York calendar day, regardless of `day`'s own time-of-day —
+// used to target a specific future date's open (e.g. the next real
+// trading day after a holiday) without needing to feign a fake "now" for
+// nextMarketTransition's own weekday walk.
+export function etOpenAt(day: Date): Date {
+  const p = marketDateParts(day);
+  return etDateTime(day, p.year, p.month, p.day, 9, 30);
 }
 
 // nextMarketTransition is the countdown timer's own two inputs: whether

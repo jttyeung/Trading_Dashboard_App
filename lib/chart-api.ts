@@ -78,8 +78,12 @@ export interface MarketStatus {
   isOpen: boolean;
 }
 
-export async function fetchMarketStatus(): Promise<MarketStatus> {
-  const res = await fetch(`${chartAPIBase()}/market-status`);
+// date (YYYY-MM-DD, America/New_York) optionally asks about a day other
+// than today -- used to walk forward past a holiday to find the next
+// real trading day (see MarketCountdown.tsx's findNextRealOpen).
+export async function fetchMarketStatus(date?: string): Promise<MarketStatus> {
+  const qs = date ? `?date=${encodeURIComponent(date)}` : "";
+  const res = await fetch(`${chartAPIBase()}/market-status${qs}`);
   if (!res.ok) {
     throw new Error(`market-status API failed: ${res.status}`);
   }
