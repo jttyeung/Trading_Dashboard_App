@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, SectionTitle } from "@/components/ui";
 import type { Alert } from "@/lib/types";
+import { fmtWeekdayShort, isStaleTradingDate } from "@/lib/dates";
 
 const ACTION_STYLE: Record<Alert["action"], { label: string; chip: string }> = {
   close: { label: "Close", chip: "bg-rose-500/15 text-rose-300 ring-rose-500/30" },
@@ -22,8 +23,12 @@ const ACTION_STYLE: Record<Alert["action"], { label: string; chip: string }> = {
 };
 
 // Position alerts (close/roll/watch/profit_target/leap_expiring/
-// roll_up) — always the tracker's current full set, not history
-// (position_alerts is wiped and rewritten each cycle). Sorted with close
+// roll_up) — the tracker's current full set, not history
+// (position_alerts is wiped and rewritten each cycle the tracker runs —
+// core-cycle only, gated to real market hours on a real trading day, so
+// over a weekend/holiday this is frozen at the last session's own real
+// output rather than an empty or newly-recomputed set; see the asOf
+// label below). Sorted with close
 // first, then roll (already ITM), then watch (still OTM but delta rising
 // — a proactive early warning, not yet urgent), then leap_expiring (a
 // LEAP-specific "heads up" heading toward its own expiration), then
@@ -97,6 +102,18 @@ export function AlertsPanel({ alerts }: { alerts: Alert[] }) {
   const sorted = [...alerts].sort((a, b) => ACTION_RANK[a.action] - ACTION_RANK[b.action] || a.dte - b.dte);
   const unreadCount = sorted.filter((a) => !read.has(a.contractSymbol)).length;
 
+  // The tracker only re-evaluates during real market hours (see
+  // internal/marketclock's holiday-aware gate), so over a weekend or
+  // holiday this whole set is exactly what the last real session
+  // computed, frozen -- not a new alert, just what it looked like at
+  // last open. Read off the OLDEST alert (not the newest): once even one
+  // position has refreshed today, the newly-computed set as a whole is
+  // current, and a still-open position that simply didn't trigger a new
+  // alert isn't "stale," it's healthy.
+  const asOf = sorted.length > 0 && sorted.every((a) => isStaleTradingDate(a.evaluatedAt))
+    ? sorted[0].evaluatedAt.slice(0, 10)
+    : null;
+
   function toggleRead(symbol: string) {
     setRead((prev) => {
       const next = new Set(prev);
@@ -113,6 +130,14 @@ export function AlertsPanel({ alerts }: { alerts: Alert[] }) {
         action={unreadCount < sorted.length ? <span className="text-[11px] text-muted">{unreadCount} unread</span> : undefined}
       >
         Needs attention
+        {asOf && (
+          <span
+            className="ml-2 text-[11px] font-normal text-muted"
+            title="Markets have been closed since this was computed -- it'll refresh once trading resumes"
+          >
+            (as of {fmtWeekdayShort(asOf)})
+          </span>
+        )}
       </SectionTitle>
       <Card className="divide-y divide-border p-0">
         {sorted.map((a) => {
