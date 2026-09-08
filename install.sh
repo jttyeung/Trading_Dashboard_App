@@ -85,7 +85,8 @@ GID=$(id -g)
 # Change if something else already uses port 3000.
 DASHBOARD_PORT=3000
 
-# Pin to a released version instead of the newest build, e.g. IMAGE_TAG=v1.2.0
+# Tracks the newest build. To pin to a specific release instead, use the
+# version number WITHOUT the leading v — for example IMAGE_TAG=2.0.0
 IMAGE_TAG=latest
 ENV
   fi
