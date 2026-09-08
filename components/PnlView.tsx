@@ -366,7 +366,7 @@ export function PnlView({ realized, open }: { realized: BucketInput[]; open: Buc
                       </span>
                       {allHref && (
                         <Link href={allHref} className="font-medium text-sky-400 active:opacity-70">
-                          All {b.label.toLowerCase()} ›
+                          All {b.label} ›
                         </Link>
                       )}
                     </div>
