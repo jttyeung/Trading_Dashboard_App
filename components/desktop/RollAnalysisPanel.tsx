@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { fmtMoney, fmtPct } from "@/lib/calc";
 import {
   fetchRollAnalysis,
@@ -11,6 +11,25 @@ import {
   type RollAnalysisResponse,
 } from "@/lib/roll-api";
 import type { SourcedOption } from "./PositionsTable";
+
+type CandidateSortKey = "strike" | "expirationDate" | "dte" | "delta" | "netCredit" | "resultingApy";
+
+function candidateSortValue(c: RollAnalysisCandidate, key: CandidateSortKey): number | string {
+  switch (key) {
+    case "strike":
+      return c.strike;
+    case "expirationDate":
+      return c.expirationDate;
+    case "dte":
+      return c.dte;
+    case "delta":
+      return c.delta;
+    case "netCredit":
+      return c.netCreditTotal;
+    case "resultingApy":
+      return c.resultingApy;
+  }
+}
 
 // RollAnalysisPanel is the desktop Positions table's on-demand "should I
 // roll this CSP up, close it, or just let it expire" tool (RULE-021,
@@ -40,6 +59,40 @@ export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
   const [data, setData] = useState<RollAnalysisResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Sortable in both views -- defaults match each mode's own natural
+  // framing (Target APY: closest/safest strike first; Max cash: biggest
+  // credit first, matching the backend's own default ordering), but
+  // either can be overridden by clicking any column.
+  const [sortKey, setSortKey] = useState<CandidateSortKey>("strike");
+  const [sortDir, setSortDir] = useState<1 | -1>(1);
+
+  function toggleSort(key: CandidateSortKey) {
+    if (key === sortKey) setSortDir((d) => (d === 1 ? -1 : 1));
+    else {
+      setSortKey(key);
+      setSortDir(1);
+    }
+  }
+
+  useEffect(() => {
+    if (mode === "max_cash") {
+      setSortKey("netCredit");
+      setSortDir(-1);
+    } else {
+      setSortKey("strike");
+      setSortDir(1);
+    }
+  }, [mode]);
+
+  const sortedCandidates = useMemo(() => {
+    if (!data) return [];
+    return [...data.candidates].sort((a, b) => {
+      const av = candidateSortValue(a, sortKey);
+      const bv = candidateSortValue(b, sortKey);
+      const cmp = typeof av === "string" ? av.localeCompare(bv as string) : (av as number) - (bv as number);
+      return cmp * sortDir;
+    });
+  }, [data, sortKey, sortDir]);
 
   useEffect(() => {
     fetchRollTarget()
@@ -178,20 +231,16 @@ export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
           <table className="w-full min-w-[560px] text-xs">
             <thead>
               <tr className="border-b border-border bg-surface-2/60 text-left uppercase tracking-wide text-muted">
-                <th className="px-2 py-1.5 font-medium">Strike</th>
-                <th className="px-2 py-1.5 font-medium">Exp</th>
-                <th className="px-2 py-1.5 text-right font-medium">DTE</th>
-                <th className="px-2 py-1.5 text-right font-medium">Δ</th>
-                <th className="px-2 py-1.5 text-right font-medium">
-                  Net credit
-                </th>
-                <th className="px-2 py-1.5 text-right font-medium">
-                  Resulting APY
-                </th>
+                <SortableHeader label="Strike" col="strike" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortableHeader label="Exp" col="expirationDate" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortableHeader label="DTE" col="dte" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
+                <SortableHeader label="Δ" col="delta" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
+                <SortableHeader label="Net credit" col="netCredit" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
+                <SortableHeader label="Resulting APY" col="resultingApy" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
               </tr>
             </thead>
             <tbody>
-              {data.candidates.map((c) => (
+              {sortedCandidates.map((c) => (
                 <CandidateRow
                   key={c.symbol}
                   candidate={c}
@@ -204,6 +253,34 @@ export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
         </div>
       )}
     </div>
+  );
+}
+
+function SortableHeader({
+  label,
+  col,
+  sortKey,
+  sortDir,
+  onSort,
+  align = "left",
+}: {
+  label: string;
+  col: CandidateSortKey;
+  sortKey: CandidateSortKey;
+  sortDir: 1 | -1;
+  onSort: (col: CandidateSortKey) => void;
+  align?: "left" | "right";
+}) {
+  return (
+    <th className={`px-2 py-1.5 font-medium ${align === "right" ? "text-right" : ""}`}>
+      <button
+        onClick={() => onSort(col)}
+        className={`inline-flex items-center gap-1 hover:text-text ${align === "right" ? "flex-row-reverse" : ""}`}
+      >
+        {label}
+        <span className="text-[9px]">{sortKey === col ? (sortDir === 1 ? "▲" : "▼") : "↕"}</span>
+      </button>
+    </th>
   );
 }
 
