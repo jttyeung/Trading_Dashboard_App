@@ -1,5 +1,8 @@
 "use client";
 
+import Link from "next/link";
+import { useSchwabConnected } from "@/lib/use-schwab-connected";
+
 import { useEffect, useState } from "react";
 import type { Alert, BotSnapshot } from "@/lib/types";
 import { PositionsTable, type SourcedOption } from "@/components/desktop/PositionsTable";
@@ -132,6 +135,7 @@ export function OverviewShell({
   aggressiveBot: BotSnapshot;
   exampleMode: boolean;
 }) {
+  const schwabConnected = useSchwabConnected();
   const [tab, setTab] = useState<Tab>("desktop");
   useEffect(() => setTab(loadTab()), []);
 
@@ -190,6 +194,28 @@ export function OverviewShell({
             {t.icon}
           </button>
         ))}
+
+        {/* Pinned to the bottom, below the tab buttons: this navigates
+            away rather than switching a tab, so it isn't one of them.
+            Always present — the reconnect page is useless if it only
+            appears once the session has already died. Dot when it has. */}
+        <Link
+          href="/reconnect"
+          title="Schwab connection"
+          aria-label="Schwab connection"
+          className="mt-auto flex w-12 flex-col items-center gap-1 rounded-xl py-2.5 text-[9px] font-medium text-muted transition-colors hover:bg-surface-2 hover:text-text"
+        >
+          <span className="relative">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 3v6M15 3v6" />
+              <path d="M6 9h12v3a6 6 0 0 1-12 0V9Z" />
+              <path d="M12 18v3" />
+            </svg>
+            {schwabConnected === false && (
+              <span aria-hidden className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-surface" />
+            )}
+          </span>
+        </Link>
       </nav>
 
       <main className="min-w-0 flex-1 px-6 py-6">

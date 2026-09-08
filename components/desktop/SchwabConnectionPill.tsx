@@ -21,14 +21,23 @@ export function SchwabConnectionPill() {
   // shouldn't display an alarming banner it can't act on.
   const disconnected = connected === false;
 
-  if (!disconnected) return null;
+  // null stays invisible (unknown/demo), but a healthy session now shows a
+  // quiet link rather than nothing: the account holder couldn't find the
+  // reconnect page when it only appeared after the session had already
+  // died, which is the worst moment to go looking for it.
+  if (connected === null) return null;
 
   return (
     <Link
       href="/reconnect"
-      className="rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700 ring-1 ring-inset ring-rose-200"
+      title="Schwab connection"
+      className={
+        disconnected
+          ? "rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700 ring-1 ring-inset ring-rose-200"
+          : "rounded-full px-2.5 py-1 text-[11px] font-medium text-muted ring-1 ring-inset ring-border hover:text-text"
+      }
     >
-      ⚠️ SCHWAB DISCONNECTED · reconnect
+      {disconnected ? "⚠️ SCHWAB DISCONNECTED · reconnect" : "🔌 Schwab"}
     </Link>
   );
 }
