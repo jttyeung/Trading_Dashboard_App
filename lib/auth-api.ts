@@ -15,6 +15,10 @@ function authAPIBase(): string {
 export interface AuthStatus {
   connected: boolean;
   detail: string;
+  // True when the daemon serves the redirect URI itself, so a login
+  // needs no copy/paste. Reported by /auth/status (not just /auth/start)
+  // so the page can show the right instructions before the login begins.
+  callbackFlow: boolean;
 }
 
 export async function fetchAuthStatus(): Promise<AuthStatus> {
@@ -23,13 +27,21 @@ export async function fetchAuthStatus(): Promise<AuthStatus> {
   return res.json();
 }
 
+export interface AuthStart {
+  url: string;
+  // autoComplete true means the daemon serves the redirect URI itself, so
+  // Schwab hands it the code directly and there's nothing to paste --
+  // just wait for the connection to go live. False is the original flow,
+  // where the code lands in the address bar for a human to copy.
+  autoComplete: boolean;
+}
+
 // startAuth returns Schwab's own login URL. It carries the (public)
 // client ID and redirect URI only -- never the client secret.
-export async function startAuth(): Promise<string> {
+export async function startAuth(): Promise<AuthStart> {
   const res = await fetch(`${authAPIBase()}/auth/start`, { method: "POST" });
   if (!res.ok) throw new Error(`auth start failed: ${res.status}`);
-  const data = (await res.json()) as { url: string };
-  return data.url;
+  return res.json();
 }
 
 // completeAuth hands the post-login redirect URL (carrying a one-time
