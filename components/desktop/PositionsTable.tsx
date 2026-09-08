@@ -17,6 +17,7 @@ import {
 } from "@/lib/calc";
 import { positionDailyTheta } from "@/lib/theta";
 import { MarketCountdown } from "@/components/desktop/MarketCountdown";
+import { SchwabConnectionPill } from "@/components/desktop/SchwabConnectionPill";
 
 // Short weekday label for a YYYY-MM-DD date -- explicitly parsed and read
 // back in UTC (never local time) so this can't drift a day off in a
@@ -407,6 +408,7 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
           <span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs font-medium text-muted">{rows.length}</span>
         </div>
         <MarketCountdown />
+        <SchwabConnectionPill />
 
         <div className="ml-auto flex items-center gap-3">
           <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">
