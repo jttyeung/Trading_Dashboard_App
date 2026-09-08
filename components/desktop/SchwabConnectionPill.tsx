@@ -12,30 +12,14 @@
 // in zeros rather than failing, so Today P/L, marks and Greeks quietly
 // read blank with nothing on screen saying why.
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { fetchAuthStatus } from "@/lib/auth-api";
+import { useSchwabConnected } from "@/lib/use-schwab-connected";
 
-export function SchwabConnectionPill({ pollMs = 5 * 60 * 1000 }: { pollMs?: number }) {
-  const [disconnected, setDisconnected] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    function check() {
-      fetchAuthStatus()
-        .then((status) => {
-          if (!cancelled) setDisconnected(!status.connected);
-        })
-        .catch(() => {
-          if (!cancelled) setDisconnected(false); // daemon unreachable — stay quiet
-        });
-    }
-    check();
-    const id = setInterval(check, pollMs);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, [pollMs]);
+export function SchwabConnectionPill() {
+  const connected = useSchwabConnected();
+  // Only ever shown for a definite false. null means unknown (no daemon
+  // reachable, or a demo build) -- a dashboard with nothing behind it
+  // shouldn't display an alarming banner it can't act on.
+  const disconnected = connected === false;
 
   if (!disconnected) return null;
 
