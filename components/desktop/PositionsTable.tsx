@@ -18,19 +18,7 @@ import {
 import { positionDailyTheta } from "@/lib/theta";
 import { MarketCountdown } from "@/components/desktop/MarketCountdown";
 import { SchwabConnectionPill } from "@/components/desktop/SchwabConnectionPill";
-
-// Short weekday label for a YYYY-MM-DD date -- explicitly parsed and read
-// back in UTC (never local time) so this can't drift a day off in a
-// negative-UTC-offset browser, the same footgun this app's other date
-// helpers (e.g. PnlView's fmtDate) avoid by not touching the Date API at
-// all for a plain calendar-date string. Used only to label a Today P/L
-// fallback value ("Fri") as not-actually-today, so getting this off by a
-// day would misrepresent which real trading day the number is from.
-const WEEKDAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-function fmtWeekdayShort(dateISO: string): string {
-  const d = new Date(`${dateISO}T00:00:00Z`);
-  return WEEKDAYS_SHORT[d.getUTCDay()] ?? dateISO;
-}
+import { fmtWeekdayShort } from "@/lib/dates";
 
 const STRATEGY_CODE: Record<OptionKind, string> = {
   csp: "CSP",
