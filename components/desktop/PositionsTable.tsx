@@ -17,7 +17,7 @@ import {
 } from "@/lib/calc";
 import { positionDailyTheta } from "@/lib/theta";
 import { MarketCountdown } from "@/components/desktop/MarketCountdown";
-import { SchwabConnectionPill } from "@/components/desktop/SchwabConnectionPill";
+import { RollAnalysisPanel } from "@/components/desktop/RollAnalysisPanel";
 import { fmtWeekdayShort } from "@/lib/dates";
 
 const STRATEGY_CODE: Record<OptionKind, string> = {
@@ -307,6 +307,19 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
   const [sortKey, setSortKey] = useState<SortKey>("dte");
   const [sortDir, setSortDir] = useState<1 | -1>(1);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  // Which CSP rows have their "Roll analysis" panel open (RULE-021) --
+  // keyed by contract symbol (r.o.id). Lazy-mounted: RollAnalysisPanel
+  // only fires its live chain fetch once a row is actually expanded, so
+  // opening this table never fires N live calls up front.
+  const [rollAnalysisOpen, setRollAnalysisOpen] = useState<Set<string>>(new Set());
+  function toggleRollAnalysis(id: string) {
+    setRollAnalysisOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   const profitTargetBySymbol = useMemo(() => {
     const m = new Map<string, string>();
@@ -417,7 +430,6 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
           <span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs font-medium text-muted">{rows.length}</span>
         </div>
         <MarketCountdown />
-        <SchwabConnectionPill />
 
         <div className="ml-auto flex items-center gap-3">
           <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">
@@ -501,14 +513,27 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                   </tr>
                 )}
                 {!isCollapsed &&
-                  g.rows.map((r) => (
-                    <tr key={r.o.id} className="border-b border-border/60 hover:bg-surface-2/40">
+                  g.rows.map((r) => {
+                    const isShortCSP = r.o.kind === "csp" && r.o.side === "short";
+                    const rollOpen = rollAnalysisOpen.has(r.o.id);
+                    return (
+                  <Fragment key={r.o.id}>
+                    <tr className="border-b border-border/60 hover:bg-surface-2/40">
                       <td className="whitespace-nowrap px-3 py-2 font-medium text-text">
                         {r.o.symbol}
                         {r.tickerFlag && (
                           <span className="ml-1 cursor-default" title={r.tickerFlag.rationale}>
                             {r.tickerFlag.emoji}
                           </span>
+                        )}
+                        {isShortCSP && (
+                          <button
+                            onClick={() => toggleRollAnalysis(r.o.id)}
+                            title="Roll analysis"
+                            className={`ml-1 text-xs ${rollOpen ? "text-accent" : "text-muted/50 hover:text-text"}`}
+                          >
+                            🔄
+                          </button>
                         )}
                       </td>
                       <td className="px-3 py-2">
@@ -569,7 +594,16 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                       <td className="px-3 py-2 text-right tabular text-text">{fmtMoney(r.marketValue, { sign: true })}</td>
                       <td className="whitespace-nowrap px-3 py-2 text-xs text-muted">{r.o.sourceLabel}</td>
                     </tr>
-                  ))}
+                    {rollOpen && (
+                      <tr className="border-b border-border/60 bg-surface-2/30">
+                        <td colSpan={COLUMNS.length} className="px-4 py-3">
+                          <RollAnalysisPanel position={r.o} />
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                    );
+                  })}
               </Fragment>
             );
           })}
