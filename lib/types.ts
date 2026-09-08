@@ -106,6 +106,11 @@ export interface OptionPosition {
   // bug) -- the YYYY-MM-DD it's actually from. Absent on a real trading
   // day, when dayValueChange is today's own live figure.
   dayValueChangeAsOf?: string;
+  // Set only when delta/gamma/vega/theta/iv are carried forward from an
+  // earlier session rather than live -- Schwab computes no Greeks on a day
+  // with no trading session, so without the carry-forward the whole book
+  // reads a flat 0 theta every weekend and holiday.
+  greeksAsOf?: string;
   bbSigma?: number | null; // strike's σ from the underlying's 20-day mean (−2 = lower BB)
   chanceOfProfitShort?: number; // 0..1, for short positions
   openedAt?: string; // ISO date the position was opened (held positions only)
