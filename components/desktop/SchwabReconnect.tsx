@@ -7,18 +7,26 @@
 // it's renewed the dashboard's Today P/L, marks and Greeks silently read
 // zero across every account.
 //
-// Why there's still a paste step at all: Schwab redirects to the app's
-// registered redirect URI (https://127.0.0.1), which resolves to the
-// phone itself and has nothing listening — so the one-time code lands in
-// the browser's address bar rather than at any server this app controls.
-// "Paste & reconnect" reads the clipboard directly so it's one tap
-// rather than a manual paste; a plain text field is kept as the fallback
-// for when the browser denies clipboard access (Safari prompts, and a
-// denial is permanent for the session).
+// There are two flows, and which one applies is reported by the daemon
+// (AuthStatus.callbackFlow) so the right instructions show from the
+// first paint rather than switching mid-login:
+//
+//   - Callback flow (SCHWAB_CALLBACK_REDIRECT_URI set, and the same URL
+//     registered on the Schwab app): Schwab delivers the code straight to
+//     the daemon, so there is nothing to copy at all. This page just
+//     polls until the session goes live, since the login finishes in
+//     another tab.
+//   - Paste flow (the default): Schwab redirects to https://127.0.0.1,
+//     which resolves to whatever device you're on and has nothing
+//     listening — so the one-time code lands in the address bar instead.
+//     "Paste & reconnect" reads the clipboard so it's one tap rather than
+//     a manual paste, with a text field kept as the fallback for when the
+//     browser denies clipboard access (Safari prompts, and a denial
+//     sticks for the session).
 import { useCallback, useEffect, useState } from "react";
 import { completeAuth, fetchAuthStatus, startAuth } from "@/lib/auth-api";
 
-type Phase = "checking" | "connected" | "needs-auth" | "awaiting-code" | "done";
+type Phase = "checking" | "connected" | "needs-auth" | "awaiting-code" | "awaiting-callback" | "done";
 
 export function SchwabReconnect() {
   const [phase, setPhase] = useState<Phase>("checking");
@@ -27,15 +35,17 @@ export function SchwabReconnect() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [unreachable, setUnreachable] = useState(false);
+  const [autoComplete, setAutoComplete] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
       const status = await fetchAuthStatus();
       setUnreachable(false);
       setDetail(status.detail);
+      setAutoComplete(status.callbackFlow);
       setPhase((prev) => {
         // Don't yank the user out of a login they're in the middle of.
-        if (prev === "awaiting-code" && !status.connected) return prev;
+        if ((prev === "awaiting-code" || prev === "awaiting-callback") && !status.connected) return prev;
         return status.connected ? "connected" : "needs-auth";
       });
     } catch {
@@ -47,13 +57,34 @@ export function SchwabReconnect() {
     refresh();
   }, [refresh]);
 
+  // In the callback flow the login finishes in ANOTHER tab, so this one
+  // has to notice on its own. Polls only while actually waiting, and
+  // stops as soon as the session goes live.
+  useEffect(() => {
+    if (phase !== "awaiting-callback") return;
+    const id = setInterval(async () => {
+      try {
+        const status = await fetchAuthStatus();
+        if (status.connected) {
+          setPhase("done");
+          setDetail("Connected.");
+        }
+      } catch {
+        // daemon momentarily unreachable — keep waiting rather than
+        // failing a login that may well have succeeded
+      }
+    }, 2000);
+    return () => clearInterval(id);
+  }, [phase]);
+
   async function handleStart() {
     setBusy(true);
     setError(null);
     try {
-      const url = await startAuth();
-      setPhase("awaiting-code");
-      window.open(url, "_blank", "noopener");
+      const start = await startAuth();
+      setAutoComplete(start.autoComplete); // authoritative; status already hinted it
+      setPhase(start.autoComplete ? "awaiting-callback" : "awaiting-code");
+      window.open(start.url, "_blank", "noopener");
     } catch {
       setError("Could not reach the daemon to start the login.");
     } finally {
@@ -122,7 +153,27 @@ export function SchwabReconnect() {
           </p>
         )}
 
-        {!connected && !unreachable && phase !== "checking" && (
+        {!connected && !unreachable && phase !== "checking" && autoComplete && (
+          <div className="mt-4 space-y-3 text-sm text-text">
+            <p>
+              {phase === "awaiting-callback"
+                ? "Sign in to Schwab in the tab that just opened. Nothing to copy — this page picks it up on its own once you approve."
+                : "Signing in takes one tap. Nothing to copy or paste — Schwab hands the session straight back to the daemon."}
+            </p>
+            <button
+              onClick={handleStart}
+              disabled={busy}
+              className="rounded-full bg-emerald-500/15 px-4 py-1.5 text-xs font-medium text-emerald-600 ring-1 ring-inset ring-emerald-500/30 disabled:opacity-60"
+            >
+              {phase === "awaiting-callback" ? "Reopen Schwab login" : "Open Schwab login"}
+            </button>
+            {phase === "awaiting-callback" && (
+              <p className="text-xs text-muted">Waiting for you to finish signing in…</p>
+            )}
+          </div>
+        )}
+
+        {!connected && !unreachable && phase !== "checking" && !autoComplete && (
           <div className="mt-4 space-y-4">
             <ol className="space-y-3 text-sm text-text">
               <li>
