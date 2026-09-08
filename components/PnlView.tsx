@@ -186,6 +186,30 @@ export function PnlView({ realized, open }: { realized: BucketInput[]; open: Buc
     return `${route}?${params.toString()}`;
   };
 
+  // Per-strategy ticker leaderboard for the By-strategy drill-down: the same filtered
+  // items grouped by underlying, best P&L first, capped at ten. Each row deep-links to
+  // that strategy's page filtered to the ticker (via stratHref).
+  const STRAT_TICKER_CAP = 10;
+  interface StratTicker { sym: string; pnl: number; count: number }
+  const strategyTickers = useMemo<Record<string, { top: StratTicker[]; total: number }>>(() => {
+    const out: Record<string, { top: StratTicker[]; total: number }> = {};
+    for (const b of source) {
+      const items = (isRealized ? b.items.filter((it) => (it.date ? inRange(it.date, range) : true)) : b.items).filter((it) => keepTerm(term, it.daysHeld));
+      const m = new Map<string, { pnl: number; count: number }>();
+      for (const it of items) {
+        const sym = (it.sym ?? "—").toUpperCase();
+        const agg = m.get(sym) ?? { pnl: 0, count: 0 };
+        agg.pnl += it.pnl;
+        agg.count += 1;
+        m.set(sym, agg);
+      }
+      const all = [...m.entries()].map(([sym, v]) => ({ sym, ...v })).sort((a, c) => c.pnl - a.pnl);
+      out[b.key] = { top: all.slice(0, STRAT_TICKER_CAP), total: all.length };
+    }
+    return out;
+  }, [source, isRealized, range, term]);
+  const { has: stratOpen, toggle: toggleStrat } = usePersistentSet("pnl-openstrats");
+
   return (
     <div className="pb-24 pt-3 sm:pb-6">
       {/* Realized / Open */}
@@ -297,41 +321,91 @@ export function PnlView({ realized, open }: { realized: BucketInput[]; open: Buc
       ) : (
         <Card className="divide-y divide-border">
           {buckets.map((b) => {
+            // Tapping a strategy expands its top tickers in place; each ticker row
+            // then deep-links to that strategy's page filtered to the symbol. The
+            // whole-strategy destination survives as the "All …" link in the panel.
             const route = STRATEGY_ROUTE[b.key];
-            const inner = (
-              <>
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className={`h-2 w-2 shrink-0 rounded-full ${ACCENT[b.key] ?? "bg-slate-400"}`} />
-                    <span className="text-sm font-medium">{b.label}</span>
-                    <span className="tabular rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] text-muted">{b.count}</span>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    <span className={`tabular text-sm font-semibold ${b.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+            const isOpen = stratOpen(b.key);
+            const drill = strategyTickers[b.key] ?? { top: [], total: 0 };
+            const allHref = route
+              ? `${route}?view=${isRealized ? "closed" : "open"}${isRealized ? `&range=${tf.mode}&months=${tf.months}` : ""}`
+              : null;
+            return (
+              <div key={b.key}>
+                <button onClick={() => toggleStrat(b.key)} className="block w-full px-4 py-3 text-left active:bg-surface-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="w-3 shrink-0 text-[10px] text-muted">{isOpen ? "▾" : "▸"}</span>
+                      <span className={`h-2 w-2 shrink-0 rounded-full ${ACCENT[b.key] ?? "bg-slate-400"}`} />
+                      <span className="text-sm font-medium">{b.label}</span>
+                      <span className="tabular rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] text-muted">{b.count}</span>
+                    </div>
+                    <span className={`tabular shrink-0 text-sm font-semibold ${b.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                       <Amt>{signed(b.pnl)}</Amt>
                     </span>
-                    {route && <span className="text-muted">›</span>}
                   </div>
-                </div>
-                <div className="mt-2">
-                  <DivergingBar pnl={b.pnl} maxAbs={maxAbs} />
-                </div>
-                <div className="mt-1.5 flex justify-between text-[10px] text-muted">
-                  <span>
-                    {b.wins}/{b.count} {isRealized ? "profitable" : "in profit"}
-                    {b.count > 0 && ` · ${Math.round((b.wins / b.count) * 100)}%`}
-                  </span>
-                  <span className="tabular">{total !== 0 ? `${Math.round((b.pnl / Math.abs(total)) * 100)}% of net` : ""}</span>
-                </div>
-              </>
-            );
-            return route ? (
-              <Link key={b.key} href={`${route}?view=${isRealized ? "closed" : "open"}${isRealized ? `&range=${tf.mode}&months=${tf.months}` : ""}`} className="block px-4 py-3 active:bg-surface-2">
-                {inner}
-              </Link>
-            ) : (
-              <div key={b.key} className="px-4 py-3">
-                {inner}
+                  <div className="mt-2">
+                    <DivergingBar pnl={b.pnl} maxAbs={maxAbs} />
+                  </div>
+                  <div className="mt-1.5 flex justify-between text-[10px] text-muted">
+                    <span>
+                      {b.wins}/{b.count} {isRealized ? "profitable" : "in profit"}
+                      {b.count > 0 && ` · ${Math.round((b.wins / b.count) * 100)}%`}
+                    </span>
+                    <span className="tabular">{total !== 0 ? `${Math.round((b.pnl / Math.abs(total)) * 100)}% of net` : ""}</span>
+                  </div>
+                </button>
+                {isOpen && (
+                  <div className="border-t border-border/50 bg-surface-2/30 px-4 py-2">
+                    <div className="flex items-center justify-between text-[10px] text-muted">
+                      <span>
+                        {drill.total > STRAT_TICKER_CAP
+                          ? `Top ${STRAT_TICKER_CAP} of ${drill.total} tickers`
+                          : `${drill.total} ${drill.total === 1 ? "ticker" : "tickers"}`}
+                        {" · largest to smallest"}
+                      </span>
+                      {allHref && (
+                        <Link href={allHref} className="font-medium text-sky-400 active:opacity-70">
+                          All {b.label.toLowerCase()} ›
+                        </Link>
+                      )}
+                    </div>
+                    <div className="mt-1 border-t border-border/40 pt-1">
+                      {drill.top.map((t) => {
+                        const href = stratHref(b.key, t.sym);
+                        const rowInner = (
+                          <div className="flex items-center justify-between gap-2 text-[11px]">
+                            <div className="flex min-w-0 items-center gap-2">
+                              <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${t.pnl >= 0 ? "bg-emerald-400" : "bg-rose-400"}`} />
+                              <span className="font-semibold">{t.sym}</span>
+                              <span className="tabular rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] text-muted">{t.count}</span>
+                            </div>
+                            <span className="flex shrink-0 items-center gap-1">
+                              <span className={`tabular ${t.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                                <Amt>{signed(t.pnl)}</Amt>
+                              </span>
+                              {href && <span className="text-[10px] text-muted">›</span>}
+                            </span>
+                          </div>
+                        );
+                        return href ? (
+                          <Link
+                            key={t.sym}
+                            href={href}
+                            className="-mx-1 block rounded-md px-1 py-1.5 active:bg-surface-2"
+                            title={`View ${SHORT_LABEL[b.key] ?? b.label} for ${t.sym}`}
+                          >
+                            {rowInner}
+                          </Link>
+                        ) : (
+                          <div key={t.sym} className="py-1.5">
+                            {rowInner}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
