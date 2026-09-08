@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { nextMarketTransition } from "@/lib/market-hours";
+import { etDateString, etOpenAt, nextMarketTransition } from "@/lib/market-hours";
+import { fetchMarketStatus } from "@/lib/chart-api";
 import { useMarketStatus } from "@/lib/use-market-status";
 
 // formatCountdown renders "hours down to seconds" literally — H:MM:SS,
@@ -13,6 +14,36 @@ function formatCountdown(ms: number): string {
   const m = Math.floor((totalSeconds % 3600) / 60);
   const s = totalSeconds % 60;
   return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+// findNextRealOpen walks forward day by day from `now`, asking
+// OptionsEvaluator's own real exchange-calendar check (GET /market-status
+// ?date=...) about each candidate date, until it finds one that's an
+// actual trading day -- Schwab's endpoint reports a weekend closed the
+// same way it reports a holiday closed, so no separate weekday filter is
+// needed client-side. Returns that date's 9:30 ET open as a real Date, by
+// asking nextMarketTransition to resolve a "day at 9:30" moment once we
+// know which calendar day is the right one (reusing its own ET-correct
+// time construction rather than duplicating it here).
+//
+// Bounded to 10 days -- there is no real NYSE closure anywhere close to
+// that long, so hitting the bound only ever means the daemon is
+// unreachable; the caller falls back to the pure (holiday-unaware) guess
+// in that case rather than leaving the countdown stuck.
+async function findNextRealOpen(now: Date): Promise<Date | null> {
+  for (let i = 1; i <= 10; i++) {
+    const candidate = new Date(now.getTime() + i * 24 * 60 * 60 * 1000);
+    const date = etDateString(candidate);
+    try {
+      const status = await fetchMarketStatus(date);
+      if (status.isTradingDay) {
+        return etOpenAt(candidate);
+      }
+    } catch {
+      return null; // daemon unreachable -- let the caller fall back
+    }
+  }
+  return null;
 }
 
 // MarketCountdown ticks its own clock client-side (a live HH:MM:SS
@@ -27,6 +58,26 @@ function formatCountdown(ms: number): string {
 export function MarketCountdown() {
   const [state, setState] = useState<{ open: boolean; remainingMs: number } | null>(null);
   const { isTradingDay } = useMarketStatus();
+  // Only populated when isTradingDay === false -- the real "next open"
+  // found by walking forward past the holiday (see findNextRealOpen).
+  // null while that lookup is in flight or unavailable, in which case
+  // the pure (holiday-unaware) guess is used instead rather than
+  // leaving the countdown stuck on nothing.
+  const [nextRealOpen, setNextRealOpen] = useState<Date | null>(null);
+
+  useEffect(() => {
+    if (isTradingDay !== false) {
+      setNextRealOpen(null);
+      return;
+    }
+    let cancelled = false;
+    findNextRealOpen(new Date()).then((at) => {
+      if (!cancelled) setNextRealOpen(at);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isTradingDay]);
 
   useEffect(() => {
     function tick() {
@@ -35,22 +86,20 @@ export function MarketCountdown() {
       // market holiday -- override the pure weekday+time math, which has
       // no holiday awareness by design (see lib/market-hours.ts). Real
       // bug this fixes: a holiday Monday like Labor Day read as "MARKET
-      // OPEN" under the pure check alone.
+      // OPEN" under the pure check alone. The countdown TARGET is also
+      // overridden once findNextRealOpen resolves the real next trading
+      // day (a holiday can push it a day or more past the pure guess);
+      // until then, the pure guess is shown rather than nothing.
       const open = isTradingDay === false ? false : t.open;
-      setState({ open, remainingMs: t.at.getTime() - Date.now() });
+      const at = isTradingDay === false && nextRealOpen ? nextRealOpen : t.at;
+      setState({ open, remainingMs: at.getTime() - Date.now() });
     }
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [isTradingDay]);
+  }, [isTradingDay, nextRealOpen]);
 
   if (!state) return null;
-
-  // A holiday's own "next open" isn't computed precisely here (the pure
-  // math below has no holiday calendar to walk forward against) -- rather
-  // than show a countdown that's confidently wrong, just say "holiday"
-  // once we know today isn't a real trading day at all.
-  const holiday = isTradingDay === false;
 
   const style = state.open
     ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
@@ -58,8 +107,8 @@ export function MarketCountdown() {
 
   return (
     <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset ${style}`}>
-      {state.open ? "MARKET OPEN" : "MARKET CLOSED"} ·{" "}
-      {holiday ? "holiday" : `${state.open ? "closes in" : "opens in"} ${formatCountdown(state.remainingMs)}`}
+      {state.open ? "☀️ MARKET OPEN" : "🌙 MARKET CLOSED"} · {state.open ? "closes in" : "opens in"}{" "}
+      {formatCountdown(state.remainingMs)}
     </span>
   );
 }
