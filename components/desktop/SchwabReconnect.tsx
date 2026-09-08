@@ -25,6 +25,7 @@
 //     sticks for the session).
 import { useCallback, useEffect, useState } from "react";
 import { completeAuth, fetchAuthStatus, startAuth } from "@/lib/auth-api";
+import { DEMO_MODE } from "@/lib/demo";
 
 type Phase = "checking" | "connected" | "needs-auth" | "awaiting-code" | "awaiting-callback" | "done";
 
@@ -38,6 +39,14 @@ export function SchwabReconnect() {
   const [autoComplete, setAutoComplete] = useState(false);
 
   const refresh = useCallback(async () => {
+    // A demo build has no daemon behind it: show a healthy connection
+    // rather than a broken-looking error, and never issue the request.
+    // See lib/use-schwab-connected.ts for the same reasoning.
+    if (DEMO_MODE) {
+      setPhase("connected");
+      setDetail("Connected.");
+      return;
+    }
     try {
       const status = await fetchAuthStatus();
       setUnreachable(false);
