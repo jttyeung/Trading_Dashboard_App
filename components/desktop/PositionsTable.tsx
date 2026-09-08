@@ -93,6 +93,7 @@ interface Row {
   // day (a weekend/holiday has no session) — see OptionPosition's own
   // dayValueChangeAsOf doc comment.
   todayPlAsOf: string | null;
+  greeksAsOf: string | null;
   marketValue: number;
   apy: number | null;
   ror: number | null;
@@ -166,6 +167,7 @@ function buildRow(
     todayPl,
     todayPlPct,
     todayPlAsOf: o.dayValueChangeAsOf ?? null,
+    greeksAsOf: o.greeksAsOf ?? null,
     marketValue,
     apy: positionAnnualizedReturn(o),
     ror: positionReturnOnCapital(o),
@@ -516,7 +518,19 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                       </td>
                       <td className="px-3 py-2 text-right tabular text-text">{fmtMoney(r.o.strike)}</td>
                       <td className="px-3 py-2 text-right tabular text-text">{r.spot != null ? fmtMoney(r.spot) : "-"}</td>
-                      <td className={`px-3 py-2 text-right tabular ${pnlColor(r.theta)}`}>{fmtMoney(r.theta, { sign: true })}</td>
+                      <td className={`px-3 py-2 text-right tabular ${pnlColor(r.theta)}`}>
+                        <div className="flex flex-col items-end leading-tight">
+                          <span>{fmtMoney(r.theta, { sign: true })}</span>
+                          {r.greeksAsOf && (
+                            <span
+                              className="text-[10px] text-muted"
+                              title={`Markets were closed today, so Schwab computed no Greeks — showing ${r.greeksAsOf}'s values instead`}
+                            >
+                              as of {fmtWeekdayShort(r.greeksAsOf)}
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-3 py-2 text-right tabular text-text">{r.ror != null ? fmtPct(r.ror, 1) : "-"}</td>
                       <td className="px-3 py-2 text-right tabular text-text">{r.apy != null ? fmtPct(r.apy, 1) : "-"}</td>
                       <td className="px-3 py-2 text-right tabular">
