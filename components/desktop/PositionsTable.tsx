@@ -70,7 +70,19 @@ interface Row {
   unrealizedPct: number;
   // Dollar amount still on the table if held to expiration — the buy-to-close
   // cost magnitude, i.e. optionBasis minus what's already been captured.
+  // Meaningful as "how much is left to capture" ONLY for a short (credit)
+  // position, where max profit is capped at the premium collected. For a
+  // long position (a LEAP call) the identical Math.abs(marketValue) is just
+  // today's mark, not a bounded remaining amount — a long call's upside has
+  // no ceiling the way a short position's does. See remainingLabel.
   remainingDollar: number;
+  // "left" for a short position (bounded, real remaining premium), "value"
+  // for a long one (today's mark, not a ceiling) -- see remainingDollar's
+  // own doc comment for why these need different words, not just the same
+  // number relabeled cosmetically. Caught live: CRDO's LEAP call showed
+  // "$6,415 left," implying a bounded remaining opportunity that doesn't
+  // exist for a long call.
+  remainingLabel: "left" | "value";
   // Same formula as the mobile "close for X% annualized" alert
   // (positionRemainingAnnualizedReturn) — null for anything that isn't a
   // short CSP/covered-call, same gating as apy/ror above.
@@ -151,6 +163,7 @@ function buildRow(
     unrealized: optionPnl(o),
     unrealizedPct: optionPnlPct(o),
     remainingDollar: Math.abs(marketValue),
+    remainingLabel: o.side === "long" ? "value" : "left",
     remainingAnnualized: positionRemainingAnnualizedReturn(o),
     todayPl,
     todayPlPct,
@@ -262,7 +275,13 @@ function sumRows(rows: Row[]) {
   // (no per-position day-change data there, see buildRow's own note) should
   // read as unavailable, not flat.
   const hasTodayPl = rows.some((r) => r.todayPl != null);
-  return { unrealized, unrealizedPct, remainingDollar, todayPl, todayPlPct, marketValue, theta, hasTodayPl };
+  // A group/total can freely mix short and long positions (grouping by DTE
+  // or account, say), so the aggregate can't always claim one clean word the
+  // way a single row can -- "combined" rather than guessing wrong in either
+  // direction when the rows underneath don't agree.
+  const labels = new Set(rows.map((r) => r.remainingLabel));
+  const remainingLabel: "left" | "value" | "combined" = labels.size === 1 ? [...labels][0] : "combined";
+  return { unrealized, unrealizedPct, remainingDollar, remainingLabel, todayPl, todayPlPct, marketValue, theta, hasTodayPl };
 }
 
 const COLUMNS: { key: SortKey; label: string }[] = [
@@ -463,7 +482,7 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                       <div className="flex flex-col items-end gap-1">
                         <span className={`font-semibold ${pnlColor(gSum!.unrealized)}`}>{fmtMoney(gSum!.unrealized, { sign: true })}</span>
                         <PctBar pct={gSum!.unrealizedPct} />
-                        <span className="text-[10px] text-muted">{fmtMoney(gSum!.remainingDollar)} left</span>
+                        <span className="text-[10px] text-muted">{fmtMoney(gSum!.remainingDollar)} {gSum!.remainingLabel}</span>
                       </div>
                     </td>
                     <td />
@@ -525,7 +544,7 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                         <div className="flex flex-col items-end gap-1">
                           <span className={`text-xs font-semibold ${pnlColor(r.unrealized)}`}>{fmtMoney(r.unrealized, { sign: true })}</span>
                           <PctBar pct={r.unrealizedPct} />
-                          <span className="text-[10px] text-muted">{fmtMoney(r.remainingDollar)} left</span>
+                          <span className="text-[10px] text-muted">{fmtMoney(r.remainingDollar)} {r.remainingLabel}</span>
                         </div>
                       </td>
                       <td className="px-3 py-2 text-right tabular text-text">
@@ -566,7 +585,7 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
               <div className="flex flex-col items-end gap-1">
                 <span className={pnlColor(total.unrealized)}>{fmtMoney(total.unrealized, { sign: true })}</span>
                 <PctBar pct={total.unrealizedPct} />
-                <span className="text-[10px] text-muted">{fmtMoney(total.remainingDollar)} left</span>
+                <span className="text-[10px] text-muted">{fmtMoney(total.remainingDollar)} {total.remainingLabel}</span>
               </div>
             </td>
             <td />
