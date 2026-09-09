@@ -189,7 +189,7 @@ export function PortfolioRiskView({
       <SectionTitle>Overall portfolio</SectionTitle>
       <Card className="px-4 py-4">
         <div className="mb-1 text-[10px] text-muted">
-          <Amt>{fmtMoney(blended.portfolioValue)}</Amt> total (Schwab + SnapTrade + E*TRADE)
+          <Amt>{fmtMoney(blended.portfolioValue)}</Amt> total
         </div>
         <ThetaGauge risk={blended} />
         <BetaGauge blended={blended} />
