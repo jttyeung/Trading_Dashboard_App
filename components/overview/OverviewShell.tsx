@@ -201,8 +201,8 @@ export function OverviewShell({
             appears once the session has already died. Dot when it has. */}
         <Link
           href="/reconnect"
-          title="Schwab connection"
-          aria-label="Schwab connection"
+          title="Connections"
+          aria-label="Connections"
           className="mt-auto flex w-12 flex-col items-center gap-1 rounded-xl py-2.5 text-[9px] font-medium text-muted transition-colors hover:bg-surface-2 hover:text-text"
         >
           <span className="relative">
