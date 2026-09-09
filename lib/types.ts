@@ -561,6 +561,7 @@ export interface RiskView {
   thetaMinPct: number;
   thetaTargetMaxPct: number;
   thetaMaxPct: number;
+  thetaGapToTarget: number; // $/day more theta needed to reach thetaMinPct's floor — 0 once already there
   sectorValues: Record<string, number>;
   maxSectorAllocationPct: number;
   portfolioValue: number; // the liquidation value sectorValues/thetaPct were each computed against
@@ -584,6 +585,7 @@ export interface AccountThetaView {
   thetaMinPct: number;
   thetaTargetMaxPct: number;
   thetaMaxPct: number;
+  thetaGapToTarget: number; // mirrors RiskView's own field of the same name
   portfolioValue: number; // this one account's own value, not the whole portfolio's
 }
 
@@ -605,6 +607,7 @@ export interface BlendedRiskView {
   thetaMinPct: number;
   thetaTargetMaxPct: number;
   thetaMaxPct: number;
+  thetaGapToTarget: number; // mirrors RiskView's own field of the same name
   beta: number;
   betaCoverage: number; // fraction of portfolioValue with a computable per-underlying beta
   betaStatus: "below_target" | "on_target" | "above_target" | "unknown";

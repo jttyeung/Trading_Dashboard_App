@@ -296,6 +296,7 @@ export const examplePortfolioRiskFile: PortfolioRiskFile = {
     thetaMinPct: 0.01,
     thetaTargetMaxPct: 0.02,
     thetaMaxPct: 0.03,
+    thetaGapToTarget: 0,
     sectorValues: {
       Technology: 21000,
       Financials: 9800,
@@ -321,6 +322,7 @@ export const examplePortfolioRiskFile: PortfolioRiskFile = {
       thetaMinPct: 0.01,
       thetaTargetMaxPct: 0.02,
       thetaMaxPct: 0.03,
+      thetaGapToTarget: 0,
       portfolioValue: 35500,
     },
     {
@@ -331,6 +333,7 @@ export const examplePortfolioRiskFile: PortfolioRiskFile = {
       thetaMinPct: 0.01,
       thetaTargetMaxPct: 0.02,
       thetaMaxPct: 0.03,
+      thetaGapToTarget: 0,
       portfolioValue: 22900,
     },
     // SnapTrade/E*TRADE accounts — informational only, not part of RULE-006's
@@ -343,6 +346,7 @@ export const examplePortfolioRiskFile: PortfolioRiskFile = {
       thetaMinPct: 0.0005,
       thetaTargetMaxPct: 0.001,
       thetaMaxPct: 0.002,
+      thetaGapToTarget: 25.5,
       portfolioValue: 87400,
     },
     {
@@ -353,6 +357,7 @@ export const examplePortfolioRiskFile: PortfolioRiskFile = {
       thetaMinPct: 0.0005,
       thetaTargetMaxPct: 0.001,
       thetaMaxPct: 0.002,
+      thetaGapToTarget: 24.2,
       portfolioValue: 71200,
     },
   ],
@@ -364,6 +369,7 @@ export const examplePortfolioRiskFile: PortfolioRiskFile = {
     thetaMinPct: 0.0007,
     thetaTargetMaxPct: 0.0015,
     thetaMaxPct: 0.002,
+    thetaGapToTarget: 0,
     beta: 0.82,
     betaCoverage: 0.85,
     betaStatus: "on_target",
