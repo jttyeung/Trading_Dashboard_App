@@ -6,6 +6,7 @@ import { Amt } from "@/components/privacy";
 import { fmtMoney } from "@/lib/calc";
 
 const TARGET_KEY = "monthlyGoalTargetPercent";
+const CAPITAL_KEY = "monthlyGoalCapitalBase";
 
 // MonthlyGoalCard tracks RULE-010's own 2%/month floor, 3%/month target
 // against real Schwab options realized P&L for the current calendar
@@ -43,6 +44,17 @@ const TARGET_KEY = "monthlyGoalTargetPercent";
 // value" structure — reading localStorage directly in a lazy useState
 // initializer would be flagged as an impure render-time read the same
 // way a live Date.now() call already is elsewhere in this app.
+//
+// Update — the capital base itself is now ALSO independently editable
+// (same pencil-icon/localStorage pattern, own CAPITAL_KEY), per the
+// account holder's own direct ask: the full blended portfolioValue
+// (stocks + cash + options) overstates what's actually ever going to be
+// working capital for this strategy, since a real chunk of the account
+// isn't going to be traded with options at all. Defaults to the passed-
+// in portfolioValue prop until an explicit override is saved -- the
+// account holder can dial it down to whatever dollar figure they
+// actually consider "capital deployed for this" rather than always
+// their entire net worth.
 export function MonthlyGoalCard({
   portfolioValue,
   realizedThisMonth,
@@ -60,6 +72,10 @@ export function MonthlyGoalCard({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(String(defaultTargetPercent));
 
+  const [capitalBase, setCapitalBase] = useState(portfolioValue);
+  const [editingCapital, setEditingCapital] = useState(false);
+  const [capitalDraft, setCapitalDraft] = useState(String(portfolioValue));
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem(TARGET_KEY);
@@ -74,6 +90,26 @@ export function MonthlyGoalCard({
       /* ignore */
     }
   }, []);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(CAPITAL_KEY);
+      if (saved != null) {
+        const parsed = parseFloat(saved);
+        if (!Number.isNaN(parsed) && parsed > 0) {
+          setCapitalBase(parsed);
+          setCapitalDraft(saved);
+          return;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    // No saved override -- track the live portfolioValue prop as it
+    // arrives (a fresh calendar-month baseline from the backend).
+    setCapitalBase(portfolioValue);
+    setCapitalDraft(String(portfolioValue));
+  }, [portfolioValue]);
 
   function saveTarget() {
     const parsed = parseFloat(draft);
@@ -90,7 +126,22 @@ export function MonthlyGoalCard({
     setEditing(false);
   }
 
-  const goal = portfolioValue * (targetPercent / 100);
+  function saveCapital() {
+    const parsed = parseFloat(capitalDraft);
+    if (!Number.isNaN(parsed) && parsed > 0) {
+      setCapitalBase(parsed);
+      try {
+        localStorage.setItem(CAPITAL_KEY, String(parsed));
+      } catch {
+        /* ignore */
+      }
+    } else {
+      setCapitalDraft(String(capitalBase)); // reject a bad edit, revert the input
+    }
+    setEditingCapital(false);
+  }
+
+  const goal = capitalBase * (targetPercent / 100);
   const progressPct = goal > 0 ? (realizedThisMonth / goal) * 100 : 0;
   const dayOfMonth = parseInt(asOfDate.slice(8, 10), 10) || 1;
   const daysLeft = Math.max(0, daysInMonth - dayOfMonth);
@@ -139,7 +190,35 @@ export function MonthlyGoalCard({
           ) : (
             <span className="font-semibold text-emerald-400">{targetPercent.toFixed(2)}%</span>
           )}{" "}
-          of <Amt>{fmtMoney(portfolioValue)}</Amt>
+          of{" "}
+          {editingCapital ? (
+            <span className="inline-flex items-center gap-1">
+              $
+              <input
+                type="number"
+                step="100"
+                min="1"
+                value={capitalDraft}
+                onChange={(e) => setCapitalDraft(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && saveCapital()}
+                onBlur={saveCapital}
+                autoFocus
+                className="w-24 rounded border border-border bg-surface-2 px-1 py-0.5 text-xs text-text tabular"
+              />
+            </span>
+          ) : (
+            <Amt>{fmtMoney(capitalBase)}</Amt>
+          )}{" "}
+          <button
+            onClick={() => {
+              setCapitalDraft(String(capitalBase));
+              setEditingCapital(true);
+            }}
+            title="Edit capital base — the dollar amount you're actually working options against, not necessarily your whole portfolio"
+            className="text-muted/60 hover:text-text"
+          >
+            ✏️
+          </button>
         </div>
         <div className="text-right tabular">
           <span className="text-xl font-bold text-text">
