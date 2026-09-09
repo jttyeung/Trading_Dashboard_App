@@ -37,6 +37,7 @@ export interface RollAnalysisResponse {
 export interface RollAnalysisParams {
   symbol: string;
   currentStrike: number;
+  currentDte: number;
   contracts: number;
   costToClose: number;
   mode: RollAnalysisMode;
@@ -49,6 +50,7 @@ export async function fetchRollAnalysis(
   const qs = new URLSearchParams({
     symbol: params.symbol,
     currentStrike: String(params.currentStrike),
+    currentDte: String(params.currentDte),
     contracts: String(params.contracts),
     costToClose: String(params.costToClose),
     mode: params.mode,

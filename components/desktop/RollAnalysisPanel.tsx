@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { fmtMoney, fmtPct } from "@/lib/calc";
+import { daysToExpiry, fmtMoney, fmtPct } from "@/lib/calc";
 import {
   fetchRollAnalysis,
   fetchRollTarget,
@@ -111,6 +111,7 @@ export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
     fetchRollAnalysis({
       symbol: position.symbol,
       currentStrike: position.strike,
+      currentDte: daysToExpiry(position.expiration),
       contracts: position.qty,
       costToClose: position.mark,
       mode,
@@ -134,6 +135,7 @@ export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
     target,
     position.symbol,
     position.strike,
+    position.expiration,
     position.qty,
     position.mark,
   ]);
