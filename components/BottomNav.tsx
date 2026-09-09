@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSchwabConnected } from "@/lib/use-schwab-connected";
+import { useAnyConnectionDown } from "@/lib/use-connections-down";
 
 const TABS = [
   { href: "/", label: "Home", icon: HomeIcon },
@@ -13,13 +13,14 @@ const TABS = [
   { href: "/research", label: "Research", icon: SearchIcon },
   // Reconnecting from a phone is the whole reason /reconnect exists, so
   // it belongs in the phone's own nav rather than only on the desktop
-  // table's toolbar. Carries a dot when the session is actually dead.
+  // table's toolbar. Carries a dot when ANY connection this app manages
+  // (Schwab, E*TRADE) is actually down.
   { href: "/reconnect", label: "Connect", icon: PlugIcon },
 ];
 
 export function BottomNav() {
   const pathname = usePathname();
-  const connected = useSchwabConnected();
+  const anyConnectionDown = useAnyConnectionDown();
 
   return (
     <nav
@@ -39,7 +40,7 @@ export function BottomNav() {
               >
                 <span className="relative">
                   <Icon active={active} />
-                  {href === "/reconnect" && connected === false && (
+                  {href === "/reconnect" && anyConnectionDown && (
                     <span
                       aria-hidden
                       className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-surface"
