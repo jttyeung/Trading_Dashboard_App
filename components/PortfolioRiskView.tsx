@@ -30,7 +30,7 @@ const OPEN_PNL_STATUS_STYLE: Record<RiskView["openPnLStatus"], { label: string; 
 // Narrowed to just the fields this gauge actually reads (rather than the
 // full RiskView) so the same component can render either the Schwab-only
 // Overall/PerAccount theta or BlendedRiskView's own whole-account theta.
-type ThetaGaugeInput = Pick<RiskView, "thetaToday" | "thetaPct" | "thetaStatus" | "thetaMinPct" | "thetaTargetMaxPct" | "thetaMaxPct">;
+type ThetaGaugeInput = Pick<RiskView, "thetaToday" | "thetaPct" | "thetaStatus" | "thetaMinPct" | "thetaTargetMaxPct" | "thetaMaxPct" | "thetaGapToTarget">;
 
 function ThetaGauge({ risk }: { risk: ThetaGaugeInput }) {
   const status = STATUS_STYLE[risk.thetaStatus];
@@ -50,6 +50,11 @@ function ThetaGauge({ risk }: { risk: ThetaGaugeInput }) {
             <Amt>{`${risk.thetaToday >= 0 ? "+" : "−"}${fmtMoney(Math.abs(risk.thetaToday))}`}</Amt>/day
           </div>
           <div className="tabular text-[11px] text-muted">{(risk.thetaPct * 100).toFixed(2)}% of portfolio value</div>
+          {risk.thetaGapToTarget > 0 && (
+            <div className="tabular text-[11px] text-sky-300">
+              +<Amt>{fmtMoney(risk.thetaGapToTarget)}</Amt>/day to reach target
+            </div>
+          )}
         </div>
         <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${status.chip}`}>
           {status.label}
