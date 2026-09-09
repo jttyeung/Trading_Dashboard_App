@@ -14,7 +14,7 @@ const TABS = [
   // Reconnecting from a phone is the whole reason /reconnect exists, so
   // it belongs in the phone's own nav rather than only on the desktop
   // table's toolbar. Carries a dot when the session is actually dead.
-  { href: "/reconnect", label: "Schwab", icon: PlugIcon },
+  { href: "/reconnect", label: "Connect", icon: PlugIcon },
 ];
 
 export function BottomNav() {
