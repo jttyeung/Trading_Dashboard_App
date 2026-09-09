@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { useSchwabConnected } from "@/lib/use-schwab-connected";
+import { useAnyConnectionDown } from "@/lib/use-connections-down";
 
 import { useEffect, useState } from "react";
 import type { Alert, BotSnapshot } from "@/lib/types";
@@ -9,8 +8,10 @@ import { PositionsTable, type SourcedOption } from "@/components/desktop/Positio
 import { BotTable } from "@/components/bot/BotTable";
 import { SecurityChart } from "@/components/desktop/SecurityChart";
 import { WatchlistBoard } from "@/components/desktop/WatchlistBoard";
+import { SchwabReconnect } from "@/components/desktop/SchwabReconnect";
+import { ETradeReconnect } from "@/components/desktop/ETradeReconnect";
 
-type Tab = "desktop" | "bot-safe" | "bot" | "bot-aggressive" | "chart" | "watchlist";
+type Tab = "desktop" | "bot-safe" | "bot" | "bot-aggressive" | "chart" | "watchlist" | "connections";
 
 // Order: Desktop, 20 Delta Safe, Wheel Bot, Aggressive Bot, Watchlist,
 // Chart — Watchlist moved just above Chart per the account holder's own
@@ -82,7 +83,15 @@ const TAB_KEY = "overviewActiveTab";
 function loadTab(): Tab {
   try {
     const raw = localStorage.getItem(TAB_KEY);
-    if (raw === "desktop" || raw === "bot" || raw === "bot-safe" || raw === "bot-aggressive" || raw === "chart" || raw === "watchlist")
+    if (
+      raw === "desktop" ||
+      raw === "bot" ||
+      raw === "bot-safe" ||
+      raw === "bot-aggressive" ||
+      raw === "chart" ||
+      raw === "watchlist" ||
+      raw === "connections"
+    )
       return raw;
   } catch {
     /* ignore */
@@ -112,6 +121,10 @@ const HEADINGS: Record<Tab, { title: string; subtitle: string }> = {
     title: "Watchlist Board",
     subtitle: "Every active watchlist ticker with a lever showing where its mark sits on Bollinger Bands, RSI, and IV Rank — add or remove tickers by hand; a manual addition is marked ᴹ and survives the sheet sync.",
   },
+  connections: {
+    title: "Connections",
+    subtitle: "Re-authorize Schwab or E*TRADE when a session dies — the same steps as the CLI, done from a browser.",
+  },
 };
 
 // A single icon rail switching between the desktop positions table and
@@ -135,7 +148,7 @@ export function OverviewShell({
   aggressiveBot: BotSnapshot;
   exampleMode: boolean;
 }) {
-  const schwabConnected = useSchwabConnected();
+  const anyConnectionDown = useAnyConnectionDown();
   const [tab, setTab] = useState<Tab>("desktop");
   useEffect(() => setTab(loadTab()), []);
 
@@ -195,15 +208,20 @@ export function OverviewShell({
           </button>
         ))}
 
-        {/* Pinned to the bottom, below the tab buttons: this navigates
-            away rather than switching a tab, so it isn't one of them.
-            Always present — the reconnect page is useless if it only
-            appears once the session has already died. Dot when it has. */}
-        <Link
-          href="/reconnect"
+        {/* Pinned to the bottom, below the tab buttons, but a real tab
+            like the rest — the nav rail stays visible and switching to
+            any other icon is the way back, instead of navigating away to
+            a separate route with no obvious way back except the
+            browser's own back button. Dot lights when ANY connection
+            this app manages (Schwab, E*TRADE) needs re-authorization. */}
+        <button
+          onClick={() => selectTab("connections")}
           title="Connections"
           aria-label="Connections"
-          className="mt-auto flex w-12 flex-col items-center gap-1 rounded-xl py-2.5 text-[9px] font-medium text-muted transition-colors hover:bg-surface-2 hover:text-text"
+          aria-current={tab === "connections"}
+          className={`mt-auto flex w-12 flex-col items-center gap-1 rounded-xl py-2.5 text-[9px] font-medium transition-colors ${
+            tab === "connections" ? "bg-accent/20 text-accent" : "text-muted hover:bg-surface-2 hover:text-text"
+          }`}
         >
           <span className="relative">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -211,11 +229,11 @@ export function OverviewShell({
               <path d="M6 9h12v3a6 6 0 0 1-12 0V9Z" />
               <path d="M12 18v3" />
             </svg>
-            {schwabConnected === false && (
+            {anyConnectionDown && (
               <span aria-hidden className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-surface" />
             )}
           </span>
-        </Link>
+        </button>
       </nav>
 
       <main className="min-w-0 flex-1 px-6 py-6">
@@ -257,6 +275,12 @@ export function OverviewShell({
         <div className={tab === "chart" ? "" : "hidden"}>
           <SecurityChart watchlist={heldTickers} exampleMode={exampleMode} />
         </div>
+        {tab === "connections" && (
+          <>
+            <SchwabReconnect />
+            <ETradeReconnect />
+          </>
+        )}
       </main>
     </div>
   );
