@@ -507,7 +507,7 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                         {g.label} <span className="font-normal text-muted">({g.rows.length})</span>
                       </button>
                     </td>
-                    <td colSpan={5} />
+                    <td colSpan={6} />
                     <td className="px-3 py-2 text-right tabular text-xs font-semibold text-muted">{fmtMoney(gSum!.theta)}</td>
                     <td colSpan={2} />
                     <td className="px-3 py-2 text-right tabular text-xs">
@@ -598,7 +598,7 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                       <td className="px-3 py-2 text-right tabular text-text">
                         {r.remainingAnnualized != null ? fmtPct(r.remainingAnnualized, 1) : "-"}
                       </td>
-                      <td className="px-3 py-2 text-right tabular">
+                      <td className="whitespace-nowrap px-3 py-2 text-right tabular">
                         {r.todayPl != null ? (
                           <div className="flex flex-col items-end">
                             <span className={pnlColor(r.todayPl)}>
@@ -633,7 +633,7 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
         </tbody>
         <tfoot>
           <tr className="border-t border-border bg-surface-2/60 font-semibold">
-            <td colSpan={7} className="px-3 py-2.5 text-xs uppercase tracking-wide text-muted">
+            <td colSpan={8} className="px-3 py-2.5 text-xs uppercase tracking-wide text-muted">
               Total
             </td>
             <td className="px-3 py-2.5 text-right tabular text-xs text-text">{fmtMoney(total.theta, { sign: true })}</td>
