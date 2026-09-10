@@ -64,7 +64,7 @@ export function MonthlyGoalCard({
   const [editing, setEditing] = useState(false);
   const [targetDraft, setTargetDraft] = useState(String(defaultTargetPercent));
   const [capitalDraft, setCapitalDraft] = useState(String(portfolioValue));
-  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   // hasOverride tracks whether a real saved override exists server-side —
   // while it's still null (the GET hasn't resolved yet) or false (checked,
   // nothing saved), this card keeps tracking the live defaultTargetPercent/
@@ -110,24 +110,40 @@ export function MonthlyGoalCard({
     setEditing(true);
   }
 
-  async function save() {
+  // commit saves and closes the editor, with no Save/Cancel buttons:
+  // tapping away from the inputs is the save gesture (see the container's
+  // own onBlur for how "away" is detected). A bad value just reverts to
+  // what was already stored rather than trapping the account holder in an
+  // open form they now have no button to escape.
+  async function commit() {
+    if (!editing) return; // a stray blur after we've already closed
     const parsedTarget = parseFloat(targetDraft);
     const parsedCapital = parseFloat(capitalDraft);
+    setEditing(false);
     if (Number.isNaN(parsedTarget) || parsedTarget <= 0 || Number.isNaN(parsedCapital) || parsedCapital <= 0) {
-      return; // leave the form open so the account holder can fix the bad value
+      setTargetDraft(String(targetPercent));
+      setCapitalDraft(String(capitalBase));
+      return;
     }
-    setSaving(true);
+    if (parsedTarget === targetPercent && parsedCapital === capitalBase) {
+      return; // nothing actually changed — don't spend a write on it
+    }
+
+    // Show the new numbers immediately, then reconcile: an auto-save has
+    // no button to report progress on, so the alternative is a UI that
+    // sits on stale values until the round-trip lands.
+    const previous = { target: targetPercent, capital: capitalBase };
+    setTargetPercent(parsedTarget);
+    setCapitalBase(parsedCapital);
+    setSaveError(null);
     try {
       await setMonthlyGoalTarget(parsedTarget, parsedCapital);
-      setTargetPercent(parsedTarget);
-      setCapitalBase(parsedCapital);
       setHasOverride(true);
-      setEditing(false);
     } catch {
-      // Daemon unreachable — leave the form open with the draft intact
-      // rather than silently discarding an edit that never actually saved.
-    } finally {
-      setSaving(false);
+      // Never leave the card showing a number that isn't actually stored.
+      setTargetPercent(previous.target);
+      setCapitalBase(previous.capital);
+      setSaveError("Couldn't save — daemon unreachable.");
     }
   }
 
@@ -152,7 +168,20 @@ export function MonthlyGoalCard({
       <div className="mt-1 flex items-end justify-between gap-3">
         <div className="text-xs text-muted">
           {editing ? (
-            <span className="inline-flex flex-wrap items-center gap-1">
+            // React's onBlur bubbles (it's focusout), so this one handler
+            // covers both inputs: tabbing from the % field to the $ field
+            // keeps focus INSIDE this span and must not save mid-edit, so
+            // only a blur whose next-focused element is outside commits.
+            // relatedTarget is null when focus leaves for nothing at all —
+            // exactly the "tap somewhere else on the page" gesture this is
+            // built around — which correctly falls through to commit().
+            <span
+              className="inline-flex flex-wrap items-center gap-1"
+              onBlur={(e) => {
+                if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+                commit();
+              }}
+            >
               Target:{" "}
               <input
                 type="number"
@@ -160,7 +189,7 @@ export function MonthlyGoalCard({
                 min="0.1"
                 value={targetDraft}
                 onChange={(e) => setTargetDraft(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && save()}
+                onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
                 autoFocus
                 className="w-14 rounded border border-border bg-surface-2 px-1 py-0.5 text-xs text-emerald-400 tabular"
               />
@@ -171,19 +200,9 @@ export function MonthlyGoalCard({
                 min="1"
                 value={capitalDraft}
                 onChange={(e) => setCapitalDraft(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && save()}
+                onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
                 className="w-24 rounded border border-border bg-surface-2 px-1 py-0.5 text-xs text-text tabular"
               />
-              <button
-                onClick={save}
-                disabled={saving}
-                className="rounded bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold text-emerald-300 ring-1 ring-inset ring-emerald-500/30 disabled:opacity-50"
-              >
-                {saving ? "Saving…" : "Save"}
-              </button>
-              <button onClick={() => setEditing(false)} className="text-[11px] text-muted hover:text-text">
-                Cancel
-              </button>
             </span>
           ) : (
             <>
@@ -198,6 +217,7 @@ export function MonthlyGoalCard({
               </button>
             </>
           )}
+          {saveError && <div className="mt-0.5 text-[11px] text-rose-400">{saveError}</div>}
         </div>
         <div className="text-right tabular">
           <span className="text-xl font-bold text-text">

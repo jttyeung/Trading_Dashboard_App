@@ -20,6 +20,21 @@ import { fetchETradeAuthStatus } from "@/lib/etrade-auth-api";
 // boolean | null): for a dot indicator, "unknown" and "not down" render
 // identically anyway (no dot), so there's no third state worth exposing
 // to callers here.
+const CONNECTIONS_CHANGED_EVENT = "optionseval:connections-changed";
+
+// notifyConnectionsChanged tells every mounted useAnyConnectionDown to
+// re-check immediately. Called by the reconnect flows the moment one
+// succeeds: the poll interval alone would leave the nav's red dot lit
+// for up to pollMs after the account holder has already fixed the very
+// thing it's complaining about. A window event rather than a callback
+// prop because the reconnect components render in two different places
+// (the desktop shell's Connections tab and the standalone /reconnect
+// page) and neither one owns the nav that draws the dot.
+export function notifyConnectionsChanged() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(CONNECTIONS_CHANGED_EVENT));
+}
+
 export function useAnyConnectionDown(pollMs = 5 * 60 * 1000): boolean {
   const [down, setDown] = useState(false);
 
@@ -36,9 +51,11 @@ export function useAnyConnectionDown(pollMs = 5 * 60 * 1000): boolean {
     }
     check();
     const id = setInterval(check, pollMs);
+    window.addEventListener(CONNECTIONS_CHANGED_EVENT, check);
     return () => {
       cancelled = true;
       clearInterval(id);
+      window.removeEventListener(CONNECTIONS_CHANGED_EVENT, check);
     };
   }, [pollMs]);
 
