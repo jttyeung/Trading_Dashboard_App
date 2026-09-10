@@ -356,7 +356,7 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
                 <SortHeader label="Ticker" sortKeyName="ticker" active={sortKey} dir={sortDir} onClick={toggleSort} />
               </th>
               <th className="px-3 py-2 font-medium">Sector</th>
-              <th className="px-3 py-2 font-medium">
+              <th className="w-px whitespace-nowrap px-3 py-2 font-medium">
                 <SortHeader label="Price vs Walls" sortKeyName="walls" active={sortKey} dir={sortDir} onClick={toggleSort} />
               </th>
               <th className="w-20 px-2 py-2 text-right font-medium">
@@ -388,7 +388,7 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
                   )}
                 </td>
                 <td className="max-w-[180px] truncate px-3 py-2 text-xs text-muted">{r.sector || "—"}</td>
-                <td className="px-3 py-2">
+                <td className="w-px whitespace-nowrap px-3 py-2">
                   <PriceWallsCell price={r.currentPrice} putWall={r.putWall} callWall={r.callWall} />
                 </td>
                 <td className="w-20 whitespace-nowrap px-2 py-2 text-right">

@@ -294,22 +294,25 @@ function sumRows(rows: Row[]) {
   return { unrealized, unrealizedPct, remainingDollar, remainingLabel, todayPl, todayPlPct, marketValue, theta, hasTodayPl };
 }
 
-const COLUMNS: { key: SortKey; label: string }[] = [
+// align mirrors how each column's own cells render. Every numeric column
+// is right-aligned in the body, so a left-aligned header left the label
+// stranded at the opposite edge of a wide column from its own digits.
+const COLUMNS: { key: SortKey; label: string; align?: "right" }[] = [
   { key: "ticker", label: "Ticker" },
   { key: "strategy", label: "Strategy" },
-  { key: "qty", label: "Qty" },
-  { key: "dit", label: "DIT" },
-  { key: "dte", label: "DTE" },
-  { key: "strike", label: "Strike" },
-  { key: "spot", label: "Mark" },
-  { key: "spotPct", label: "Chg %" },
-  { key: "theta", label: "Theta $" },
-  { key: "ror", label: "RoR %" },
-  { key: "apy", label: "APY" },
-  { key: "unrealized", label: "Unrealized" },
-  { key: "remApy", label: "APY Left" },
-  { key: "todayPl", label: "Today P/L" },
-  { key: "marketValue", label: "Market Value" },
+  { key: "qty", label: "Qty", align: "right" },
+  { key: "dit", label: "DIT", align: "right" },
+  { key: "dte", label: "DTE", align: "right" },
+  { key: "strike", label: "Strike", align: "right" },
+  { key: "spot", label: "Mark", align: "right" },
+  { key: "spotPct", label: "Chg %", align: "right" },
+  { key: "theta", label: "Theta $", align: "right" },
+  { key: "ror", label: "RoR %", align: "right" },
+  { key: "apy", label: "APY", align: "right" },
+  { key: "unrealized", label: "Unrealized", align: "right" },
+  { key: "remApy", label: "APY Left", align: "right" },
+  { key: "todayPl", label: "Today P/L", align: "right" },
+  { key: "marketValue", label: "Market Value", align: "right" },
   { key: "source", label: "Source" },
 ];
 
@@ -475,8 +478,14 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
         <thead>
           <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted">
             {COLUMNS.map((c) => (
-              <th key={c.key} className="whitespace-nowrap px-3 py-2 font-medium">
-                <button onClick={() => toggleSort(c.key)} className="flex items-center gap-1 hover:text-text">
+              <th
+                key={c.key}
+                className={`whitespace-nowrap px-3 py-2 font-medium ${c.align === "right" ? "text-right" : ""}`}
+              >
+                <button
+                  onClick={() => toggleSort(c.key)}
+                  className={`flex items-center gap-1 hover:text-text ${c.align === "right" ? "w-full justify-end" : ""}`}
+                >
                   {c.label}
                   <span className="text-[9px]">{sortKey === c.key ? (sortDir === 1 ? "▲" : "▼") : "↕"}</span>
                 </button>
