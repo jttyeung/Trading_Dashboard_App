@@ -25,6 +25,7 @@
 //     sticks for the session).
 import { useCallback, useEffect, useState } from "react";
 import { completeAuth, fetchAuthStatus, startAuth } from "@/lib/auth-api";
+import { notifyConnectionsChanged } from "@/lib/use-connections-down";
 import { DEMO_MODE } from "@/lib/demo";
 
 type Phase = "checking" | "connected" | "needs-auth" | "awaiting-code" | "awaiting-callback" | "done";
@@ -76,6 +77,7 @@ export function SchwabReconnect() {
         const status = await fetchAuthStatus();
         if (status.connected) {
           setPhase("done");
+          notifyConnectionsChanged();
           setDetail("Connected.");
         }
       } catch {
@@ -108,6 +110,7 @@ export function SchwabReconnect() {
       await completeAuth(url);
       setRedirectUrl("");
       setPhase("done");
+      notifyConnectionsChanged();
       setDetail("Connected.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not complete the connection.");

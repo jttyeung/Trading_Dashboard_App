@@ -17,6 +17,7 @@
 // here — no clipboard-URL-parsing needed, just a plain text field.
 import { useCallback, useEffect, useState } from "react";
 import { completeETradeAuth, fetchETradeAuthStatus, startETradeAuth } from "@/lib/etrade-auth-api";
+import { notifyConnectionsChanged } from "@/lib/use-connections-down";
 import { DEMO_MODE } from "@/lib/demo";
 
 type Phase = "checking" | "not-configured" | "connected" | "needs-auth" | "awaiting-code" | "done";
@@ -77,6 +78,7 @@ export function ETradeReconnect() {
       await completeETradeAuth(verifier.trim());
       setVerifier("");
       setPhase("done");
+      notifyConnectionsChanged();
       setDetail("Connected.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not complete the connection.");
