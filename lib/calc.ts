@@ -592,3 +592,24 @@ export function buildAlerts(options: OptionPosition[]): AlertItem[] {
 
   return alerts.sort((a, b) => LEVEL_RANK[b.level] - LEVEL_RANK[a.level]);
 }
+
+/** The underlying's own move today, as a fraction, or null when it can't
+ *  be computed.
+ *
+ *  Measured against the SAME price the caller displays
+ *  (underlyingPrice first) so the number and its percentage can never
+ *  disagree. Deliberately NOT underlyingLive: Schwab keeps returning the
+ *  last extended-hours print all through the regular session, so that
+ *  field goes stale mid-session while underlyingPrice stays current —
+ *  confirmed live against a real CRDO quote reading 160.09 current
+ *  against a 166.98 pre-market print. */
+export function spotPercentChange(o: {
+  underlyingPrice?: number;
+  underlyingLive?: number | null;
+  underlyingClose?: number | null;
+}): number | null {
+  const current = o.underlyingPrice ?? o.underlyingLive ?? null;
+  const close = o.underlyingClose ?? null;
+  if (current == null || close == null || close === 0) return null;
+  return (current - close) / close;
+}

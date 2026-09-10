@@ -14,6 +14,7 @@ import {
   positionAnnualizedReturn,
   positionRemainingAnnualizedReturn,
   positionReturnOnCapital,
+  spotPercentChange,
 } from "@/lib/calc";
 import { positionDailyTheta } from "@/lib/theta";
 import { MarketCountdown } from "@/components/desktop/MarketCountdown";
@@ -65,6 +66,7 @@ interface Row {
   dit: number | null;
   dte: number;
   spot: number | null;
+  spotPct: number | null;
   theta: number;
   unrealized: number;
   unrealizedPct: number;
@@ -159,6 +161,12 @@ function buildRow(
     dit: o.openedAt ? daysBetween(o.openedAt) : null,
     dte: daysToExpiry(o.expiration),
     spot: o.underlyingPrice ?? o.underlyingLive ?? o.underlyingClose ?? null,
+    // The underlying's own move today, measured against the SAME price
+    // shown in the cell so the two can never disagree. Deliberately not
+    // underlyingLive: Schwab keeps returning the last extended-hours
+    // print during the regular session, so that field goes stale
+    // mid-session while underlyingPrice stays current.
+    spotPct: spotPercentChange(o),
     theta: positionDailyTheta(o),
     unrealized: optionPnl(o),
     unrealizedPct: optionPnlPct(o),
@@ -549,7 +557,18 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                         <span className={`rounded px-1.5 py-0.5 text-xs font-semibold tabular ${dteColor(r.dte)}`}>{r.dte}</span>
                       </td>
                       <td className="px-3 py-2 text-right tabular text-text">{fmtMoney(r.o.strike)}</td>
-                      <td className="px-3 py-2 text-right tabular text-text">{r.spot != null ? fmtMoney(r.spot) : "-"}</td>
+                      <td className="px-3 py-2 text-right tabular text-text">
+                        {r.spot != null ? (
+                          <>
+                            {fmtMoney(r.spot)}
+                            {r.spotPct != null && (
+                              <span className={`ml-1 text-[11px] ${pnlColor(r.spotPct)}`}>({fmtPct(r.spotPct)})</span>
+                            )}
+                          </>
+                        ) : (
+                          "-"
+                        )}
+                      </td>
                       <td className={`px-3 py-2 text-right tabular ${pnlColor(r.theta)}`}>
                         <div className="flex flex-col items-end leading-tight">
                           <span>{fmtMoney(r.theta, { sign: true })}</span>

@@ -18,6 +18,7 @@ export interface WatchlistRow {
   category: string;
   source: "sheet" | "manual";
   currentPrice: number | null;
+  dayChangePct: number | null; // underlying's move today, as a fraction (0.0109 = +1.09%)
   bollingerUpper: number | null;
   bollingerMid: number | null;
   bollingerLower: number | null;
