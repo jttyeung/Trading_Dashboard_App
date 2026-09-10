@@ -91,11 +91,14 @@ const RSI_ZONES = [
 // (see watchlistapi.Row.DayChangePct) rather than from a second quote.
 function DayPct({ pct }: { pct: number | null | undefined }) {
   if (pct == null) return null;
-  const tone = pct > 0 ? "text-pos" : pct < 0 ? "text-neg" : "text-muted";
+  const shown = pct * 100;
+  // Anything under half a hundredth rounds to 0.00 — render it flat and
+  // unsigned rather than as a misleading "-0.00%".
+  const flat = Math.abs(shown) < 0.005;
+  const tone = flat ? "text-muted" : shown > 0 ? "text-pos" : "text-neg";
   return (
     <span className={`tabular text-[10px] ${tone}`}>
-      {pct > 0 ? "+" : ""}
-      {(pct * 100).toFixed(2)}%
+      {flat ? "0.00" : `${shown > 0 ? "+" : ""}${shown.toFixed(2)}`}%
     </span>
   );
 }
@@ -198,15 +201,20 @@ function SortHeader({
   active,
   dir,
   onClick,
+  align = "left",
 }: {
   label: string;
   sortKeyName: SortKey;
   active: SortKey;
   dir: 1 | -1;
   onClick: (key: SortKey) => void;
+  align?: "left" | "right";
 }) {
   return (
-    <button onClick={() => onClick(sortKeyName)} className="flex items-center gap-1 hover:text-text">
+    <button
+      onClick={() => onClick(sortKeyName)}
+      className={`flex items-center gap-1 hover:text-text ${align === "right" ? "w-full justify-end" : ""}`}
+    >
       {label}
       <span className="text-[9px]">{active === sortKeyName ? (dir === 1 ? "▲" : "▼") : "↕"}</span>
     </button>
@@ -351,8 +359,8 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
               <th className="px-3 py-2 font-medium">
                 <SortHeader label="Price vs Walls" sortKeyName="walls" active={sortKey} dir={sortDir} onClick={toggleSort} />
               </th>
-              <th className="px-3 py-2 font-medium">
-                <SortHeader label="Chg %" sortKeyName="chg" active={sortKey} dir={sortDir} onClick={toggleSort} />
+              <th className="w-20 px-2 py-2 text-right font-medium">
+                <SortHeader label="Chg %" sortKeyName="chg" active={sortKey} dir={sortDir} onClick={toggleSort} align="right" />
               </th>
               <th className="px-3 py-2 font-medium">
                 <SortHeader label="BB" sortKeyName="bb" active={sortKey} dir={sortDir} onClick={toggleSort} />
@@ -383,7 +391,7 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
                 <td className="px-3 py-2">
                   <PriceWallsCell price={r.currentPrice} putWall={r.putWall} callWall={r.callWall} />
                 </td>
-                <td className="px-3 py-2 text-right">
+                <td className="w-20 whitespace-nowrap px-2 py-2 text-right">
                   {r.dayChangePct != null ? <DayPct pct={r.dayChangePct} /> : <span className="text-sm text-muted">—</span>}
                 </td>
                 <td className="px-3 py-2">
