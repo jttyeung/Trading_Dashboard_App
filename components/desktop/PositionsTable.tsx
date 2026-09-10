@@ -58,7 +58,7 @@ const STRATEGY_STYLE: Record<OptionKind, string> = {
 export type SourcedOption = OptionPosition & { sourceLabel: string };
 
 type GroupBy = "none" | "strategy" | "dte" | "ticker" | "account";
-type SortKey = "ticker" | "strategy" | "qty" | "dit" | "dte" | "strike" | "spot" | "theta" | "apy" | "ror" | "unrealized" | "remApy" | "todayPl" | "marketValue" | "source";
+type SortKey = "ticker" | "strategy" | "qty" | "dit" | "dte" | "strike" | "spot" | "spotPct" | "theta" | "apy" | "ror" | "unrealized" | "remApy" | "todayPl" | "marketValue" | "source";
 
 interface Row {
   o: SourcedOption;
@@ -247,6 +247,8 @@ function sortValue(r: Row, key: SortKey): number | string {
       return r.o.strike;
     case "spot":
       return r.spot ?? -Infinity;
+    case "spotPct":
+      return r.spotPct ?? -Infinity;
     case "theta":
       return r.theta;
     case "apy":
@@ -300,6 +302,7 @@ const COLUMNS: { key: SortKey; label: string }[] = [
   { key: "dte", label: "DTE" },
   { key: "strike", label: "Strike" },
   { key: "spot", label: "Mark" },
+  { key: "spotPct", label: "Chg %" },
   { key: "theta", label: "Theta $" },
   { key: "ror", label: "RoR %" },
   { key: "apy", label: "APY" },
@@ -557,17 +560,9 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                         <span className={`rounded px-1.5 py-0.5 text-xs font-semibold tabular ${dteColor(r.dte)}`}>{r.dte}</span>
                       </td>
                       <td className="px-3 py-2 text-right tabular text-text">{fmtMoney(r.o.strike)}</td>
-                      <td className="px-3 py-2 text-right tabular text-text">
-                        {r.spot != null ? (
-                          <>
-                            {fmtMoney(r.spot)}
-                            {r.spotPct != null && (
-                              <span className={`ml-1 text-[11px] ${pnlColor(r.spotPct)}`}>({fmtPct(r.spotPct)})</span>
-                            )}
-                          </>
-                        ) : (
-                          "-"
-                        )}
+                      <td className="px-3 py-2 text-right tabular text-text">{r.spot != null ? fmtMoney(r.spot) : "-"}</td>
+                      <td className={`px-3 py-2 text-right tabular ${r.spotPct != null ? pnlColor(r.spotPct) : "text-text"}`}>
+                        {r.spotPct != null ? fmtPct(r.spotPct) : "-"}
                       </td>
                       <td className={`px-3 py-2 text-right tabular ${pnlColor(r.theta)}`}>
                         <div className="flex flex-col items-end leading-tight">
