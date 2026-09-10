@@ -43,11 +43,14 @@ export function ReturnCalculator() {
   // thing here as on the Monthly Goal card. Falls back to RULE-010's 3% if
   // the daemon isn't reachable.
   const [targetMonthlyPct, setTargetMonthlyPct] = useState(3);
+  const [savedCapitalBase, setSavedCapitalBase] = useState<number | null>(null);
   useEffect(() => {
     let cancelled = false;
     fetchMonthlyGoalTarget()
       .then((t) => {
-        if (!cancelled && t.targetPercent > 0) setTargetMonthlyPct(t.targetPercent);
+        if (cancelled) return;
+        if (t.targetPercent > 0) setTargetMonthlyPct(t.targetPercent);
+        if (t.capitalBase > 0) setSavedCapitalBase(t.capitalBase);
       })
       .catch(() => {
         /* daemon unreachable — keep the RULE-010 default */
@@ -156,6 +159,8 @@ export function ReturnCalculator() {
         </div>
       </div>
 
+      <IncomeTargetTable savedCapitalBase={savedCapitalBase} targetMonthlyPct={targetMonthlyPct} />
+
       <div className="rounded-2xl border border-border bg-surface p-4">
         <h3 className="text-sm font-semibold text-text">Premium needed to hit {targetMonthlyPct.toFixed(2)}%/month</h3>
         <p className="mt-0.5 text-xs text-muted">
@@ -192,6 +197,129 @@ export function ReturnCalculator() {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+// IncomeTargetTable answers the portfolio-level question rather than the
+// per-trade one: for a given account size, what monthly rate does each level
+// of monthly income actually require?
+//
+// The annual column COMPOUNDS -- (1 + monthly)^12 - 1 -- because it models
+// income earned and redeployed month over month. That is deliberately NOT the
+// 360/DTE simple annualization the trade calculator above uses, and the two
+// genuinely answer different questions: one is "what rate is this single
+// trade running at", the other is "what does sustaining this every month come
+// out to". At 5.88%/month the gap is wide (98.6% compounded vs 70.6% simple),
+// so the table says which it is rather than leaving it to be assumed.
+function IncomeTargetTable({
+  savedCapitalBase,
+  targetMonthlyPct,
+}: {
+  savedCapitalBase: number | null;
+  targetMonthlyPct: number;
+}) {
+  const [portfolio, setPortfolio] = useState("");
+  const [step, setStep] = useState("5000");
+  const [touched, setTouched] = useState(false);
+
+  // Defaults to the capital base already saved on the Monthly Goal card, so
+  // this opens on the account holder's own number instead of a placeholder --
+  // but never overwrites a value they have started typing.
+  useEffect(() => {
+    if (!touched && savedCapitalBase != null) setPortfolio(String(Math.round(savedCapitalBase)));
+  }, [savedCapitalBase, touched]);
+
+  const p = num(portfolio);
+  const s = Math.max(1, num(step) || 1);
+
+  const rows = useMemo(() => {
+    if (p <= 0) return [];
+    return Array.from({ length: 10 }, (_, i) => {
+      const income = s * (i + 1);
+      const monthly = income / p;
+      return { income, monthly, annual: Math.pow(1 + monthly, 12) - 1 };
+    });
+  }, [p, s]);
+
+  // The income level that lands closest to the saved monthly target, so the
+  // row worth reading is marked rather than counted to by eye.
+  const target = targetMonthlyPct / 100;
+  const nearest = useMemo(() => {
+    if (rows.length === 0) return null;
+    return rows.reduce((best, r) => (Math.abs(r.monthly - target) < Math.abs(best.monthly - target) ? r : best), rows[0]);
+  }, [rows, target]);
+
+  const field = "w-full rounded-md bg-surface-2 px-3 py-2 text-sm tabular ring-1 ring-inset ring-border";
+  const label = "mb-1 block text-[11px] uppercase tracking-wide text-muted";
+
+  return (
+    <div className="rounded-2xl border border-border bg-surface p-4">
+      <h3 className="text-sm font-semibold text-text">Income target by portfolio size</h3>
+      <p className="mt-0.5 text-xs text-muted">
+        What monthly rate each level of monthly income requires. Annual compounds month over month, unlike the per-trade
+        figure above.
+      </p>
+
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:max-w-sm">
+        <div>
+          <label className={label} htmlFor="calc-portfolio">Portfolio value</label>
+          <input
+            id="calc-portfolio"
+            className={field}
+            inputMode="decimal"
+            value={portfolio}
+            placeholder="850000"
+            onChange={(e) => {
+              setTouched(true);
+              setPortfolio(e.target.value);
+            }}
+          />
+        </div>
+        <div>
+          <label className={label} htmlFor="calc-step">Step</label>
+          <input id="calc-step" className={field} inputMode="decimal" value={step} onChange={(e) => setStep(e.target.value)} />
+        </div>
+      </div>
+
+      {p <= 0 && (
+        <p className="mt-3 text-xs text-muted">Enter a portfolio value to see the table.</p>
+      )}
+
+      {p > 0 && (
+        <>
+          <div className="mt-3 text-xs text-muted">Based on {fmtMoney(p)}:</div>
+          <table className="mt-2 w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted">
+                <th className="py-2 font-medium">$/mo</th>
+                <th className="py-2 text-right font-medium">Monthly rate</th>
+                <th className="py-2 text-right font-medium">Annual (compounded)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => {
+                const isNearest = nearest != null && r.income === nearest.income;
+                return (
+                  <tr key={r.income} className={`border-b border-border/60 ${isNearest ? "bg-accent/10" : ""}`}>
+                    <td className="py-2 tabular">
+                      {fmtMoney(r.income)}
+                      {isNearest && <span className="ml-1.5 text-[10px] text-accent">closest to your target</span>}
+                    </td>
+                    <td className="py-2 text-right tabular">{pct(r.monthly)}</td>
+                    <td className="py-2 text-right tabular text-muted">{pct(r.annual)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <p className="mt-2 text-[11px] text-muted">
+            At {targetMonthlyPct.toFixed(2)}%/month you&apos;d need{" "}
+            <span className="font-semibold text-text">{fmtMoney(p * target)}</span>/mo
+            {" "}({pct(Math.pow(1 + target, 12) - 1)} compounded annually).
+          </p>
+        </>
+      )}
     </div>
   );
 }
