@@ -15,7 +15,7 @@
 // window.location.hostname fix as that file.
 function paperbotAPIBase(): string {
   if (typeof window === "undefined") return "http://localhost:8091";
-  return `http://${window.location.hostname}:8091`;
+  return `${window.location.protocol}//${window.location.hostname}:8091`;
 }
 
 export type BotStatus = "pending_approval" | "approved" | "rejected";

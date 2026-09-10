@@ -15,7 +15,7 @@
 // resolves "localhost" to the phone itself, which has nothing listening.
 function etradeAuthAPIBase(): string {
   if (typeof window === "undefined") return "http://localhost:8096";
-  return `http://${window.location.hostname}:8096`;
+  return `${window.location.protocol}//${window.location.hostname}:8096`;
 }
 
 export interface ETradeAuthStatus {
