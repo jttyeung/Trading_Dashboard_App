@@ -2,8 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useAnyConnectionDown } from "@/lib/use-connections-down";
 
+// No Connect tab here on purpose: seven items made this rail too crowded
+// on a phone, and the account holder re-authorizes from the desktop
+// view's own Connections tab instead. /reconnect itself still exists and
+// still works if opened directly — it's just not worth a permanent slot
+// in the phone's nav.
 const TABS = [
   { href: "/", label: "Home", icon: HomeIcon },
   { href: "/options", label: "Options", icon: OptionsIcon },
@@ -11,16 +15,10 @@ const TABS = [
   { href: "/vix", label: "VIX/VXN", icon: VixIcon },
   { href: "/briefing", label: "Brief", icon: BriefIcon },
   { href: "/research", label: "Research", icon: SearchIcon },
-  // Reconnecting from a phone is the whole reason /reconnect exists, so
-  // it belongs in the phone's own nav rather than only on the desktop
-  // table's toolbar. Carries a dot when ANY connection this app manages
-  // (Schwab, E*TRADE) is actually down.
-  { href: "/reconnect", label: "Connect", icon: PlugIcon },
 ];
 
 export function BottomNav() {
   const pathname = usePathname();
-  const anyConnectionDown = useAnyConnectionDown();
 
   return (
     <nav
@@ -38,15 +36,7 @@ export function BottomNav() {
                   active ? "text-emerald-400" : "text-muted hover:text-text"
                 }`}
               >
-                <span className="relative">
-                  <Icon active={active} />
-                  {href === "/reconnect" && anyConnectionDown && (
-                    <span
-                      aria-hidden
-                      className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-surface"
-                    />
-                  )}
-                </span>
+                <Icon active={active} />
                 <span>{label}</span>
               </Link>
             </li>
@@ -114,16 +104,6 @@ function BriefIcon({ active }: IconProps) {
       <path d="M3 18h18" />
       <path d="M5 18a7 7 0 0 1 14 0" />
       <path d="M12 3v3M4 8l1.5 1.5M20 8l-1.5 1.5" />
-    </svg>
-  );
-}
-
-function PlugIcon({ active }: IconProps) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" {...stroke(active)}>
-      <path d="M9 3v6M15 3v6" />
-      <path d="M6 9h12v3a6 6 0 0 1-12 0V9Z" />
-      <path d="M12 18v3" />
     </svg>
   );
 }
