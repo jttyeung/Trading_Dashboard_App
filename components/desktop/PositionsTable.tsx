@@ -207,8 +207,6 @@ function summaryCells(sum: Summary): Partial<Record<SortKey, React.ReactNode>> {
       <div className="flex flex-col items-end gap-0.5">
         <PctBar pct={sum.unrealizedPct} label={fmtMoney(sum.unrealized, { sign: true })} />
         <span className="whitespace-nowrap text-[10px] text-muted">
-          <span className={pnlColor(sum.unrealizedPct)}>{fmtPct(sum.unrealizedPct, 0)}</span>
-          {" · "}
           {fmtMoney(sum.remainingDollar)} {sum.remainingLabel}
         </span>
       </div>
@@ -643,8 +641,6 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                         <div className="flex flex-col items-end gap-0.5">
                           <PctBar pct={r.unrealizedPct} label={fmtMoney(r.unrealized, { sign: true })} />
                           <span className="whitespace-nowrap text-[10px] text-muted">
-                            <span className={pnlColor(r.unrealizedPct)}>{fmtPct(r.unrealizedPct, 0)}</span>
-                            {" · "}
                             {fmtMoney(r.remainingDollar)} {r.remainingLabel}
                           </span>
                         </div>
