@@ -159,8 +159,6 @@ export function ReturnCalculator() {
         </div>
       </div>
 
-      <IncomeTargetTable savedCapitalBase={savedCapitalBase} targetMonthlyPct={targetMonthlyPct} />
-
       <div className="rounded-2xl border border-border bg-surface p-4">
         <h3 className="text-sm font-semibold text-text">Premium needed to hit {targetMonthlyPct.toFixed(2)}%/month</h3>
         <p className="mt-0.5 text-xs text-muted">
@@ -197,6 +195,8 @@ export function ReturnCalculator() {
           </tbody>
         </table>
       </div>
+
+      <IncomeTargetTable savedCapitalBase={savedCapitalBase} targetMonthlyPct={targetMonthlyPct} />
     </div>
   );
 }
