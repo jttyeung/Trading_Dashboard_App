@@ -6,12 +6,13 @@ import { useEffect, useState } from "react";
 import type { Alert, BotSnapshot } from "@/lib/types";
 import { PositionsTable, type SourcedOption } from "@/components/desktop/PositionsTable";
 import { BotTable } from "@/components/bot/BotTable";
+import { ReturnCalculator } from "@/components/desktop/ReturnCalculator";
 import { SecurityChart } from "@/components/desktop/SecurityChart";
 import { WatchlistBoard } from "@/components/desktop/WatchlistBoard";
 import { SchwabReconnect } from "@/components/desktop/SchwabReconnect";
 import { ETradeReconnect } from "@/components/desktop/ETradeReconnect";
 
-type Tab = "desktop" | "bot-safe" | "bot" | "bot-aggressive" | "chart" | "watchlist" | "connections";
+type Tab = "desktop" | "bot-safe" | "bot" | "bot-aggressive" | "calculator" | "chart" | "watchlist" | "connections";
 
 // Order: Desktop, 20 Delta Safe, Wheel Bot, Aggressive Bot, Watchlist,
 // Chart — Watchlist moved just above Chart per the account holder's own
@@ -57,6 +58,16 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
     ),
   },
   {
+    key: "calculator",
+    label: "Calculator",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="4" y="3" width="16" height="18" rx="2" />
+        <path d="M8 7h8M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01" />
+      </svg>
+    ),
+  },
+  {
     key: "watchlist",
     label: "Watchlist",
     icon: (
@@ -88,6 +99,7 @@ function loadTab(): Tab {
       raw === "bot" ||
       raw === "bot-safe" ||
       raw === "bot-aggressive" ||
+      raw === "calculator" ||
       raw === "chart" ||
       raw === "watchlist" ||
       raw === "connections"
@@ -108,6 +120,10 @@ const HEADINGS: Record<Tab, { title: string; subtitle: string }> = {
   "bot-safe": {
     title: "20 Delta Safe Moves",
     subtitle: "A conservative 0.10–0.20 delta CSP band, biased toward near-zero assignment odds.",
+  },
+  calculator: {
+    title: "Return Calculator",
+    subtitle: "Premium against DTE — what a trade actually earns per month and per year.",
   },
   "bot-aggressive": {
     title: "Aggressive Bot",
@@ -262,6 +278,9 @@ export function OverviewShell({
             this panel does its own live fetch plus in-flight add/remove
             state that a conditional mount/unmount would otherwise discard
             on every tab switch. */}
+        <div className={tab === "calculator" ? "" : "hidden"}>
+          <ReturnCalculator />
+        </div>
         <div className={tab === "watchlist" ? "" : "hidden"}>
           <WatchlistBoard exampleMode={exampleMode} />
         </div>
