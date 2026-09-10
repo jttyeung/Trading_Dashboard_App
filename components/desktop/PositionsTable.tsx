@@ -205,11 +205,10 @@ function summaryCells(sum: Summary): Partial<Record<SortKey, React.ReactNode>> {
     theta: <span className="font-semibold text-muted">{fmtMoney(sum.theta)}</span>,
     unrealized: (
       <div className="flex flex-col items-end gap-0.5">
-        <div className="flex items-center gap-2">
-          <span className={`font-semibold ${pnlColor(sum.unrealized)}`}>{fmtMoney(sum.unrealized, { sign: true })}</span>
-          <PctBar pct={sum.unrealizedPct} />
-        </div>
-        <span className="text-[10px] text-muted">
+        <PctBar pct={sum.unrealizedPct} label={fmtMoney(sum.unrealized, { sign: true })} />
+        <span className="whitespace-nowrap text-[10px] text-muted">
+          <span className={pnlColor(sum.unrealizedPct)}>{fmtPct(sum.unrealizedPct, 0)}</span>
+          {" · "}
           {fmtMoney(sum.remainingDollar)} {sum.remainingLabel}
         </span>
       </div>
@@ -261,17 +260,17 @@ function SummaryRow({
   );
 }
 
-function PctBar({ pct }: { pct: number }) {
+function PctBar({ pct, label }: { pct: number; label?: string }) {
   const positive = pct >= 0;
   const width = Math.min(100, Math.abs(pct) * 100);
   return (
-    <div className={`relative h-5 w-20 overflow-hidden rounded-full ${positive ? "bg-pos/15" : "bg-neg/15"}`}>
+    <div className={`relative h-5 w-24 overflow-hidden rounded-full ${positive ? "bg-pos/15" : "bg-neg/15"}`}>
       <div className={`h-full rounded-full ${positive ? "bg-pos" : "bg-neg"}`} style={{ width: `${width}%` }} />
       {/* A fixed dark warm tone, not a theme token — --pos/--neg are always
           light-ish in both themes (they double as legible status TEXT
           elsewhere), so a dark label reads fine against either fill. */}
-      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-[#2c2620]">
-        {fmtPct(pct, 0)}
+      <span className="absolute inset-0 flex items-center justify-center whitespace-nowrap text-[10px] font-semibold text-[#2c2620]">
+        {label ?? fmtPct(pct, 0)}
       </span>
     </div>
   );
@@ -642,11 +641,12 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                       <td className="px-3 py-2 text-right tabular text-text">{r.apy != null ? fmtPct(r.apy, 1) : "-"}</td>
                       <td className="px-3 py-2 text-right tabular">
                         <div className="flex flex-col items-end gap-0.5">
-                          <div className="flex items-center gap-2">
-                            <span className={`text-xs font-semibold ${pnlColor(r.unrealized)}`}>{fmtMoney(r.unrealized, { sign: true })}</span>
-                            <PctBar pct={r.unrealizedPct} />
-                          </div>
-                          <span className="text-[10px] text-muted">{fmtMoney(r.remainingDollar)} {r.remainingLabel}</span>
+                          <PctBar pct={r.unrealizedPct} label={fmtMoney(r.unrealized, { sign: true })} />
+                          <span className="whitespace-nowrap text-[10px] text-muted">
+                            <span className={pnlColor(r.unrealizedPct)}>{fmtPct(r.unrealizedPct, 0)}</span>
+                            {" · "}
+                            {fmtMoney(r.remainingDollar)} {r.remainingLabel}
+                          </span>
                         </div>
                       </td>
                       <td className="px-3 py-2 text-right tabular text-text">
