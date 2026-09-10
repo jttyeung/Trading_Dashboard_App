@@ -104,12 +104,10 @@ function PriceWallsCell({
   price,
   putWall,
   callWall,
-  dayPct,
 }: {
   price: number | null;
   putWall: number | null;
   callWall: number | null;
-  dayPct?: number | null;
 }) {
   if (price == null) {
     return <span className="text-sm text-muted">—</span>;
@@ -117,9 +115,7 @@ function PriceWallsCell({
   if (putWall == null || callWall == null) {
     return (
       <div className="flex w-32 flex-col gap-0.5">
-        <span className="tabular text-sm font-medium text-text">
-          ${price.toFixed(2)} <DayPct pct={dayPct} />
-        </span>
+        <span className="tabular text-sm font-medium text-text">${price.toFixed(2)}</span>
         <span className="text-[9px] text-muted">no wall data</span>
       </div>
     );
@@ -130,9 +126,7 @@ function PriceWallsCell({
     <div className="flex w-32 flex-col gap-0.5">
       <div className="flex items-center justify-between text-[10px] tabular">
         <span className="text-neg">${putWall.toFixed(0)}</span>
-        <span className="font-medium text-text">
-          ${price.toFixed(2)} <DayPct pct={dayPct} />
-        </span>
+        <span className="font-medium text-text">${price.toFixed(2)}</span>
         <span className="text-pos">${callWall.toFixed(0)}</span>
       </div>
       <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
@@ -196,7 +190,7 @@ function compareNullable(av: number | null, bv: number | null, dir: 1 | -1): num
   return (av - bv) * dir;
 }
 
-type SortKey = "ticker" | "bb" | "walls" | "rsi";
+type SortKey = "ticker" | "bb" | "walls" | "chg" | "rsi";
 
 function SortHeader({
   label,
@@ -247,6 +241,8 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
           return compareNullable(bbPosition(a), bbPosition(b), sortDir);
         case "walls":
           return compareNullable(wallsPosition(a), wallsPosition(b), sortDir);
+        case "chg":
+          return compareNullable(a.dayChangePct, b.dayChangePct, sortDir);
         case "rsi":
           return compareNullable(a.rsi14, b.rsi14, sortDir);
       }
@@ -261,18 +257,31 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
       return;
     }
     let cancelled = false;
-    fetchWatchlist()
-      .then((r) => {
-        if (!cancelled) setRows(r);
-      })
-      .catch((e) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    const load = () =>
+      fetchWatchlist()
+        .then((r) => {
+          if (!cancelled) setRows(r);
+        })
+        .catch((e) => {
+          if (!cancelled) setError(e instanceof Error ? e.message : String(e));
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+
+    load();
+    // Prices (and therefore the Chg % column) come from a live quote on
+    // the server side, so re-polling is what actually keeps them moving —
+    // during the session and through pre/post market alike. Skipped while
+    // the document is hidden so a tab left open overnight isn't spending
+    // a quote call a minute on a board nobody is looking at.
+    const id = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      load();
+    }, 60_000);
     return () => {
       cancelled = true;
+      clearInterval(id);
     };
   }, [exampleMode]);
 
@@ -343,6 +352,9 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
                 <SortHeader label="Price vs Walls" sortKeyName="walls" active={sortKey} dir={sortDir} onClick={toggleSort} />
               </th>
               <th className="px-3 py-2 font-medium">
+                <SortHeader label="Chg %" sortKeyName="chg" active={sortKey} dir={sortDir} onClick={toggleSort} />
+              </th>
+              <th className="px-3 py-2 font-medium">
                 <SortHeader label="BB" sortKeyName="bb" active={sortKey} dir={sortDir} onClick={toggleSort} />
               </th>
               <th className="px-3 py-2 font-medium">
@@ -369,7 +381,10 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
                 </td>
                 <td className="max-w-[180px] truncate px-3 py-2 text-xs text-muted">{r.sector || "—"}</td>
                 <td className="px-3 py-2">
-                  <PriceWallsCell price={r.currentPrice} putWall={r.putWall} callWall={r.callWall} dayPct={r.dayChangePct} />
+                  <PriceWallsCell price={r.currentPrice} putWall={r.putWall} callWall={r.callWall} />
+                </td>
+                <td className="px-3 py-2 text-right">
+                  {r.dayChangePct != null ? <DayPct pct={r.dayChangePct} /> : <span className="text-sm text-muted">—</span>}
                 </td>
                 <td className="px-3 py-2">
                   {r.currentPrice != null && r.bollingerLower != null && r.bollingerUpper != null ? (
