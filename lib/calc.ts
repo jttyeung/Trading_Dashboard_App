@@ -121,9 +121,22 @@ export function capturedPct(o: OptionPosition): number {
   return (o.entryPerShare - o.mark) / o.entryPerShare;
 }
 
-/** Cash a CSP ties up (strike × 100 × contracts). */
+/** Cash a CSP actually ties up: (strike − credit received) × 100 × contracts.
+ *
+ *  NET of the premium, because the credit lands at open — posting $6,200 for
+ *  a $62 put and immediately receiving $60 leaves $6,140 really committed.
+ *  Reconciled exactly against the account holder's own chain spreadsheet
+ *  across a real five-strike slice, and matched on the backend by
+ *  rules.NetCollateral and quant/options_eval.py so all three agree.
+ *
+ *  Deliberately NOT used for assignment cash needs or RULE-011 sector
+ *  exposure: assignment genuinely requires the full strike in cash, and
+ *  sector concentration measures market exposure, not capital efficiency.
+ *  Both stay gross on the backend. */
 export function cspCollateral(o: OptionPosition): number {
-  return o.strike * MULT * o.qty;
+  const net = o.strike - o.entryPerShare;
+  if (net <= 0) return 0;
+  return net * MULT * o.qty;
 }
 
 // Cushion from the underlying to the strike (to-strike %). Positive = out of
