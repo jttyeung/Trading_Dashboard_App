@@ -4,9 +4,7 @@ import { useEffect, useState } from "react";
 import { Card } from "@/components/ui";
 import { Amt } from "@/components/privacy";
 import { fmtMoney } from "@/lib/calc";
-
-const TARGET_KEY = "monthlyGoalTargetPercent";
-const CAPITAL_KEY = "monthlyGoalCapitalBase";
+import { fetchMonthlyGoalTarget, setMonthlyGoalTarget } from "@/lib/monthly-goal-api";
 
 // MonthlyGoalCard tracks RULE-010's own 2%/month floor, 3%/month target
 // against real Schwab options realized P&L for the current calendar
@@ -34,27 +32,20 @@ const CAPITAL_KEY = "monthlyGoalCapitalBase";
 // only reconstruct realized STOCK P&L, not options), a real, known gap
 // this card doesn't paper over but hasn't closed yet either.
 //
-// targetPercent is editable here (the pencil icon) and persisted in
-// localStorage only — same pattern as margin-mode.tsx's own toggle: a
-// personal pacing goal the account holder tunes for themselves, not a
-// setting the backend needs to know about. Starts at the backend's own
-// RULE-010 default (defaultTargetPercent) until an explicit override is
-// saved, exactly mirroring margin-mode.tsx's "start at a safe default,
-// then let an effect (never the render body) read the real persisted
-// value" structure — reading localStorage directly in a lazy useState
-// initializer would be flagged as an impure render-time read the same
-// way a live Date.now() call already is elsewhere in this app.
-//
-// Update — the capital base itself is now ALSO independently editable
-// (same pencil-icon/localStorage pattern, own CAPITAL_KEY), per the
-// account holder's own direct ask: the full blended portfolioValue
-// (stocks + cash + options) overstates what's actually ever going to be
-// working capital for this strategy, since a real chunk of the account
-// isn't going to be traded with options at all. Defaults to the passed-
-// in portfolioValue prop until an explicit override is saved -- the
-// account holder can dial it down to whatever dollar figure they
-// actually consider "capital deployed for this" rather than always
-// their entire net worth.
+// Update — target %/capital base are now backend-persisted, not
+// localStorage: a localStorage-only override turned out not to actually
+// "stick" (the account holder found an edit reverted on a later
+// session/reload — a different browser origin, cleared site data, or
+// just a different device all silently reset it). Moved to real
+// persistence via internal/rollapi's /monthly-goal-target, the same fix
+// this app already applied to the roll-up target for the identical
+// class of problem. On mount, GET whatever's saved server-side; falls
+// back to the RULE-010 default / the live portfolioValue prop until an
+// explicit override has ever been saved. Also collapsed from two
+// separate pencil icons (one per field) into one, opening a single
+// inline form that edits both % and $ together and saves them as one
+// call — the account holder's own ask, since editing one without the
+// other never made sense as a separate action anyway.
 export function MonthlyGoalCard({
   portfolioValue,
   realizedThisMonth,
@@ -69,76 +60,75 @@ export function MonthlyGoalCard({
   daysInMonth: number;
 }) {
   const [targetPercent, setTargetPercent] = useState(defaultTargetPercent);
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(String(defaultTargetPercent));
-
   const [capitalBase, setCapitalBase] = useState(portfolioValue);
-  const [editingCapital, setEditingCapital] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [targetDraft, setTargetDraft] = useState(String(defaultTargetPercent));
   const [capitalDraft, setCapitalDraft] = useState(String(portfolioValue));
+  const [saving, setSaving] = useState(false);
+  // hasOverride tracks whether a real saved override exists server-side —
+  // while it's still null (the GET hasn't resolved yet) or false (checked,
+  // nothing saved), this card keeps tracking the live defaultTargetPercent/
+  // portfolioValue props as they arrive, same as before this moved off
+  // localStorage; once true, an override is authoritative and prop changes
+  // (a fresh calendar-month baseline) no longer overwrite it.
+  const [hasOverride, setHasOverride] = useState<boolean | null>(null);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(TARGET_KEY);
-      if (saved != null) {
-        const parsed = parseFloat(saved);
-        if (!Number.isNaN(parsed) && parsed > 0) {
-          setTargetPercent(parsed);
-          setDraft(saved);
+    let cancelled = false;
+    fetchMonthlyGoalTarget()
+      .then((t) => {
+        if (cancelled) return;
+        setHasOverride(t.hasOverride);
+        if (t.hasOverride) {
+          setTargetPercent(t.targetPercent);
+          setCapitalBase(t.capitalBase);
         }
-      }
-    } catch {
-      /* ignore */
-    }
+      })
+      .catch(() => {
+        // Daemon unreachable (or not configured here) — quietly keep the
+        // RULE-010 default / live portfolioValue prop, same degrade-
+        // gracefully convention every other on-demand API in this app uses.
+        setHasOverride(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(CAPITAL_KEY);
-      if (saved != null) {
-        const parsed = parseFloat(saved);
-        if (!Number.isNaN(parsed) && parsed > 0) {
-          setCapitalBase(parsed);
-          setCapitalDraft(saved);
-          return;
-        }
-      }
-    } catch {
-      /* ignore */
-    }
-    // No saved override -- track the live portfolioValue prop as it
-    // arrives (a fresh calendar-month baseline from the backend).
+    if (hasOverride) return;
     setCapitalBase(portfolioValue);
-    setCapitalDraft(String(portfolioValue));
-  }, [portfolioValue]);
+  }, [portfolioValue, hasOverride]);
+  useEffect(() => {
+    if (hasOverride) return;
+    setTargetPercent(defaultTargetPercent);
+  }, [defaultTargetPercent, hasOverride]);
 
-  function saveTarget() {
-    const parsed = parseFloat(draft);
-    if (!Number.isNaN(parsed) && parsed > 0) {
-      setTargetPercent(parsed);
-      try {
-        localStorage.setItem(TARGET_KEY, String(parsed));
-      } catch {
-        /* ignore */
-      }
-    } else {
-      setDraft(String(targetPercent)); // reject a bad edit, revert the input
-    }
-    setEditing(false);
+  function startEditing() {
+    setTargetDraft(String(targetPercent));
+    setCapitalDraft(String(capitalBase));
+    setEditing(true);
   }
 
-  function saveCapital() {
-    const parsed = parseFloat(capitalDraft);
-    if (!Number.isNaN(parsed) && parsed > 0) {
-      setCapitalBase(parsed);
-      try {
-        localStorage.setItem(CAPITAL_KEY, String(parsed));
-      } catch {
-        /* ignore */
-      }
-    } else {
-      setCapitalDraft(String(capitalBase)); // reject a bad edit, revert the input
+  async function save() {
+    const parsedTarget = parseFloat(targetDraft);
+    const parsedCapital = parseFloat(capitalDraft);
+    if (Number.isNaN(parsedTarget) || parsedTarget <= 0 || Number.isNaN(parsedCapital) || parsedCapital <= 0) {
+      return; // leave the form open so the account holder can fix the bad value
     }
-    setEditingCapital(false);
+    setSaving(true);
+    try {
+      await setMonthlyGoalTarget(parsedTarget, parsedCapital);
+      setTargetPercent(parsedTarget);
+      setCapitalBase(parsedCapital);
+      setHasOverride(true);
+      setEditing(false);
+    } catch {
+      // Daemon unreachable — leave the form open with the draft intact
+      // rather than silently discarding an edit that never actually saved.
+    } finally {
+      setSaving(false);
+    }
   }
 
   const goal = capitalBase * (targetPercent / 100);
@@ -155,70 +145,59 @@ export function MonthlyGoalCard({
         <div className="flex items-center gap-1.5">
           <span className="text-base">🎯</span>
           <span className="text-sm font-semibold text-text">Monthly Goal</span>
-          <button
-            onClick={() => {
-              setDraft(String(targetPercent));
-              setEditing(true);
-            }}
-            title="Edit target %"
-            className="text-muted/60 hover:text-text"
-          >
-            ✏️
-          </button>
         </div>
         <span className="text-[10px] uppercase tracking-wide text-muted">Realized</span>
       </div>
 
       <div className="mt-1 flex items-end justify-between gap-3">
         <div className="text-xs text-muted">
-          Target:{" "}
           {editing ? (
-            <span className="inline-flex items-center gap-1">
+            <span className="inline-flex flex-wrap items-center gap-1">
+              Target:{" "}
               <input
                 type="number"
                 step="0.1"
                 min="0.1"
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && saveTarget()}
-                onBlur={saveTarget}
+                value={targetDraft}
+                onChange={(e) => setTargetDraft(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && save()}
                 autoFocus
                 className="w-14 rounded border border-border bg-surface-2 px-1 py-0.5 text-xs text-emerald-400 tabular"
               />
-              %
-            </span>
-          ) : (
-            <span className="font-semibold text-emerald-400">{targetPercent.toFixed(2)}%</span>
-          )}{" "}
-          of{" "}
-          {editingCapital ? (
-            <span className="inline-flex items-center gap-1">
-              $
+              % of $
               <input
                 type="number"
                 step="100"
                 min="1"
                 value={capitalDraft}
                 onChange={(e) => setCapitalDraft(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && saveCapital()}
-                onBlur={saveCapital}
-                autoFocus
+                onKeyDown={(e) => e.key === "Enter" && save()}
                 className="w-24 rounded border border-border bg-surface-2 px-1 py-0.5 text-xs text-text tabular"
               />
+              <button
+                onClick={save}
+                disabled={saving}
+                className="rounded bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold text-emerald-300 ring-1 ring-inset ring-emerald-500/30 disabled:opacity-50"
+              >
+                {saving ? "Saving…" : "Save"}
+              </button>
+              <button onClick={() => setEditing(false)} className="text-[11px] text-muted hover:text-text">
+                Cancel
+              </button>
             </span>
           ) : (
-            <Amt>{fmtMoney(capitalBase)}</Amt>
-          )}{" "}
-          <button
-            onClick={() => {
-              setCapitalDraft(String(capitalBase));
-              setEditingCapital(true);
-            }}
-            title="Edit capital base — the dollar amount you're actually working options against, not necessarily your whole portfolio"
-            className="text-muted/60 hover:text-text"
-          >
-            ✏️
-          </button>
+            <>
+              Target: <span className="font-semibold text-emerald-400">{targetPercent.toFixed(2)}%</span> of{" "}
+              <Amt>{fmtMoney(capitalBase)}</Amt>{" "}
+              <button
+                onClick={startEditing}
+                title="Edit target % or capital base"
+                className="text-muted/60 hover:text-text"
+              >
+                ✏️
+              </button>
+            </>
+          )}
         </div>
         <div className="text-right tabular">
           <span className="text-xl font-bold text-text">
