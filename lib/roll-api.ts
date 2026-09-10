@@ -30,7 +30,7 @@ export interface RollAnalysisResponse {
   symbol: string;
   mode: RollAnalysisMode;
   targetApyUsed: number;
-  candidates: RollAnalysisCandidate[];
+  candidates: RollAnalysisCandidate[] | null; // null when the pool is empty — guard before spreading
   recommended: RollAnalysisCandidate | null;
 }
 

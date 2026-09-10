@@ -85,7 +85,7 @@ export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
   }, [mode]);
 
   const sortedCandidates = useMemo(() => {
-    if (!data) return [];
+    if (!data?.candidates) return [];
     return [...data.candidates].sort((a, b) => {
       const av = candidateSortValue(a, sortKey);
       const bv = candidateSortValue(b, sortKey);
@@ -220,7 +220,7 @@ export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
       )}
       {error && <p className="text-xs text-rose-400">{error}</p>}
 
-      {!loading && !error && data && data.candidates.length === 0 && (
+      {!loading && !error && data && sortedCandidates.length === 0 && (
         <p className="text-xs text-muted">
           {mode === "target_apy"
             ? "No higher strike found that's both a real credit and clears your target APY right now."
@@ -228,7 +228,7 @@ export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
         </p>
       )}
 
-      {!loading && !error && data && data.candidates.length > 0 && (
+      {!loading && !error && data && sortedCandidates.length > 0 && (
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full min-w-[560px] text-xs">
             <thead>
