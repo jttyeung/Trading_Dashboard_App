@@ -28,6 +28,13 @@ function num(v: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+// Premium needed for a given monthly rate on NET collateral: solving
+// prem / (K - prem) = x for prem.
+function requiredPremiumAt(strike: number, monthlyTarget: number, dte: number): number {
+  const x = monthlyTarget * (dte / DAYS_PER_MONTH);
+  return (strike * x) / (1 + x);
+}
+
 function pct(v: number, digits = 2): string {
   return `${v >= 0 ? "" : "-"}${Math.abs(v * 100).toFixed(digits)}%`;
 }
@@ -67,10 +74,11 @@ export function ReturnCalculator() {
     const d = Math.max(1, num(dte) || 1);
 
     const credit = p * 100 * n;
-    // Collateral for a cash-secured put. A covered call's capital base is the
-    // shares' own cost rather than the strike, but at the same strike the two
-    // are close enough that this stays a useful read for either.
-    const collateral = k * 100 * n;
+    // NET collateral: the credit lands at open, so a $62 put posting $6,200
+    // really ties up $6,140. Matches lib/calc.ts's cspCollateral,
+    // rules.NetCollateral and quant/options_eval.py, and reconciles with the
+    // account holder's own chain spreadsheet.
+    const collateral = k - p > 0 ? (k - p) * 100 * n : 0;
     const ror = collateral > 0 ? credit / collateral : 0;
 
     return {
@@ -93,12 +101,12 @@ export function ReturnCalculator() {
   // target — the direct answer to "am I being paid enough to go short-dated?"
   const ladder = useMemo(() => {
     return DTE_LADDER.map((d) => {
-      const requiredRor = target * (d / DAYS_PER_MONTH);
-      return {
-        dte: d,
-        requiredPremium: r.strike * requiredRor,
-        requiredCredit: r.strike * 100 * r.contracts * requiredRor,
-      };
+      // Inverting the net basis: solving prem / (K - prem) = x for prem
+      // gives K·x / (1 + x), not K·x — the gross form would overstate what
+      // you actually need.
+      const x = target * (d / DAYS_PER_MONTH);
+      const requiredPremium = (r.strike * x) / (1 + x);
+      return { dte: d, requiredPremium, requiredCredit: requiredPremium * 100 * r.contracts };
     });
   }, [target, r.strike, r.contracts]);
 
@@ -129,7 +137,7 @@ export function ReturnCalculator() {
 
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Stat label="Credit" value={fmtMoney(r.credit)} sub={`${fmtMoney(r.perDay)}/day`} />
-          <Stat label="Collateral" value={fmtMoney(r.collateral)} sub="strike × 100 × contracts" />
+          <Stat label="Collateral" value={fmtMoney(r.collateral)} sub="net of credit received" />
           <Stat label="Return on capital" value={pct(r.ror)} sub={`over ${r.dte} DTE`} />
           <Stat
             label="Annualized"
@@ -152,8 +160,8 @@ export function ReturnCalculator() {
           {!meets && r.strike > 0 && (
             <p className="mt-1 text-xs text-muted">
               At {r.dte} DTE you&apos;d need{" "}
-              <span className="font-semibold text-text">{fmtMoney(r.strike * target * (r.dte / DAYS_PER_MONTH))}</span>/share
-              {" "}({fmtMoney(r.strike * 100 * r.contracts * target * (r.dte / DAYS_PER_MONTH))} total) to get there.
+              <span className="font-semibold text-text">{fmtMoney(requiredPremiumAt(r.strike, target, r.dte))}</span>/share
+              {" "}({fmtMoney(requiredPremiumAt(r.strike, target, r.dte) * 100 * r.contracts)} total) to get there.
             </p>
           )}
         </div>
