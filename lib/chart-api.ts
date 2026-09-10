@@ -17,7 +17,7 @@
 // came from.
 function chartAPIBase(): string {
   if (typeof window === "undefined") return "http://localhost:8092";
-  return `http://${window.location.hostname}:8092`;
+  return `${window.location.protocol}//${window.location.hostname}:8092`;
 }
 
 export interface BollingerPoint {

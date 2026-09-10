@@ -8,7 +8,7 @@
 // the request to target the SAME host the page itself was loaded from.
 function watchlistAPIBase(): string {
   if (typeof window === "undefined") return "http://localhost:8093";
-  return `http://${window.location.hostname}:8093`;
+  return `${window.location.protocol}//${window.location.hostname}:8093`;
 }
 
 export interface WatchlistRow {

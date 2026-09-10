@@ -8,7 +8,7 @@
 // needs the request to target the SAME host the page itself was loaded from.
 function rollAPIBase(): string {
   if (typeof window === "undefined") return "http://localhost:8095";
-  return `http://${window.location.hostname}:8095`;
+  return `${window.location.protocol}//${window.location.hostname}:8095`;
 }
 
 export type RollAnalysisMode = "target_apy" | "max_cash";
