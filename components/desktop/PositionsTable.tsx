@@ -192,6 +192,75 @@ function buildRow(
 // to it) — width is clamped to the track even past ±100% (a LEAP that's
 // doubled, or a spread near its max loss), but the label always shows the
 // real, unclamped number.
+// summaryCells maps a totals object to the columns those totals belong
+// under, keyed rather than positional.
+//
+// Both summary rows used to lay their figures out with hardcoded colSpans,
+// so inserting a column (Chg %) shifted every total one place left — the
+// theta sum rendering under Chg %, unrealized under APY — with nothing in
+// the types to catch it. Keying to COLUMNS makes the rows self-correcting:
+// a column added or reordered carries its total along automatically.
+function summaryCells(sum: Summary): Partial<Record<SortKey, React.ReactNode>> {
+  return {
+    theta: <span className="font-semibold text-muted">{fmtMoney(sum.theta)}</span>,
+    unrealized: (
+      <div className="flex flex-col items-end gap-0.5">
+        <div className="flex items-center gap-2">
+          <span className={`font-semibold ${pnlColor(sum.unrealized)}`}>{fmtMoney(sum.unrealized, { sign: true })}</span>
+          <PctBar pct={sum.unrealizedPct} />
+        </div>
+        <span className="text-[10px] text-muted">
+          {fmtMoney(sum.remainingDollar)} {sum.remainingLabel}
+        </span>
+      </div>
+    ),
+    todayPl: sum.hasTodayPl ? (
+      <span className={`font-semibold ${pnlColor(sum.todayPl)}`}>
+        {fmtMoney(sum.todayPl, { sign: true })} ({fmtPct(sum.todayPlPct)})
+      </span>
+    ) : (
+      <span className="text-muted">-</span>
+    ),
+    marketValue: <span className="font-semibold text-text">{fmtMoney(sum.marketValue, { sign: true })}</span>,
+  };
+}
+
+// SummaryRow renders one totals row across the full column set. The label
+// occupies the first two columns (ticker + strategy), which is why
+// "strategy" is skipped rather than emitted empty.
+function SummaryRow({
+  label,
+  sum,
+  className,
+  cellClassName,
+}: {
+  label: React.ReactNode;
+  sum: Summary;
+  className?: string;
+  cellClassName: string;
+}) {
+  const cells = summaryCells(sum);
+  return (
+    <tr className={className}>
+      {COLUMNS.map((c) => {
+        if (c.key === "strategy") return null;
+        if (c.key === "ticker") {
+          return (
+            <td key={c.key} colSpan={2} className={cellClassName}>
+              {label}
+            </td>
+          );
+        }
+        return (
+          <td key={c.key} className={`${cellClassName} whitespace-nowrap text-right tabular text-xs`}>
+            {cells[c.key] ?? null}
+          </td>
+        );
+      })}
+    </tr>
+  );
+}
+
 function PctBar({ pct }: { pct: number }) {
   const positive = pct >= 0;
   const width = Math.min(100, Math.abs(pct) * 100);
@@ -267,6 +336,8 @@ function sortValue(r: Row, key: SortKey): number | string {
       return r.o.sourceLabel;
   }
 }
+
+type Summary = ReturnType<typeof sumRows>;
 
 function sumRows(rows: Row[]) {
   const unrealized = rows.reduce((s, r) => s + r.unrealized, 0);
@@ -500,37 +571,18 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
             return (
               <Fragment key={g.key}>
                 {groupBy !== "none" && (
-                  <tr key={`${g.key}-header`} className="border-b border-border bg-surface-2/60">
-                    <td colSpan={2} className="px-3 py-2">
-                      <button onClick={() => toggleGroup(g.key)} className="flex items-center gap-1.5 text-xs font-semibold text-text">
+                  <SummaryRow
+                    key={`${g.key}-header`}
+                    className="border-b border-border bg-surface-2/60"
+                    cellClassName="px-3 py-2"
+                    sum={gSum!}
+                    label={
+                      <button onClick={() => toggleGroup(g.key)} className="flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold text-text">
                         <span className={`transition-transform ${isCollapsed ? "-rotate-90" : ""}`}>▾</span>
                         {g.label} <span className="font-normal text-muted">({g.rows.length})</span>
                       </button>
-                    </td>
-                    <td colSpan={6} />
-                    <td className="px-3 py-2 text-right tabular text-xs font-semibold text-muted">{fmtMoney(gSum!.theta)}</td>
-                    <td colSpan={2} />
-                    <td className="px-3 py-2 text-right tabular text-xs">
-                      <div className="flex flex-col items-end gap-1">
-                        <span className={`font-semibold ${pnlColor(gSum!.unrealized)}`}>{fmtMoney(gSum!.unrealized, { sign: true })}</span>
-                        <PctBar pct={gSum!.unrealizedPct} />
-                        <span className="text-[10px] text-muted">{fmtMoney(gSum!.remainingDollar)} {gSum!.remainingLabel}</span>
-                      </div>
-                    </td>
-                    <td />
-                    <td className="px-3 py-2 text-right tabular text-xs">
-                      {gSum!.hasTodayPl ? (
-                        <>
-                          <span className={`font-semibold ${pnlColor(gSum!.todayPl)}`}>{fmtMoney(gSum!.todayPl, { sign: true })}</span>{" "}
-                          <span className={pnlColor(gSum!.todayPl)}>({fmtPct(gSum!.todayPlPct)})</span>
-                        </>
-                      ) : (
-                        <span className="text-muted">-</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2 text-right tabular text-xs font-semibold text-text">{fmtMoney(gSum!.marketValue, { sign: true })}</td>
-                    <td />
-                  </tr>
+                    }
+                  />
                 )}
                 {!isCollapsed &&
                   g.rows.map((r) => {
@@ -589,9 +641,11 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                       <td className="px-3 py-2 text-right tabular text-text">{r.ror != null ? fmtPct(r.ror, 1) : "-"}</td>
                       <td className="px-3 py-2 text-right tabular text-text">{r.apy != null ? fmtPct(r.apy, 1) : "-"}</td>
                       <td className="px-3 py-2 text-right tabular">
-                        <div className="flex flex-col items-end gap-1">
-                          <span className={`text-xs font-semibold ${pnlColor(r.unrealized)}`}>{fmtMoney(r.unrealized, { sign: true })}</span>
-                          <PctBar pct={r.unrealizedPct} />
+                        <div className="flex flex-col items-end gap-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xs font-semibold ${pnlColor(r.unrealized)}`}>{fmtMoney(r.unrealized, { sign: true })}</span>
+                            <PctBar pct={r.unrealizedPct} />
+                          </div>
                           <span className="text-[10px] text-muted">{fmtMoney(r.remainingDollar)} {r.remainingLabel}</span>
                         </div>
                       </td>
@@ -632,32 +686,12 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
           })}
         </tbody>
         <tfoot>
-          <tr className="border-t border-border bg-surface-2/60 font-semibold">
-            <td colSpan={8} className="px-3 py-2.5 text-xs uppercase tracking-wide text-muted">
-              Total
-            </td>
-            <td className="px-3 py-2.5 text-right tabular text-xs text-text">{fmtMoney(total.theta, { sign: true })}</td>
-            <td colSpan={2} />
-            <td className="px-3 py-2.5 text-right tabular text-xs">
-              <div className="flex flex-col items-end gap-1">
-                <span className={pnlColor(total.unrealized)}>{fmtMoney(total.unrealized, { sign: true })}</span>
-                <PctBar pct={total.unrealizedPct} />
-                <span className="text-[10px] text-muted">{fmtMoney(total.remainingDollar)} {total.remainingLabel}</span>
-              </div>
-            </td>
-            <td />
-            <td className="px-3 py-2.5 text-right tabular text-xs">
-              {total.hasTodayPl ? (
-                <span className={pnlColor(total.todayPl)}>
-                  {fmtMoney(total.todayPl, { sign: true })} ({fmtPct(total.todayPlPct)})
-                </span>
-              ) : (
-                <span className="text-muted">-</span>
-              )}
-            </td>
-            <td className="px-3 py-2.5 text-right tabular text-xs text-text">{fmtMoney(total.marketValue, { sign: true })}</td>
-            <td />
-          </tr>
+          <SummaryRow
+            className="border-t border-border bg-surface-2/60 font-semibold"
+            cellClassName="px-3 py-2.5"
+            sum={total}
+            label={<span className="text-xs uppercase tracking-wide text-muted">Total</span>}
+          />
         </tfoot>
       </table>
     </div>
