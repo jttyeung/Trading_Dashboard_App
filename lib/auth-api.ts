@@ -9,7 +9,7 @@
 // listening. Whatever host served this page is also where the daemon is.
 function authAPIBase(): string {
   if (typeof window === "undefined") return "http://localhost:8094";
-  return `http://${window.location.hostname}:8094`;
+  return `${window.location.protocol}//${window.location.hostname}:8094`;
 }
 
 export interface AuthStatus {

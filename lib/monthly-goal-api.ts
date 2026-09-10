@@ -7,7 +7,7 @@
 // backend persistence, same fix already applied to the roll-up target.
 function monthlyGoalAPIBase(): string {
   if (typeof window === "undefined") return "http://localhost:8095";
-  return `http://${window.location.hostname}:8095`;
+  return `${window.location.protocol}//${window.location.hostname}:8095`;
 }
 
 export interface MonthlyGoalTarget {
