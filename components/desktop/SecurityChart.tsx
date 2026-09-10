@@ -8,7 +8,7 @@
 // pre-built for the whole watchlist, since most of the ~70+ watchlist
 // names won't be looked at in a given session (see CLAUDE.md's
 // "on-demand security chart" entry).
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import {
   createChart,
   createSeriesMarkers,
@@ -284,6 +284,15 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
     };
   }, [data]);
 
+  // Nothing until at least one character is typed, then at most a handful of
+  // prefix matches -- enough to save typing without the dropdown swallowing
+  // the screen on a phone.
+  const suggestions = useMemo(() => {
+    const q = symbolInput.trim().toUpperCase();
+    if (!q) return [];
+    return watchlist.filter((t) => t.startsWith(q) && t !== q).slice(0, 6);
+  }, [watchlist, symbolInput]);
+
   return (
     <div>
       <div className="flex flex-wrap items-center gap-2 px-1 py-2">
@@ -296,7 +305,7 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
           className="w-48 rounded-md bg-surface-2 px-3 py-1.5 text-sm ring-1 ring-inset ring-border placeholder:text-muted"
         />
         <datalist id="chart-watchlist-suggestions">
-          {watchlist.map((t) => (
+          {suggestions.map((t) => (
             <option key={t} value={t} />
           ))}
         </datalist>
