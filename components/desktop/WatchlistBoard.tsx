@@ -85,14 +85,31 @@ const RSI_ZONES = [
 // call wall (upside) all spelled out as numbers, with a gauge showing
 // where price actually sits between them (marker turns rose if price has
 // genuinely broken through either wall).
+// dayPct is the underlying's own move today, as a fraction, shown beside
+// the price so the wall context reads alongside the direction that got it
+// there. Computed server-side from indicator_snapshots' own last_close
+// (see watchlistapi.Row.DayChangePct) rather than from a second quote.
+function DayPct({ pct }: { pct: number | null | undefined }) {
+  if (pct == null) return null;
+  const tone = pct > 0 ? "text-pos" : pct < 0 ? "text-neg" : "text-muted";
+  return (
+    <span className={`tabular text-[10px] ${tone}`}>
+      {pct > 0 ? "+" : ""}
+      {(pct * 100).toFixed(2)}%
+    </span>
+  );
+}
+
 function PriceWallsCell({
   price,
   putWall,
   callWall,
+  dayPct,
 }: {
   price: number | null;
   putWall: number | null;
   callWall: number | null;
+  dayPct?: number | null;
 }) {
   if (price == null) {
     return <span className="text-sm text-muted">—</span>;
@@ -100,7 +117,9 @@ function PriceWallsCell({
   if (putWall == null || callWall == null) {
     return (
       <div className="flex w-32 flex-col gap-0.5">
-        <span className="tabular text-sm font-medium text-text">${price.toFixed(2)}</span>
+        <span className="tabular text-sm font-medium text-text">
+          ${price.toFixed(2)} <DayPct pct={dayPct} />
+        </span>
         <span className="text-[9px] text-muted">no wall data</span>
       </div>
     );
@@ -111,7 +130,9 @@ function PriceWallsCell({
     <div className="flex w-32 flex-col gap-0.5">
       <div className="flex items-center justify-between text-[10px] tabular">
         <span className="text-neg">${putWall.toFixed(0)}</span>
-        <span className="font-medium text-text">${price.toFixed(2)}</span>
+        <span className="font-medium text-text">
+          ${price.toFixed(2)} <DayPct pct={dayPct} />
+        </span>
         <span className="text-pos">${callWall.toFixed(0)}</span>
       </div>
       <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
@@ -348,7 +369,7 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
                 </td>
                 <td className="max-w-[180px] truncate px-3 py-2 text-xs text-muted">{r.sector || "—"}</td>
                 <td className="px-3 py-2">
-                  <PriceWallsCell price={r.currentPrice} putWall={r.putWall} callWall={r.callWall} />
+                  <PriceWallsCell price={r.currentPrice} putWall={r.putWall} callWall={r.callWall} dayPct={r.dayChangePct} />
                 </td>
                 <td className="px-3 py-2">
                   {r.currentPrice != null && r.bollingerLower != null && r.bollingerUpper != null ? (
