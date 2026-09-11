@@ -3,7 +3,7 @@
 // The Schwab bridge feeds each leg as its own OptionPosition tagged put-spread /
 // call-spread; here we pair short+long back into the complete spread the trader
 // actually opened.
-import { daysToExpiry, optionPnl } from "@/lib/calc";
+import { DAYS_PER_YEAR, daysToExpiry, optionPnl } from "@/lib/calc";
 import type { OptionPosition } from "@/lib/types";
 
 export interface Spread {
@@ -29,7 +29,7 @@ export interface Spread {
   underlyingPrice?: number;
   toStrike: number | null; // signed cushion from underlying to the short strike (+ = OTM)
   remainingYield: number; // remaining spread value ÷ collateral
-  yr: number; // remainingYield annualized (×360/DTE) — current working rate
+  yr: number; // remainingYield annualized (×365/DTE) — current working rate
   short: OptionPosition;
   long: OptionPosition;
 }
@@ -50,7 +50,7 @@ function makeSpread(s: OptionPosition, l: OptionPosition): Spread {
   const toStrike = up && up > 0 ? (isPut ? (up - s.strike) / up : (s.strike - up) / up) : null;
   const collateral = maxLoss;
   const remainingYield = collateral > 0 ? (netMark * 100 * qty) / collateral : 0;
-  const yr = remainingYield * (360 / Math.max(dte, 1));
+  const yr = remainingYield * (DAYS_PER_YEAR / Math.max(dte, 1));
   return {
     id: `${s.id}|${l.id}`,
     symbol: s.symbol,

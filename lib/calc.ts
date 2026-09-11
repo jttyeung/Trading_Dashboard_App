@@ -121,6 +121,12 @@ export function capturedPct(o: OptionPosition): number {
   return (o.entryPerShare - o.mark) / o.entryPerShare;
 }
 
+/** Annualization factor, matching rules.daysPerYear on the backend and
+ *  quant/options_eval.py. Previously 360 here while the chain screener
+ *  used 365, so a candidate's screening ARR and its displayed APY
+ *  disagreed by ~1.4% for the same contract. */
+export const DAYS_PER_YEAR = 365;
+
 /** Cash a CSP actually ties up: (strike − credit received) × 100 × contracts.
  *
  *  NET of the premium, because the credit lands at open — posting $6,200 for
@@ -314,12 +320,12 @@ export function daysBetween(fromISO: string, toISO: string = nowISO()): number {
   return Math.max(0, Math.round((b - a) / 86_400_000));
 }
 /** Annualized return on the collateral if the put expires worthless.
- *  360-day convention, over remaining DTE — matches the CSP table's Yr % column. */
+ *  365-day convention, over remaining DTE — matches the CSP table's Yr % column. */
 export function cspAnnualizedReturn(o: OptionPosition): number {
   const credit = optionBasis(o);
   const collateral = cspCollateral(o);
   const dte = Math.max(daysToExpiry(o.expiration), 1);
-  return (credit / collateral) * (360 / dte);
+  return (credit / collateral) * (DAYS_PER_YEAR / dte);
 }
 
 /** Return on capital for any short premium-selling position (CSP or covered
@@ -342,13 +348,13 @@ export function positionAnnualizedReturn(o: OptionPosition): number | null {
   if (capital === 0) return null;
   const credit = optionBasis(o);
   const dteAtOpen = Math.max(daysToExpiry(o.expiration, o.openedAt), 1);
-  return (credit / capital) * (360 / dteAtOpen);
+  return (credit / capital) * (DAYS_PER_YEAR / dteAtOpen);
 }
 
 /** Static (unannualized) return on capital for a short CSP/covered-call —
  *  credit ÷ capital, the raw yield the position was entered for regardless
  *  of term length. Same gating as positionAnnualizedReturn, minus the
- *  360/DTE annualization factor, so the two read as genuinely different
+ *  365/DTE annualization factor, so the two read as genuinely different
  *  numbers rather than one being a rescaled copy of the other. Used for the
  *  desktop positions table's RoR% column. */
 export function positionReturnOnCapital(o: OptionPosition): number | null {
@@ -363,7 +369,7 @@ export function positionReturnOnCapital(o: OptionPosition): number | null {
  * Return on capital left to capture, annualized over the days remaining to
  * expiration — the same formula the OptionsEvaluator backend's mobile alert
  * uses (internal/agents/tracker/profit_target.go's annualizedRemainingReturn:
- * remaining Net Liq ÷ collateral × 360/DTE), ported here so the desktop
+ * remaining Net Liq ÷ collateral × 365/DTE), ported here so the desktop
  * table's own number can never disagree with what a "close for X% annualized"
  * alert already said about the same contract. Same short CSP/covered-call
  * gating as positionAnnualizedReturn/positionReturnOnCapital (this metric
@@ -376,7 +382,7 @@ export function positionRemainingAnnualizedReturn(o: OptionPosition): number | n
   if (capital === 0) return null;
   const remaining = optionMarketValue(o); // buy-to-close cost = Net Liq if closed now
   const dte = Math.max(daysToExpiry(o.expiration), 1);
-  return (remaining / capital) * (360 / dte);
+  return (remaining / capital) * (DAYS_PER_YEAR / dte);
 }
 
 /**
@@ -393,7 +399,7 @@ export function cspRemainingYield(o: OptionPosition): number {
 /** Annualized return on the remaining premium over the days left to expiry. */
 export function cspRemainingAnnualized(o: OptionPosition): number {
   const dte = Math.max(daysToExpiry(o.expiration), 1);
-  return cspRemainingYield(o) * (360 / dte);
+  return cspRemainingYield(o) * (DAYS_PER_YEAR / dte);
 }
 
 // ---- insight engine ------------------------------------------------------
