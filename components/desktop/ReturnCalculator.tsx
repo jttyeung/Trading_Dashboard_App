@@ -23,6 +23,12 @@ const DAYS_PER_MONTH = DAYS_PER_YEAR / 12;
 // a monthly, and STRAT-001's own 45-day upper bound.
 const DTE_LADDER = [7, 14, 21, 30, 45];
 
+// A calculator-local override of the monthly target, seeded from the real
+// Monthly Goal target but deliberately NOT written back to it: asking "what
+// premium would 5%/month need" is a what-if, and shouldn't quietly change
+// the goal the dashboard is actually pacing against.
+const TARGET_KEY = "calcMonthlyTargetPct";
+
 function num(v: string): number {
   const n = parseFloat(v);
   return Number.isFinite(n) ? n : 0;
@@ -50,13 +56,35 @@ export function ReturnCalculator() {
   // thing here as on the Monthly Goal card. Falls back to RULE-010's 3% if
   // the daemon isn't reachable.
   const [targetMonthlyPct, setTargetMonthlyPct] = useState(3);
+  const [targetDraft, setTargetDraft] = useState("3");
+  // Tracks whether a local override exists, so the backend target doesn't
+  // overwrite one on arrival.
+  const [hasTargetOverride, setHasTargetOverride] = useState(false);
   const [savedCapitalBase, setSavedCapitalBase] = useState<number | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(TARGET_KEY);
+      const v = raw ? parseFloat(raw) : NaN;
+      if (Number.isFinite(v) && v > 0) {
+        setTargetMonthlyPct(v);
+        setTargetDraft(String(v));
+        setHasTargetOverride(true);
+      }
+    } catch {
+      /* storage unavailable — fall back to the Monthly Goal target */
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     fetchMonthlyGoalTarget()
       .then((t) => {
         if (cancelled) return;
-        if (t.targetPercent > 0) setTargetMonthlyPct(t.targetPercent);
+        if (t.targetPercent > 0 && !hasTargetOverride) {
+          setTargetMonthlyPct(t.targetPercent);
+          setTargetDraft(String(t.targetPercent));
+        }
         if (t.capitalBase > 0) setSavedCapitalBase(t.capitalBase);
       })
       .catch(() => {
@@ -65,7 +93,24 @@ export function ReturnCalculator() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [hasTargetOverride]);
+
+  // Commit on blur (and Enter), per the account holder's own ask. A bad value
+  // reverts rather than leaving the whole page computing against NaN.
+  function commitTarget() {
+    const parsed = parseFloat(targetDraft);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      setTargetDraft(String(targetMonthlyPct));
+      return;
+    }
+    setTargetMonthlyPct(parsed);
+    setHasTargetOverride(true);
+    try {
+      localStorage.setItem(TARGET_KEY, String(parsed));
+    } catch {
+      /* not persisted, but the session still uses it */
+    }
+  }
 
   const r = useMemo(() => {
     const k = num(strike);
@@ -168,7 +213,19 @@ export function ReturnCalculator() {
       </div>
 
       <div className="rounded-2xl border border-border bg-surface p-4">
-        <h3 className="text-sm font-semibold text-text">Premium needed to hit {targetMonthlyPct.toFixed(2)}%/month</h3>
+        <h3 className="flex flex-wrap items-center gap-1 text-sm font-semibold text-text">
+          Premium needed to hit
+          <input
+            aria-label="Monthly target percent"
+            className="w-16 rounded-md bg-surface-2 px-2 py-0.5 text-sm tabular ring-1 ring-inset ring-border"
+            inputMode="decimal"
+            value={targetDraft}
+            onChange={(e) => setTargetDraft(e.target.value)}
+            onBlur={commitTarget}
+            onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+          />
+          %/month
+        </h3>
         <p className="mt-0.5 text-xs text-muted">
           At a {fmtMoney(r.strike)} strike. Shorter DTE needs less premium in absolute terms, but more per day — this is the
           comparison worth making before taking a weekly over a monthly.
