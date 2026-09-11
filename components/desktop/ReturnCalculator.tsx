@@ -4,19 +4,19 @@
 // built around the question the account holder actually asks of a short-DTE
 // trade: "is this premium pulling its weight compared to a longer-dated one?"
 //
-// Everything here uses the SAME 360-day annualization the positions table and
+// Everything here uses the SAME 365-day annualization the positions table and
 // the tracker's own alerts use (see lib/calc.ts's cspAnnualizedReturn and
 // internal/rules.AnnualizedReturn, both validated against the account
 // holder's own spreadsheet). A calculator that quietly used 365 would give
 // answers that disagree with every other number on the dashboard.
 import { useEffect, useMemo, useState } from "react";
-import { fmtMoney } from "@/lib/calc";
+import { DAYS_PER_YEAR, fmtMoney } from "@/lib/calc";
 import { fetchMonthlyGoalTarget } from "@/lib/monthly-goal-api";
 
-// Annualization is 360/DTE, so a month is 360/12 = 30 days — kept consistent
-// rather than using a 30.44-day calendar month, so monthly x 12 == annual
+// Annualization is 365/DTE (lib/calc.ts's DAYS_PER_YEAR, matching
+// rules.daysPerYear and quant/options_eval.py), so a month is 365/12 ≈
+// 30.42 days — derived rather than hardcoded, so monthly x 12 == annual
 // exactly.
-const DAYS_PER_YEAR = 360;
 const DAYS_PER_MONTH = DAYS_PER_YEAR / 12;
 
 // The DTE ladder the comparison table walks: a weekly, two- and three-week,
@@ -142,7 +142,7 @@ export function ReturnCalculator() {
           <Stat
             label="Annualized"
             value={pct(r.annual, 1)}
-            sub="360-day basis"
+            sub="365-day basis"
             tone={r.annual > 0 ? "pos" : undefined}
           />
         </div>
@@ -215,7 +215,7 @@ export function ReturnCalculator() {
 //
 // The annual column COMPOUNDS -- (1 + monthly)^12 - 1 -- because it models
 // income earned and redeployed month over month. That is deliberately NOT the
-// 360/DTE simple annualization the trade calculator above uses, and the two
+// 365/DTE simple annualization the trade calculator above uses, and the two
 // genuinely answer different questions: one is "what rate is this single
 // trade running at", the other is "what does sustaining this every month come
 // out to". At 5.88%/month the gap is wide (98.6% compounded vs 70.6% simple),
