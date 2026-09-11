@@ -204,7 +204,7 @@ export function ReturnCalculator() {
         </table>
       </div>
 
-      <IncomeTargetTable savedCapitalBase={savedCapitalBase} targetMonthlyPct={targetMonthlyPct} />
+      <IncomeTargetTable savedCapitalBase={savedCapitalBase} />
     </div>
   );
 }
@@ -220,20 +220,50 @@ export function ReturnCalculator() {
 // trade running at", the other is "what does sustaining this every month come
 // out to". At 5.88%/month the gap is wide (98.6% compounded vs 70.6% simple),
 // so the table says which it is rather than leaving it to be assumed.
-function IncomeTargetTable({
-  savedCapitalBase,
-  targetMonthlyPct,
-}: {
-  savedCapitalBase: number | null;
-  targetMonthlyPct: number;
-}) {
+const STORE_KEY = "incomeTargetInputs";
+
+function IncomeTargetTable({ savedCapitalBase }: { savedCapitalBase: number | null }) {
   const [portfolio, setPortfolio] = useState("");
   const [step, setStep] = useState("5000");
+  // touched covers both "the account holder typed something" and "we restored
+  // a saved value", since either should stop the Monthly Goal capital base
+  // from overwriting what's in the box.
   const [touched, setTouched] = useState(false);
+  const [restored, setRestored] = useState(false);
 
-  // Defaults to the capital base already saved on the Monthly Goal card, so
-  // this opens on the account holder's own number instead of a placeholder --
-  // but never overwrites a value they have started typing.
+  // Read in an effect rather than a lazy useState initializer — the same
+  // impure-render-time-read concern MonthlyGoalCard's own doc comment calls
+  // out for localStorage.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw) as { portfolio?: string; step?: string };
+        if (saved.portfolio) {
+          setPortfolio(saved.portfolio);
+          setTouched(true);
+        }
+        if (saved.step) setStep(saved.step);
+      }
+    } catch {
+      /* absent or malformed — fall through to the defaults */
+    }
+    setRestored(true);
+  }, []);
+
+  // Only persist after the restore pass, so the initial empty state can't
+  // overwrite what was saved.
+  useEffect(() => {
+    if (!restored) return;
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify({ portfolio, step }));
+    } catch {
+      /* private window or storage disabled — the table still works */
+    }
+  }, [portfolio, step, restored]);
+
+  // With nothing saved, fall back to the capital base already on the Monthly
+  // Goal card so this opens on a real number rather than a placeholder.
   useEffect(() => {
     if (!touched && savedCapitalBase != null) setPortfolio(String(Math.round(savedCapitalBase)));
   }, [savedCapitalBase, touched]);
@@ -249,14 +279,6 @@ function IncomeTargetTable({
       return { income, monthly, annual: Math.pow(1 + monthly, 12) - 1 };
     });
   }, [p, s]);
-
-  // The income level that lands closest to the saved monthly target, so the
-  // row worth reading is marked rather than counted to by eye.
-  const target = targetMonthlyPct / 100;
-  const nearest = useMemo(() => {
-    if (rows.length === 0) return null;
-    return rows.reduce((best, r) => (Math.abs(r.monthly - target) < Math.abs(best.monthly - target) ? r : best), rows[0]);
-  }, [rows, target]);
 
   const field = "w-full rounded-md bg-surface-2 px-3 py-2 text-sm tabular ring-1 ring-inset ring-border";
   const label = "mb-1 block text-[11px] uppercase tracking-wide text-muted";
@@ -306,26 +328,15 @@ function IncomeTargetTable({
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => {
-                const isNearest = nearest != null && r.income === nearest.income;
-                return (
-                  <tr key={r.income} className={`border-b border-border/60 ${isNearest ? "bg-accent/10" : ""}`}>
-                    <td className="py-2 tabular">
-                      {fmtMoney(r.income)}
-                      {isNearest && <span className="ml-1.5 text-[10px] text-accent">closest to your target</span>}
-                    </td>
-                    <td className="py-2 text-right tabular">{pct(r.monthly)}</td>
-                    <td className="py-2 text-right tabular text-muted">{pct(r.annual)}</td>
-                  </tr>
-                );
-              })}
+              {rows.map((r) => (
+                <tr key={r.income} className="border-b border-border/60">
+                  <td className="py-2 tabular">{fmtMoney(r.income)}</td>
+                  <td className="py-2 text-right tabular">{pct(r.monthly)}</td>
+                  <td className="py-2 text-right tabular text-muted">{pct(r.annual)}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
-          <p className="mt-2 text-[11px] text-muted">
-            At {targetMonthlyPct.toFixed(2)}%/month you&apos;d need{" "}
-            <span className="font-semibold text-text">{fmtMoney(p * target)}</span>/mo
-            {" "}({pct(Math.pow(1 + target, 12) - 1)} compounded annually).
-          </p>
         </>
       )}
     </div>
