@@ -11,6 +11,7 @@
 // answers that disagree with every other number on the dashboard.
 import { useEffect, useMemo, useState } from "react";
 import { DAYS_PER_YEAR, fmtMoney } from "@/lib/calc";
+import { isExampleClient } from "@/lib/demo";
 import { fetchMonthlyGoalTarget } from "@/lib/monthly-goal-api";
 
 // Annualization is 365/DTE (lib/calc.ts's DAYS_PER_YEAR, matching
@@ -77,6 +78,13 @@ export function ReturnCalculator() {
   }, []);
 
   useEffect(() => {
+    // A public demo has no daemon to reach, and SECURITY.md requires
+    // synthetic data with no live calls — the RULE-010 default and a
+    // representative capital base give a complete calculator either way.
+    if (isExampleClient()) {
+      setSavedCapitalBase(850000);
+      return;
+    }
     let cancelled = false;
     fetchMonthlyGoalTarget()
       .then((t) => {

@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { daysToExpiry, fmtMoney, fmtPct } from "@/lib/calc";
+import { isExampleClient } from "@/lib/demo";
+import { exampleRollAnalysis } from "@/lib/example";
 import {
   fetchRollAnalysis,
   fetchRollTarget,
@@ -95,6 +97,13 @@ export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
   }, [data, sortKey, sortDir]);
 
   useEffect(() => {
+    // A public demo has no daemon; SECURITY.md requires synthetic data and
+    // no live calls, so seed the same default the backend would return.
+    if (isExampleClient()) {
+      setTarget(30);
+      setTargetDraft("30");
+      return;
+    }
     fetchRollTarget()
       .then((t) => {
         setTarget(t.targetApyPercent);
@@ -105,6 +114,13 @@ export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
 
   useEffect(() => {
     if (target == null) return; // wait for the stored target to load first, so the first fetch uses the real value
+    if (isExampleClient()) {
+      // Synthetic candidates so the panel demonstrates its full shape --
+      // an empty or errored panel would show nothing of what it does.
+      setData(exampleRollAnalysis(position.symbol, position.strike, mode, target));
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -141,6 +157,10 @@ export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
   ]);
 
   async function saveTarget() {
+    if (isExampleClient()) {
+      setTargetDraft(String(target)); // read-only demo: never attempt a write
+      return;
+    }
     const parsed = parseFloat(targetDraft);
     if (!Number.isNaN(parsed) && parsed > 0) {
       try {

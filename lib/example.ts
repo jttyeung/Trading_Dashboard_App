@@ -28,6 +28,7 @@ import type {
 } from "./types";
 import type { ChartData, BollingerPoint, Cross } from "./chart-api";
 import type { WatchlistRow } from "./watchlist-api";
+import type { RollAnalysisCandidate, RollAnalysisMode, RollAnalysisResponse } from "./roll-api";
 
 const ACC = "EX000000"; // primary margin account
 const IRA = "EX000001"; // second account, to exercise the account switcher
@@ -1191,4 +1192,51 @@ export function exampleAggressiveBot(): BotSnapshot {
     }),
   ];
   return { generatedAt: "2026-09-03T20:32:55Z", bot: "aggressive", trades, myGrade: exampleMyGrade(trades.length) };
+}
+
+// Synthetic roll-analysis result for the desktop table's expandable
+// RollAnalysisPanel. Generated from the position's own strike so the demo
+// stays internally consistent (candidates sit above the current strike,
+// credits scale with distance), and carries no real contract, account or
+// price data — see SECURITY.md's synthetic-data-only rule for public
+// deployments.
+export function exampleRollAnalysis(
+  symbol: string,
+  currentStrike: number,
+  mode: RollAnalysisMode,
+  targetApy: number | null,
+): RollAnalysisResponse {
+  const target = targetApy ?? 30;
+  const candidates: RollAnalysisCandidate[] = [1, 2, 3, 4].map((i) => {
+    const strike = Math.round(currentStrike * (1 + i * 0.01));
+    const dte = 7 * i + 7;
+    const netCreditPerShare = 0.55 + i * 0.28;
+    const resultingApy = (netCreditPerShare / Math.max(strike - netCreditPerShare, 1)) * (365 / dte) * 100;
+    return {
+      symbol: `${symbol}  EXAMPLE${String(strike).padStart(8, "0")}`,
+      strike,
+      expirationDate: "2026-12-19",
+      dte,
+      delta: -(0.18 + i * 0.04),
+      premium: netCreditPerShare + 0.9,
+      netCreditPerShare,
+      netCreditTotal: netCreditPerShare * 100,
+      resultingApy,
+      meetsTarget: resultingApy >= target,
+    };
+  });
+
+  const eligible = mode === "target_apy" ? candidates.filter((c) => c.meetsTarget) : candidates;
+  const ordered =
+    mode === "max_cash" ? [...eligible].sort((a, b) => b.netCreditTotal - a.netCreditTotal) : eligible;
+
+  return {
+    symbol,
+    mode,
+    targetApyUsed: target,
+    candidates: ordered,
+    // "max cash" deliberately recommends nothing — it's an unfiltered
+    // list, matching the real endpoint's own behavior.
+    recommended: mode === "target_apy" ? ordered[0] ?? null : null,
+  };
 }
