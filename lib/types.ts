@@ -341,11 +341,11 @@ export interface Snapshot {
 }
 
 // ---------------------------------------------------------------------------
-// Portfolio risk — sector concentration, theta bands, open-P&L floor.
+// Portfolio risk — sector concentration.
 // The ticker → sector map comes from data/sectors.json (bridge: sectors.py, via
-// Yahoo Finance — Schwab's API carries no sector). Everything else is computed
-// in the app from the snapshot (lib/portfolio-risk.ts); the thresholds travel
-// inside the result so the UI reads bands and values from the same object.
+// Yahoo Finance — Schwab's API carries no sector). The buckets are computed in
+// the app from the snapshot (lib/portfolio-risk.ts); the cap travels inside the
+// result so the UI reads the threshold and the values from the same object.
 // ---------------------------------------------------------------------------
 export interface SectorEntry {
   sector: string | null; // null = Yahoo had no classification for this ticker
@@ -365,28 +365,7 @@ export interface SectorsFile {
 export type SectorMap = Record<string, string>;
 
 export interface RiskRules {
-  theta: { minPct: number; targetMaxPct: number; maxPct: number }; // share of portfolio value per day
-  sector: { maxAllocationPct: number }; // share of portfolio value in one sector
-  openPnl: { minPct: number }; // unrealized P&L floor, share of portfolio value (negative)
-}
-
-export type ThetaStatus = "below_target" | "on_target" | "above_target_below_ceiling" | "over_ceiling" | "unknown";
-export type OpenPnlStatus = "on_target" | "below_target" | "unknown";
-
-export interface RiskReading {
-  portfolioValue: number; // the value thetaPct / openPnLPct were computed against
-  thetaToday: number; // net daily theta $ (short premium +, long −)
-  thetaPct: number;
-  thetaStatus: ThetaStatus;
-  thetaGapToTarget: number; // $/day more theta needed to reach the target floor; 0 once there
-  openPnL: number; // unrealized stock + option P&L from cost basis
-  openPnLPct: number;
-  openPnLStatus: OpenPnlStatus;
-}
-
-export interface AccountRisk extends RiskReading {
-  accountId: string;
-  accountLabel: string; // nickname or brokerage type — never a raw account number
+  sector: { maxAllocationPct: number }; // max share of portfolio value in one sector
 }
 
 export interface SectorBucket {
@@ -399,8 +378,8 @@ export interface SectorBucket {
 }
 
 export interface PortfolioRisk {
-  overall: RiskReading; // every account across every bridge
+  portfolioValue: number; // every account across every bridge — what each bucket's pct is a share of
+  accountCount: number;
   sectors: SectorBucket[]; // sorted by value, desc
-  perAccount: AccountRisk[]; // sorted by label
   rules: RiskRules;
 }

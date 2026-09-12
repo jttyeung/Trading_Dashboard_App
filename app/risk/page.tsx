@@ -9,10 +9,9 @@ import { getRefreshStatus } from "@/lib/refresh-status";
 
 export const dynamic = "force-dynamic";
 
-// Whole-portfolio view on purpose: sector concentration and the theta bands are
-// judged across every account (all bridges), not the one the switcher has
-// selected — a sector cap you only breach when the accounts are summed is still
-// breached. Per-account theta is broken out below the overall card.
+// Whole-portfolio view on purpose: sector concentration is judged across every
+// account (all bridges), not the one the switcher has selected — a sector cap
+// you only breach when the accounts are summed is still breached.
 export default async function RiskPage() {
   const [snap, sectors] = await Promise.all([getSnapshot(), getSectorMap()]);
   const risk = computePortfolioRisk(snap, sectors);
@@ -24,7 +23,7 @@ export default async function RiskPage() {
           title="Portfolio Risk"
           subtitle={
             <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-              <span>Sector cap · theta bands · open P&L floor</span>
+              <span>Capital per sector against a {(risk.rules.sector.maxAllocationPct * 100).toFixed(0)}% cap</span>
               <DataRefresh nextAt={getRefreshStatus().app?.nextAt} />
             </span>
           }
