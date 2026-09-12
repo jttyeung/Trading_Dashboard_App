@@ -45,6 +45,8 @@ const EMPTY: PortfolioRiskFile = {
     openPnLPct: 0,
     openPnLStatus: "unknown",
     openPnLMinPct: 0,
+    sectors: [],
+    maxSectorAllocationPct: 0,
   },
 };
 

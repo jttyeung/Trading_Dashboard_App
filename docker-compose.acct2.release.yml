@@ -1,0 +1,27 @@
+# Optional second Schwab login, for the release (registry) stack.
+# Mirrors docker-compose.acct2.yml but pulls the published image instead of
+# building one. State lives in ./bridge-state-acct2; it writes into
+# ./data/acct2, the subdirectory the dashboard scans to discover extra logins.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.acct2.release.yml up -d
+
+services:
+  dashboard:
+    environment:
+      SCHWAB_BRIDGE_ACCT2_DIR: /bridge-acct2
+    volumes:
+      - ./bridge-state-acct2:/bridge-acct2
+
+  bridge-acct2:
+    image: ghcr.io/justintimefordinner-lang/portfolio-bridge:${IMAGE_TAG:-latest}
+    pull_policy: always
+    depends_on:
+      - bridge
+    restart: unless-stopped
+    user: "${UID:-1000}:${GID:-1000}"
+    environment:
+      TZ: ${TZ:-America/Denver}
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ./bridge-state-acct2:/state
+      - ./data:/app/data

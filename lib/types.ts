@@ -617,6 +617,23 @@ export interface BlendedRiskView {
   openPnLPct: number;
   openPnLStatus: "on_target" | "below_target" | "unknown";
   openPnLMinPct: number;
+  // Sector concentration across every account (Schwab + SnapTrade + E*TRADE),
+  // bucketed by the data bridge (suggest.SectorBuckets) with the tickers behind
+  // each bar. `over` is already judged against maxSectorAllocationPct so the UI
+  // never re-derives the threshold. Never absent — [] when nothing to attribute.
+  sectors: SectorBucket[];
+  maxSectorAllocationPct: number;
+}
+
+// One sector's slice of the blended portfolio — shape shared with upstream
+// Trading_Dashboard_App's SectorBucket so SectorBars renders either bridge's data.
+export interface SectorBucket {
+  sector: string;
+  value: number; // capital in this sector: stock value + CSP collateral (strike basis)
+  pct: number; // 0..1, share of blended portfolioValue
+  over: boolean; // pct > maxSectorAllocationPct (never true for the unclassified bucket)
+  unclassified: boolean; // capital whose ticker has no watchlist sector (broad funds, etc.)
+  tickers: { symbol: string; value: number }[]; // sorted by value, desc
 }
 
 // RULE-010's own 2%/month floor, 3%/month target — real Schwab options

@@ -1,0 +1,68 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  Portfolio Manager — release stack
+#  Commit as:  Trading_Dashboard_App/docker-compose.release.yml
+#
+#  This is what install.sh downloads onto a user's machine as
+#  docker-compose.yml. It pulls prebuilt images and never compiles anything, so
+#  a Raspberry Pi goes from nothing to running in about a minute instead of
+#  several minutes — and needs no swap, no Node, no Python, no Git, and no
+#  clone of either repository.
+#
+#  Folder it creates alongside itself:
+#
+#      portfolio-manager/
+#      ├── docker-compose.yml
+#      ├── .env                # TZ, UID, GID, port — no secrets
+#      ├── data/               # the shared diode: bridge writes, dashboard reads
+#      └── bridge-state/       # .env, credentials.env, token.json, inboxes
+#
+#  Why data/ is mounted at /app/data in BOTH services: when you save your keys
+#  on the Settings page, the dashboard writes APP_DATA_DIR into the bridge's
+#  .env using the path the DASHBOARD container sees. The bridge must find that
+#  same folder at that same absolute path. It looks redundant; it is not.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: portfolio-manager
+
+services:
+  dashboard:
+    image: ghcr.io/justintimefordinner-lang/portfolio-dashboard:${IMAGE_TAG:-latest}
+    pull_policy: always
+    restart: unless-stopped
+    user: "${UID:-1000}:${GID:-1000}"
+    ports:
+      - "${DASHBOARD_PORT:-3000}:3000"
+    environment:
+      # Where the app deposits credentials and reauth requests.
+      AM_REPORT_BRIDGE_DIR: /bridge-state
+      NODE_ENV: production
+      TZ: ${TZ:-America/Denver}
+    volumes:
+      - ./data:/app/data
+      - ./bridge-state:/bridge-state
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  bridge:
+    image: ghcr.io/justintimefordinner-lang/portfolio-bridge:${IMAGE_TAG:-latest}
+    pull_policy: always
+    restart: unless-stopped
+    user: "${UID:-1000}:${GID:-1000}"
+    environment:
+      TZ: ${TZ:-America/Denver}
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      # Persistent working-directory state. /state IS the bridge's working
+      # directory inside the container, so .env, credentials.env, token.json,
+      # .auth_state.json, reauth_inbox/ and task_inbox/ are real files here.
+      - ./bridge-state:/state
+      # Same absolute path the dashboard uses. See the note at the top.
+      - ./data:/app/data
+
+# No port is published for the bridge, and none is needed. The Schwab login is
+# a paste flow — reauth.py calls auth.client_from_received_url() on a URL you
+# copy out of your browser — so nothing ever listens on 127.0.0.1:8182.

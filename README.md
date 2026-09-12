@@ -18,6 +18,16 @@ built-in demo dataset, so you can explore the whole UI immediately.
 - **Closed trades** — realized round-trips per strategy bucket
 - **Research & screeners** — approved-stock research signals and a CSP candidate screener
 - **Market context** — VIX regime guide and morning briefing
+- **Lookup a Ticker** — on-demand 2-year daily chart for any symbol: candles, Bollinger Bands,
+  50/200-day SMA with golden/death cross markers, MACD and RSI panes, plus call/put walls and
+  the gamma flip. Served by the app's own `/api/chart` route, which asks the OptionsEvaluator
+  daemon's chart API first (Schwab bars, live walls for any ticker; `CHART_API_URL`, default
+  `http://localhost:8092`) and falls back to Yahoo Finance with walls for held names only when
+  the daemon is unreachable. Hold any ticker anywhere in the app for 2.5 seconds to open it there
+- **Portfolio risk** — theta ceiling, sector concentration against a per-sector cap, beta vs
+  QQQ, and an open-P&L floor, all across every account. Sector buckets (with the tickers behind
+  each) come from the daemon's `data/portfolio-risk.json`; sectors are the wheel watchlist
+  sheet's own, so a name not on the sheet shows under "Unclassified"
 - **Example mode** — a full, self-consistent demo dataset so the app is presentable
   without exposing (or even having) real data
 

@@ -7,7 +7,7 @@ import type { Alert, BotSnapshot } from "@/lib/types";
 import { PositionsTable, type SourcedOption } from "@/components/desktop/PositionsTable";
 import { BotTable } from "@/components/bot/BotTable";
 import { ReturnCalculator } from "@/components/desktop/ReturnCalculator";
-import { SecurityChart } from "@/components/desktop/SecurityChart";
+import { SecurityChart } from "@/components/SecurityChart";
 import { WatchlistBoard } from "@/components/desktop/WatchlistBoard";
 import { SchwabReconnect } from "@/components/desktop/SchwabReconnect";
 import { ETradeReconnect } from "@/components/desktop/ETradeReconnect";
@@ -292,7 +292,7 @@ export function OverviewShell({
             placeholder. `hidden` (display: none) keeps SecurityChart's own
             state and its chart instance alive underneath. */}
         <div className={tab === "chart" ? "" : "hidden"}>
-          <SecurityChart watchlist={heldTickers} exampleMode={exampleMode} />
+          <SecurityChart watchlist={heldTickers} />
         </div>
         {tab === "connections" && (
           <>

@@ -241,3 +241,9 @@ body {
 .tabular {
   font-variant-numeric: tabular-nums;
 }
+
+/* Progress bar on the "keep holding to chart" pill (components/TickerLongPress.tsx). */
+@keyframes hold-fill {
+  from { width: 0; }
+  to { width: 100%; }
+}

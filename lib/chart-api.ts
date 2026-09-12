@@ -1,67 +1,39 @@
-// Client-side call into OptionsEvaluator's small chart API
+// Client-side calls into OptionsEvaluator's small chart API
 // (internal/chartapi) -- mirrors lib/paperbot-api.ts's exact fetch/error
-// shape and same-caveat: only reachable when the OptionsEvaluator daemon
-// is running on whatever host actually serves this dashboard, on
-// CHART_API_PORT (8092 by default).
+// shape. Two different paths on purpose:
 //
-// A real bug this fixes, not a stylistic choice: this used to be
-// hardcoded to "http://localhost:8092", which only ever worked when the
-// dashboard was viewed on the SAME machine as the daemon. The account
-// holder views this on their phone over Tailscale -- "localhost" in a
-// fetch made by the PHONE's own browser means the phone itself, which
-// has nothing listening on 8092, so the request could never succeed no
-// matter how the daemon's own CORS/bind settings were configured.
-// window.location.hostname is whatever host the page was ACTUALLY loaded
-// from (a Tailscale IP/hostname, a LAN IP, or localhost), so the chart
-// API request always targets the same real machine the dashboard itself
-// came from.
+// - fetchChart goes through this app's OWN route handler
+//   (app/api/chart/route.ts), same origin as the page. The route proxies
+//   to the daemon server-side (CHART_API_URL), so the browser never has to
+//   reach port 8092 itself. This is upstream Trading_Dashboard_App's shape,
+//   adopted because it retires an entire class of bugs this file used to
+//   carry: "localhost" in a fetch made by the PHONE's browser means the
+//   phone; a Tailscale hostname needs its own CORS allowlist entry; a
+//   mixed-content block when the page is https. Server-side, none apply.
+//
+// - fetchMarketStatus still calls the daemon directly from the browser
+//   via chartAPIBase() (window.location.hostname:8092). Still a candidate
+//   to move behind a route the same way; left as-is in this pass.
+export type { BollingerPoint, ChartData, Cross } from "./chart-indicators";
+import type { ChartData } from "./chart-indicators";
+
 function chartAPIBase(): string {
   if (typeof window === "undefined") return "http://localhost:8092";
   return `${window.location.protocol}//${window.location.hostname}:8092`;
 }
 
-export interface BollingerPoint {
-  upper: number;
-  mid: number;
-  lower: number;
-}
-
-export interface Cross {
-  date: string;
-  type: "golden" | "death";
-}
-
-export interface ChartData {
-  symbol: string;
-  companyName?: string;
-  spotPrice: number;
-  dates: string[];
-  open: number[];
-  high: number[];
-  low: number[];
-  close: number[];
-  bollinger: (BollingerPoint | null)[];
-  macd: {
-    line: (number | null)[];
-    signal: (number | null)[];
-    histogram: (number | null)[];
-  };
-  rsi14: (number | null)[];
-  sma50: (number | null)[];
-  sma200: (number | null)[];
-  // Every 50/200-day SMA golden/death cross across the chart's history.
-  crosses: Cross[];
-  callWall: number | null;
-  putWall: number | null;
-  gammaFlip: number | null;
-}
-
 export async function fetchChart(symbol: string): Promise<ChartData> {
-  const res = await fetch(`${chartAPIBase()}/chart?symbol=${encodeURIComponent(symbol)}`);
-  if (!res.ok) {
-    throw new Error(`chart API failed for ${symbol}: ${res.status}`);
+  const res = await fetch(`/api/chart?symbol=${encodeURIComponent(symbol)}`, { cache: "no-store" });
+  let body: (ChartData & { error?: string }) | { error?: string } | null = null;
+  try {
+    body = (await res.json()) as ChartData & { error?: string };
+  } catch {
+    body = null;
   }
-  return res.json();
+  if (!res.ok || !body || ("error" in body && body.error)) {
+    throw new Error(body && "error" in body && body.error ? body.error : `chart failed for ${symbol} (${res.status})`);
+  }
+  return body as ChartData;
 }
 
 // MarketStatus mirrors internal/chartapi's MarketStatusResponse -- the
