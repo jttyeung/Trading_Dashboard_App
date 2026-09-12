@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Card } from "@/components/ui";
 import { Amt } from "@/components/privacy";
 import { fmtMoney } from "@/lib/calc";
+import { isExampleClient } from "@/lib/demo";
 import { fetchMonthlyGoalTarget, setMonthlyGoalTarget } from "@/lib/monthly-goal-api";
 
 // MonthlyGoalCard tracks RULE-010's own 2%/month floor, 3%/month target
@@ -74,6 +75,12 @@ export function MonthlyGoalCard({
   const [hasOverride, setHasOverride] = useState<boolean | null>(null);
 
   useEffect(() => {
+    // Demo builds serve the bundled fixture and make no live call; the
+    // props already carry the example target and capital base.
+    if (isExampleClient()) {
+      setHasOverride(false);
+      return;
+    }
     let cancelled = false;
     fetchMonthlyGoalTarget()
       .then((t) => {
@@ -117,6 +124,12 @@ export function MonthlyGoalCard({
   // open form they now have no button to escape.
   async function commit() {
     if (!editing) return; // a stray blur after we've already closed
+    if (isExampleClient()) {
+      // Read-only demo: keep the edit visible but never attempt a write.
+      setEditing(false);
+      setSaveError("This is a read-only demo — changes aren't saved.");
+      return;
+    }
     const parsedTarget = parseFloat(targetDraft);
     const parsedCapital = parseFloat(capitalDraft);
     setEditing(false);

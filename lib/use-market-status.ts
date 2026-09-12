@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { fetchMarketStatus } from "@/lib/chart-api";
+import { isExampleClient } from "@/lib/demo";
 import { isRegularSession } from "@/lib/market-hours";
 
 // useMarketStatus polls OptionsEvaluator's own real, holiday-aware
@@ -18,6 +19,12 @@ import { isRegularSession } from "@/lib/market-hours";
 // `open` falls back to the pure isRegularSession() check, the same
 // still-mostly-correct behavior this hook replaces, rather than the UI
 // getting stuck or showing nothing.
+//
+// A demo build skips the poll entirely rather than relying on that
+// fallback. The catch() already degraded correctly there, but the
+// request itself still went out every 5 minutes -- and on a public
+// deployment it resolves against the VISITOR's own localhost:8092,
+// never ours, so it was both guaranteed to fail and not ours to make.
 export function useMarketStatus(pollMs = 5 * 60 * 1000): { open: boolean; isTradingDay: boolean | null } {
   const [state, setState] = useState<{ open: boolean; isTradingDay: boolean | null }>(() => ({
     open: isRegularSession(),
@@ -25,6 +32,7 @@ export function useMarketStatus(pollMs = 5 * 60 * 1000): { open: boolean; isTrad
   }));
 
   useEffect(() => {
+    if (isExampleClient()) return;
     let cancelled = false;
     function check() {
       fetchMarketStatus()
