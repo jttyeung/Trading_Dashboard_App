@@ -14,6 +14,8 @@ import type {
   ClosedCoveredFile,
   ClosedSpreadFile,
   ClosedStockFile,
+  SectorEntry,
+  SectorsFile,
 } from "./types";
 
 const ACC = "EX000000"; // primary margin account
@@ -263,4 +265,40 @@ export const exampleStockFile: ClosedStockFile = {
     { id: "ex-st4", symbol: "SOFI", name: "SoFi Technologies", side: "long", shares: 300, avgOpen: 22.4, avgClose: 27.8, costBasis: 6720, proceeds: 8340, realizedPnl: 1620, outcome: "closed_profit", openedAt: isoDay(-109), closedAt: isoDay(-5), daysHeld: 120, returnPct: 0.368, annualized: 1.12 },
     { id: "ex-st5", symbol: "CLS", name: "Celestica", side: "long", shares: 60, avgOpen: 115, avgClose: 108, costBasis: 6900, proceeds: 6480, realizedPnl: -420, outcome: "closed_loss", openedAt: isoDay(-72), closedAt: isoDay(-46), daysHeld: 26, returnPct: -0.0609, annualized: -0.85 },
   ],
+};
+
+// Ticker → sector map (data/sectors.json) for every name the example snapshot
+// holds. Deliberately semiconductor-heavy so the Portfolio Risk screen's sector
+// cap shows a real breach in the demo, and DRAM is left out so the
+// "Unclassified" bucket and its override hint have something to show.
+const sectorEntry = (sector: string | null, industry: string | null = null, quoteType = "EQUITY"): SectorEntry => ({
+  sector,
+  industry,
+  quoteType,
+  asof: NOW_ISO,
+});
+export const exampleSectors: SectorsFile = {
+  asof: NOW_ISO,
+  tickers: {
+    AAPL: sectorEntry("Technology", "Consumer Electronics"),
+    AMAT: sectorEntry("Technology", "Semiconductor Equipment & Materials"),
+    AMZN: sectorEntry("Consumer Cyclical", "Internet Retail"),
+    CCL: sectorEntry("Consumer Cyclical", "Travel Services"),
+    CDE: sectorEntry("Basic Materials", "Gold"),
+    CLS: sectorEntry("Technology", "Electronic Components"),
+    COHR: sectorEntry("Technology", "Scientific & Technical Instruments"),
+    CRDO: sectorEntry("Technology", "Semiconductors"),
+    GLW: sectorEntry("Technology", "Electronic Components"),
+    GOOGL: sectorEntry("Communication Services", "Internet Content & Information"),
+    INTC: sectorEntry("Technology", "Semiconductors"),
+    IREN: sectorEntry("Financial Services", "Capital Markets"),
+    LRCX: sectorEntry("Technology", "Semiconductor Equipment & Materials"),
+    MU: sectorEntry("Technology", "Semiconductors"),
+    NVDA: sectorEntry("Technology", "Semiconductors"),
+    PLTR: sectorEntry("Technology", "Software - Infrastructure"),
+    SMH: sectorEntry("ETF / Index Fund", null, "ETF"),
+    SOFI: sectorEntry("Financial Services", "Credit Services"),
+    TSM: sectorEntry("Technology", "Semiconductors"),
+  },
+  overrides: {},
 };
