@@ -17,13 +17,13 @@ export default async function RiskPage() {
           title="Portfolio Risk"
           subtitle={
             <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-              <span>Theta ceiling · sector cap · beta &amp; open P&L</span>
+              <span>Theta ceiling · sector cap ({(risk.blended.maxSectorAllocationPct * 100).toFixed(0)}%) · beta &amp; open P&L</span>
               <DataRefresh nextAt={getRefreshStatus().app?.nextAt} />
             </span>
           }
           right={<BackLink />}
         />
-        <PortfolioRiskView overall={risk.overall} perAccount={risk.perAccount} blended={risk.blended} />
+        <PortfolioRiskView perAccount={risk.perAccount} blended={risk.blended} />
       </ShowAmounts>
     </main>
   );

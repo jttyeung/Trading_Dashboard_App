@@ -37,6 +37,13 @@ RUN rm -rf data && mkdir -p data \
 FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
 
+# Link the published package to this repo on GitHub: the package page shows the
+# README and the package can be managed from the repo. Must sit in the final
+# stage — labels set in the deps/build stages do not survive into the image.
+LABEL org.opencontainers.image.source="https://github.com/justintimefordinner-lang/Trading_Dashboard_App"
+LABEL org.opencontainers.image.description="Self-hosted portfolio dashboard for the Schwab market-data bridge"
+LABEL org.opencontainers.image.licenses="PolyForm-Noncommercial-1.0.0"
+
 RUN apt-get update \
  && apt-get install -y --no-install-recommends tzdata ca-certificates \
  && rm -rf /var/lib/apt/lists/*

@@ -26,9 +26,9 @@ import type {
   BotSnapshot,
   BotTrade,
 } from "./types";
-import type { ChartData, BollingerPoint, Cross } from "./chart-api";
 import type { WatchlistRow } from "./watchlist-api";
 import type { RollAnalysisCandidate, RollAnalysisMode, RollAnalysisResponse } from "./roll-api";
+import { buildChartData, type ChartData } from "./chart-indicators";
 
 const ACC = "EX000000"; // primary margin account
 const IRA = "EX000001"; // second account, to exercise the account switcher
@@ -380,6 +380,19 @@ export const examplePortfolioRiskFile: PortfolioRiskFile = {
     openPnLPct: 0.0548,
     openPnLStatus: "on_target",
     openPnLMinPct: -0.1,
+    // Blended buckets (every account), tickers from exampleSnapshot's own
+    // names. Technology deliberately sits over the cap so the "over" state
+    // has something to show; Unclassified is the broad-fund bucket and is
+    // never judged against the cap.
+    maxSectorAllocationPct: 0.3,
+    sectors: [
+      { sector: "Technology", value: 21000, pct: 0.3596, over: true, unclassified: false, tickers: [{ symbol: "MU", value: 9500 }, { symbol: "AAPL", value: 6500 }, { symbol: "GLW", value: 5000 }] },
+      { sector: "Unclassified", value: 12400, pct: 0.2123, over: false, unclassified: true, tickers: [{ symbol: "VTI", value: 8400 }, { symbol: "SCHD", value: 4000 }] },
+      { sector: "Financials", value: 9800, pct: 0.1678, over: false, unclassified: false, tickers: [{ symbol: "SOFI", value: 9800 }] },
+      { sector: "Communication Services", value: 5100, pct: 0.0873, over: false, unclassified: false, tickers: [{ symbol: "GOOGL", value: 5100 }] },
+      { sector: "Tech / Data", value: 4200, pct: 0.0719, over: false, unclassified: false, tickers: [{ symbol: "PLTR", value: 4200 }] },
+      { sector: "Crypto Mining", value: 3600, pct: 0.0616, over: false, unclassified: false, tickers: [{ symbol: "IREN", value: 3600 }] },
+    ],
   },
 };
 
@@ -878,114 +891,11 @@ export const exampleBenchmarkFile: BenchmarkFile = {
 };
 
 // ---------------------------------------------------------------------------
-// Chart tab (SecurityChart.tsx) demo data. Unlike every other fixture in this
-// file, the Chart tab doesn't read data/*.json at all -- it's a live
-// client-side fetch to internal/chartapi's localhost API (see lib/chart-api.ts),
-// so on a public demo deploy it can't reach real OR fake data through the
-// usual isExampleMode() path and would just show a fetch error. exampleMode
-// is instead passed down as a prop (see app/overview/page.tsx,
-// components/overview/OverviewShell.tsx) and SecurityChart.tsx calls this
-// function directly instead of fetchChart() when set.
-//
-// A small port of quant/indicators.py's own math (sma/ema/macd/rsi/bollinger)
-// so the fake series is internally consistent (a real Bollinger band computed
-// from the fake closes, not an independently-guessed value) -- these are
-// intentionally NOT shared with the Go/Python indicator math, since this is
-// throwaway demo-only code with no correctness requirement beyond "looks
-// like a real chart."
-function smaSeriesTS(values: number[], period: number): (number | null)[] {
-  const n = values.length;
-  const result: (number | null)[] = new Array(n).fill(null);
-  if (n < period) return result;
-  let sum = values.slice(0, period).reduce((a, b) => a + b, 0);
-  result[period - 1] = sum / period;
-  for (let i = period; i < n; i++) {
-    sum += values[i] - values[i - period];
-    result[i] = sum / period;
-  }
-  return result;
-}
-
-function emaSeriesTS(values: number[], period: number): (number | null)[] {
-  const n = values.length;
-  const result: (number | null)[] = new Array(n).fill(null);
-  if (n < period) return result;
-  const k = 2 / (period + 1);
-  const seed = values.slice(0, period).reduce((a, b) => a + b, 0) / period;
-  result[period - 1] = seed;
-  let prev = seed;
-  for (let i = period; i < n; i++) {
-    prev = values[i] * k + prev * (1 - k);
-    result[i] = prev;
-  }
-  return result;
-}
-
-function macdTS(closes: number[]): ChartData["macd"] {
-  const fast = emaSeriesTS(closes, 12);
-  const slow = emaSeriesTS(closes, 26);
-  const line = closes.map((_, i) => (fast[i] == null || slow[i] == null ? null : (fast[i] as number) - (slow[i] as number)));
-  const validStart = line.findIndex((v) => v != null);
-  if (validStart === -1) {
-    return { line, signal: closes.map(() => null), histogram: closes.map(() => null) };
-  }
-  const tail = emaSeriesTS(line.slice(validStart).map((v) => v as number), 9);
-  const signal: (number | null)[] = [...new Array(validStart).fill(null), ...tail];
-  const histogram = line.map((v, i) => (v == null || signal[i] == null ? null : v - (signal[i] as number)));
-  return { line, signal, histogram };
-}
-
-function rsiSeriesTS(closes: number[], period = 14): (number | null)[] {
-  const n = closes.length;
-  const result: (number | null)[] = new Array(n).fill(null);
-  if (n < period + 1) return result;
-  const deltas = closes.slice(1).map((c, i) => c - closes[i]);
-  const gains = deltas.map((d) => (d > 0 ? d : 0));
-  const losses = deltas.map((d) => (d < 0 ? -d : 0));
-  let avgGain = gains.slice(0, period).reduce((a, b) => a + b, 0) / period;
-  let avgLoss = losses.slice(0, period).reduce((a, b) => a + b, 0) / period;
-  const rsiFrom = (g: number, l: number) => (l === 0 ? 100 : 100 - 100 / (1 + g / l));
-  result[period] = rsiFrom(avgGain, avgLoss);
-  for (let i = period; i < gains.length; i++) {
-    avgGain = (avgGain * (period - 1) + gains[i]) / period;
-    avgLoss = (avgLoss * (period - 1) + losses[i]) / period;
-    result[i + 1] = rsiFrom(avgGain, avgLoss);
-  }
-  return result;
-}
-
-function bollingerSeriesTS(closes: number[], period = 20, numStd = 2): (BollingerPoint | null)[] {
-  const n = closes.length;
-  const result: (BollingerPoint | null)[] = new Array(n).fill(null);
-  for (let i = period - 1; i < n; i++) {
-    const window = closes.slice(i - period + 1, i + 1);
-    const mid = window.reduce((a, b) => a + b, 0) / period;
-    const variance = window.reduce((a, b) => a + (b - mid) ** 2, 0) / period;
-    const std = Math.sqrt(variance);
-    result[i] = { upper: mid + numStd * std, mid, lower: mid - numStd * std };
-  }
-  return result;
-}
-
-// Mirrors quant/indicators.py's detect_all_crosses -- every 50/200-day SMA
-// golden/death cross across the full history, not just the latest one.
-function detectAllCrossesTS(dates: string[], short: (number | null)[], long_: (number | null)[]): Cross[] {
-  const validIdxs: number[] = [];
-  for (let i = 0; i < short.length; i++) {
-    if (short[i] != null && long_[i] != null) validIdxs.push(i);
-  }
-  const crosses: Cross[] = [];
-  for (let k = 0; k < validIdxs.length - 1; k++) {
-    const prevI = validIdxs[k];
-    const curI = validIdxs[k + 1];
-    const prevDiff = (short[prevI] as number) - (long_[prevI] as number);
-    const curDiff = (short[curI] as number) - (long_[curI] as number);
-    if (prevDiff <= 0 && curDiff > 0) crosses.push({ date: dates[curI], type: "golden" });
-    else if (prevDiff >= 0 && curDiff < 0) crosses.push({ date: dates[curI], type: "death" });
-  }
-  return crosses;
-}
-
+// Lookup a Ticker (SecurityChart.tsx) demo data. Served by app/api/chart's
+// example-mode branch so a public demo never reaches the daemon or Yahoo.
+// Indicators come from lib/chart-indicators.ts's buildChartData -- the same
+// math the Yahoo fallback uses live -- so the fake series is internally
+// consistent (a real Bollinger band computed from the fake closes).
 const CHART_DAYS = 504; // ~2 trading years, matching a real chartapi response
 
 function chartTradingDates(days: number): string[] {
@@ -1020,36 +930,19 @@ export function exampleChartData(symbol: string): ChartData {
   const dates = chartTradingDates(CHART_DAYS);
   const seed = symbol.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
   const startValue = 40 + (seed % 200);
-  const closes = chartWalk(startValue, seed, CHART_DAYS);
-  const open = closes.map((c, i) => (i === 0 ? c : Math.round(closes[i - 1] * (1 + Math.sin(i * 0.5) * 0.004) * 100) / 100));
-  const high = closes.map((c, i) => Math.round(Math.max(c, open[i]) * (1 + Math.abs(Math.sin(i * 0.9)) * 0.006) * 100) / 100);
-  const low = closes.map((c, i) => Math.round(Math.min(c, open[i]) * (1 - Math.abs(Math.cos(i * 0.9)) * 0.006) * 100) / 100);
-  const spot = closes[closes.length - 1];
-  const sma50 = smaSeriesTS(closes, 50);
-  const sma200 = smaSeriesTS(closes, 200);
-
-  return {
-    symbol,
-    // No real company database for an arbitrary searched symbol in demo
-    // mode -- a plain placeholder, same "plausible but plainly synthetic"
-    // spirit as the rest of this file's example data.
-    companyName: `${symbol} Corp`,
+  const close = chartWalk(startValue, seed, CHART_DAYS);
+  const open = close.map((c, i) => (i === 0 ? c : Math.round(close[i - 1] * (1 + Math.sin(i * 0.5) * 0.004) * 100) / 100));
+  const high = close.map((c, i) => Math.round(Math.max(c, open[i]) * (1 + Math.abs(Math.sin(i * 0.9)) * 0.006) * 100) / 100);
+  const low = close.map((c, i) => Math.round(Math.min(c, open[i]) * (1 - Math.abs(Math.cos(i * 0.9)) * 0.006) * 100) / 100);
+  const spot = close[close.length - 1];
+  return buildChartData(symbol, { dates, open, high, low, close }, {
+    companyName: `${symbol} Corp (example)`,
     spotPrice: spot,
-    dates,
-    open,
-    high,
-    low,
-    close: closes,
-    bollinger: bollingerSeriesTS(closes),
-    macd: macdTS(closes),
-    rsi14: rsiSeriesTS(closes),
-    sma50,
-    sma200,
-    crosses: detectAllCrossesTS(dates, sma50, sma200),
     callWall: Math.round((spot * 1.05) / 5) * 5,
     putWall: Math.round((spot * 0.95) / 5) * 5,
     gammaFlip: Math.round(spot * 1.01 * 100) / 100,
-  };
+    asOf: NOW_ISO,
+  });
 }
 
 // exampleWatchlistBoard is the Watchlist Board tab's demo-mode data --
