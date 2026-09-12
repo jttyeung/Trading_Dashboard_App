@@ -63,6 +63,12 @@ export function SecurityChart({ watchlist, initialSymbol }: { watchlist: string[
     setSymbolInput(s);
   }
 
+  // A deep link that changes while this page is already mounted (the hold-a-
+  // ticker gesture used from the chart page itself) re-runs the search.
+  useEffect(() => {
+    if (initialSymbol) search(initialSymbol);
+  }, [initialSymbol]);
+
   useEffect(() => {
     if (!activeSymbol) return;
     let cancelled = false;
