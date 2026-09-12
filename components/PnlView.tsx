@@ -103,6 +103,7 @@ interface BucketAgg {
   pnl: number;
   count: number;
   wins: number;
+  losses: number; // pnl < 0 only — a break-even trade is neither a win nor a loss
   winDollars: number; // sum of positive trade P&L
   lossDollars: number; // sum of |negative trade P&L| (positive magnitude)
 }
@@ -131,9 +132,10 @@ export function PnlView({
         const items = (isRealized ? b.items.filter((it) => (it.date ? inRange(it.date, range) : true)) : b.items).filter((it) => keepTerm(term, it.daysHeld));
         const pnl = items.reduce((s, it) => s + it.pnl, 0);
         const wins = items.filter((it) => it.pnl > 0).length;
+        const losses = items.filter((it) => it.pnl < 0).length;
         const winDollars = items.reduce((s, it) => s + Math.max(0, it.pnl), 0);
         const lossDollars = items.reduce((s, it) => s - Math.min(0, it.pnl), 0);
-        return { key: b.key, label: b.label, pnl, count: items.length, wins, winDollars, lossDollars };
+        return { key: b.key, label: b.label, pnl, count: items.length, wins, losses, winDollars, lossDollars };
       })
       .filter((b) => b.count > 0)
       .sort((a, b) => b.pnl - a.pnl);
@@ -160,13 +162,20 @@ export function PnlView({
   const total = buckets.reduce((s, b) => s + b.pnl, 0);
   const totalCount = buckets.reduce((s, b) => s + b.count, 0);
   const totalWins = buckets.reduce((s, b) => s + b.wins, 0);
+  // Losses are counted directly (pnl < 0), not derived as count - wins: a $0
+  // round-trip used to land in the loss column here while contributing $0 to
+  // lossDollars, so this read "8–1 · 89%" next to "100% · $0 lost". Break-even
+  // trades sit outside both the record and the count-based rate's denominator.
+  const totalLosses = buckets.reduce((s, b) => s + b.losses, 0);
+  const totalFlat = totalCount - totalWins - totalLosses;
   // Trade-level winning vs losing dollars (not bucket-netted), so the gross split
   // and the dollarized win rate reflect actual winners/losers rather than netting
   // to $0 within a profitable strategy.
   const winDollars = buckets.reduce((s, b) => s + b.winDollars, 0);
   const lossDollars = buckets.reduce((s, b) => s + b.lossDollars, 0); // positive magnitude
   const maxAbs = buckets.reduce((m, b) => Math.max(m, Math.abs(b.pnl)), 0);
-  const winRate = totalCount > 0 ? Math.round((totalWins / totalCount) * 100) : 0;
+  const decided = totalWins + totalLosses;
+  const winRate = decided > 0 ? Math.round((totalWins / decided) * 100) : 0;
   // Dollarized win rate: share of gross traded dollars that were winners.
   const dollarPool = winDollars + lossDollars;
   const dollarWinRate = dollarPool > 0 ? Math.round((winDollars / dollarPool) * 100) : 0;
@@ -374,8 +383,8 @@ export function PnlView({
         />
         <Stat
           label={isRealized ? "Win–loss" : "Up–down"}
-          value={`${totalWins}–${Math.max(0, totalCount - totalWins)}`}
-          sub={`${winRate}% ${isRealized ? "by trade count" : "in profit"}`}
+          value={`${totalWins}–${totalLosses}`}
+          sub={`${winRate}% ${isRealized ? "by trade count" : "in profit"}${totalFlat > 0 ? ` · ${totalFlat} flat` : ""}`}
         />
       </div>
 
