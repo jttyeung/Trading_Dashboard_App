@@ -14,6 +14,8 @@ import { getSnapshot } from "@/lib/snapshot";
 import { getAmReport } from "@/lib/am-report";
 import { computeHoldings } from "@/lib/holdings";
 import { dailyThetaBreakdown } from "@/lib/theta";
+import { getSectorMap } from "@/lib/sectors";
+import { computePortfolioRisk } from "@/lib/portfolio-risk";
 import { getSelectedAccount } from "@/lib/account";
 import { getVixSnapshot } from "@/lib/vix-data";
 import { getBtcQuote, fmtBtc } from "@/lib/btc-data";
@@ -49,6 +51,12 @@ export default async function HomePage() {
   const { accounts, meta } = snap;
   const { id, data } = await getSelectedAccount(snap);
   const { summary, equities, options, valueHistory } = data;
+
+  // Whole-portfolio risk (every account) for the quick-access card's one-line read:
+  // the heaviest sector and whether it breaches the cap.
+  const risk = computePortfolioRisk(snap, await getSectorMap());
+  const topSector = risk.sectors[0];
+  const sectorsOver = risk.sectors.filter((s) => s.over).length;
 
   const example = meta.source === "example";
   const vixSnap = getVixSnapshot(example);
@@ -250,6 +258,22 @@ export default async function HomePage() {
             </div>
           </div>
           <span className="shrink-0 text-sm font-medium text-sky-300">Open ›</span>
+        </Card>
+      </Link>
+
+      {/* Portfolio risk — sector concentration + theta bands, judged across every
+          account. The subtitle names the heaviest sector so a breach reads from Home. */}
+      <Link href="/risk" className="mt-2 block active:opacity-80">
+        <Card className={`flex items-center justify-between gap-3 px-4 py-3 ring-1 ring-inset ${sectorsOver > 0 ? "bg-rose-500/5 ring-rose-500/25" : "bg-violet-500/5 ring-violet-500/25"}`}>
+          <div className="min-w-0">
+            <div className={`text-sm font-semibold ${sectorsOver > 0 ? "text-rose-200" : "text-violet-200"}`}>Portfolio risk</div>
+            <div className="truncate text-[11px] text-muted">
+              {topSector
+                ? `${topSector.sector} ${(topSector.pct * 100).toFixed(0)}% of portfolio · cap ${(risk.rules.sector.maxAllocationPct * 100).toFixed(0)}%${sectorsOver > 0 ? ` · ${sectorsOver} over` : ""}`
+                : "Sector concentration & theta bands"}
+            </div>
+          </div>
+          <span className={`shrink-0 text-sm font-medium ${sectorsOver > 0 ? "text-rose-300" : "text-violet-300"}`}>View ›</span>
         </Card>
       </Link>
 

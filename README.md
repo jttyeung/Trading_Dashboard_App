@@ -18,6 +18,10 @@ built-in demo dataset, so you can explore the whole UI immediately.
 - **Closed trades** — realized round-trips per strategy bucket
 - **Research & screeners** — approved-stock research signals and a CSP candidate screener
 - **Market context** — VIX regime guide and morning briefing
+- **Portfolio risk** — sector concentration against a per-sector cap, daily theta against its
+  target bands, and open P&L against a drawdown floor, across every account. Sectors come from
+  the bridge's `data/sectors.json` (Yahoo Finance — Schwab's API has none); correct any by hand
+  under its `overrides` map
 - **Example mode** — a full, self-consistent demo dataset so the app is presentable
   without exposing (or even having) real data
 

@@ -339,3 +339,68 @@ export interface Snapshot {
   accounts: Account[];
   data: Record<string, AccountData>;
 }
+
+// ---------------------------------------------------------------------------
+// Portfolio risk — sector concentration, theta bands, open-P&L floor.
+// The ticker → sector map comes from data/sectors.json (bridge: sectors.py, via
+// Yahoo Finance — Schwab's API carries no sector). Everything else is computed
+// in the app from the snapshot (lib/portfolio-risk.ts); the thresholds travel
+// inside the result so the UI reads bands and values from the same object.
+// ---------------------------------------------------------------------------
+export interface SectorEntry {
+  sector: string | null; // null = Yahoo had no classification for this ticker
+  industry?: string | null;
+  quoteType?: string; // "EQUITY" | "ETF" | ...
+  asof?: string; // ISO — when this ticker was last looked up
+}
+
+export interface SectorsFile {
+  asof?: string | null;
+  tickers: Record<string, SectorEntry>;
+  /** Hand corrections, ticker → sector label. Applied over `tickers` by the app. */
+  overrides?: Record<string, string>;
+}
+
+/** Upper-cased ticker → sector label, after overrides. */
+export type SectorMap = Record<string, string>;
+
+export interface RiskRules {
+  theta: { minPct: number; targetMaxPct: number; maxPct: number }; // share of portfolio value per day
+  sector: { maxAllocationPct: number }; // share of portfolio value in one sector
+  openPnl: { minPct: number }; // unrealized P&L floor, share of portfolio value (negative)
+}
+
+export type ThetaStatus = "below_target" | "on_target" | "above_target_below_ceiling" | "over_ceiling" | "unknown";
+export type OpenPnlStatus = "on_target" | "below_target" | "unknown";
+
+export interface RiskReading {
+  portfolioValue: number; // the value thetaPct / openPnLPct were computed against
+  thetaToday: number; // net daily theta $ (short premium +, long −)
+  thetaPct: number;
+  thetaStatus: ThetaStatus;
+  thetaGapToTarget: number; // $/day more theta needed to reach the target floor; 0 once there
+  openPnL: number; // unrealized stock + option P&L from cost basis
+  openPnLPct: number;
+  openPnLStatus: OpenPnlStatus;
+}
+
+export interface AccountRisk extends RiskReading {
+  accountId: string;
+  accountLabel: string; // nickname or brokerage type — never a raw account number
+}
+
+export interface SectorBucket {
+  sector: string;
+  value: number; // capital in this sector: stock value + CSP collateral + LEAP/spread capital
+  pct: number; // 0..1, share of portfolioValue
+  over: boolean; // pct > rules.sector.maxAllocationPct
+  unclassified: boolean; // the "no sector known" bucket
+  tickers: { symbol: string; value: number }[]; // sorted by value, for the drill-in line
+}
+
+export interface PortfolioRisk {
+  overall: RiskReading; // every account across every bridge
+  sectors: SectorBucket[]; // sorted by value, desc
+  perAccount: AccountRisk[]; // sorted by label
+  rules: RiskRules;
+}
