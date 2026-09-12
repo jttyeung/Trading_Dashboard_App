@@ -31,6 +31,17 @@ verify live (curl or a browser, with `NEXT_PUBLIC_DEMO_MODE=1` set) that it
 actually renders synthetic output — a compiling loader is not the same as a
 gated one.
 
+**`vercel deploy` uploads the local checkout, not the git tree.** The CLI
+does not apply `.gitignore` the way git does: the `/data/*` + `!/data/.gitkeep`
+pair let the entire real `data/` folder ride along as deployment source on
+every deploy before 2026-09-11 (confirmed through the deployment files API,
+`vercel api /v6/deployments/<id>/files`, not inferred). The demo flag meant
+none of it was ever rendered, but real account data was still sitting on a
+third-party host. `.vercelignore` now lists `data/` and `.env*` explicitly,
+with no negation patterns. After any deploy, the check is the files API, not
+the rendered page: a page that shows fixtures says nothing about what was
+uploaded.
+
 ## Reporting a vulnerability
 
 If you find a security issue — especially anything that could expose
