@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { etDateString, etOpenAt, nextMarketTransition } from "@/lib/market-hours";
 import { fetchMarketStatus } from "@/lib/chart-api";
+import { isExampleClient } from "@/lib/demo";
 import { useMarketStatus } from "@/lib/use-market-status";
 
 // formatCountdown renders "hours down to seconds" literally — H:MM:SS,
@@ -70,6 +71,12 @@ export function MarketCountdown() {
       setNextRealOpen(null);
       return;
     }
+    // Explicit demo guard, not just the transitive one. Today this branch is
+    // unreachable in a demo (useMarketStatus skips its poll there, so
+    // isTradingDay never becomes false), but that's a property of another
+    // hook -- a future change to it must not be what decides whether a
+    // public build starts probing a daemon it can't reach.
+    if (isExampleClient()) return;
     let cancelled = false;
     findNextRealOpen(new Date()).then((at) => {
       if (!cancelled) setNextRealOpen(at);
