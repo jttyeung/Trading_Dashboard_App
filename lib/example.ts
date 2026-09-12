@@ -17,6 +17,7 @@ import type {
   SectorEntry,
   SectorsFile,
 } from "./types";
+import { buildChartData, type ChartData } from "./chart-indicators";
 
 const ACC = "EX000000"; // primary margin account
 const IRA = "EX000001"; // second account, to exercise the account switcher
@@ -302,3 +303,53 @@ export const exampleSectors: SectorsFile = {
   },
   overrides: {},
 };
+
+// Lookup-a-Ticker chart (app/api/chart) demo data. The route never reaches out
+// to Yahoo in example mode; it returns this fake-but-internally-consistent
+// series instead, seeded off the symbol's own characters so different tickers
+// look distinct rather than one line relabeled. Indicators are computed from
+// the fake closes by the same code the real route uses.
+const CHART_DAYS = 504; // ~2 trading years
+
+function chartTradingDates(days: number): string[] {
+  const dates: string[] = [];
+  let offset = 0;
+  while (dates.length < days) {
+    offset -= 1;
+    const d = new Date(Date.now() + offset * DAY_MS);
+    const dow = d.getUTCDay();
+    if (dow !== 0 && dow !== 6) dates.push(d.toISOString().slice(0, 10));
+  }
+  return dates.reverse();
+}
+
+function chartWalk(startValue: number, seedOffset: number, days: number): number[] {
+  const values: number[] = [];
+  let value = startValue;
+  const amplitude = startValue * 0.012;
+  for (let day = 0; day < days; day++) {
+    const noise = Math.sin((day + seedOffset) * 0.35) * amplitude + Math.sin((day + seedOffset) * 1.3) * amplitude * 0.4;
+    value = Math.max(startValue * 0.2, value * 1.0006 + noise);
+    values.push(Math.round(value * 100) / 100);
+  }
+  return values;
+}
+
+export function exampleChartData(symbol: string): ChartData {
+  const dates = chartTradingDates(CHART_DAYS);
+  const seed = symbol.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+  const startValue = 40 + (seed % 200);
+  const close = chartWalk(startValue, seed, CHART_DAYS);
+  const open = close.map((c, i) => (i === 0 ? c : Math.round(close[i - 1] * (1 + Math.sin(i * 0.5) * 0.004) * 100) / 100));
+  const high = close.map((c, i) => Math.round(Math.max(c, open[i]) * (1 + Math.abs(Math.sin(i * 0.9)) * 0.006) * 100) / 100);
+  const low = close.map((c, i) => Math.round(Math.min(c, open[i]) * (1 - Math.abs(Math.cos(i * 0.9)) * 0.006) * 100) / 100);
+  const spot = close[close.length - 1];
+  return buildChartData(symbol, { dates, open, high, low, close }, {
+    companyName: `${symbol} Corp (example)`,
+    spotPrice: spot,
+    callWall: Math.round((spot * 1.05) / 5) * 5,
+    putWall: Math.round((spot * 0.95) / 5) * 5,
+    gammaFlip: Math.round(spot * 1.01 * 100) / 100,
+    asOf: NOW_ISO,
+  });
+}
