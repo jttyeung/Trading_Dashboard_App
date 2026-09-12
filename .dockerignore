@@ -5,6 +5,7 @@
 
 .git
 .githooks
+.claude
 node_modules
 .next
 out

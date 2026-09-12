@@ -36,6 +36,27 @@ function MenuItem({
   );
 }
 
+// Outbound row that matches the accordion items visually but just opens a link.
+function LinkItem({ title, subtitle, href }: { title: string; subtitle?: string; href: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center justify-between rounded-2xl border border-border bg-surface px-4 py-3"
+    >
+      <span>
+        <span className="block text-sm font-semibold">{title}</span>
+        {subtitle && <span className="mt-0.5 block text-xs text-muted">{subtitle}</span>}
+      </span>
+      <span className="shrink-0 text-muted">↗</span>
+    </a>
+  );
+}
+
+// Optional tip jar. Kept to a single quiet row at the bottom of the menu.
+const CONTRIBUTE_URL = "https://venmo.com/code?user_id=4313728761726406291&created=1788873302.469609&printed=1";
+
 interface Intervals {
   appMinutes: number;
   historyMinutes: number;
@@ -215,6 +236,11 @@ export function SettingsForm({
       <MenuItem title="Simulate skew" subtitle="After-hours what-if IV assumption">
         <SkewSection initialSkew={initialSkew} />
       </MenuItem>
+      <LinkItem
+        title="Contribute to development"
+        subtitle="Optional. Chip in on Venmo to support ongoing work."
+        href={CONTRIBUTE_URL}
+      />
     </div>
   );
 }

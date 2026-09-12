@@ -24,7 +24,11 @@
 #  is then `git pull` + `docker compose restart bridge` — no rebuild.
 # ─────────────────────────────────────────────────────────────────────────────
 
-name: portfolio-manager
+# Deliberately NOT "portfolio-manager" — that name belongs to the release
+# stack in docker-compose.release.yml. Keeping them distinct means running
+# install.sh on a machine that already has this dev stack can never adopt or
+# recreate its containers.
+name: portfolio-manager-dev
 
 services:
   dashboard:

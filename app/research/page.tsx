@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Card, PageHeader, SectionTitle, Pill } from "@/components/ui";
 import { ResearchView } from "@/components/ResearchView";
 import { getResearch } from "@/lib/research";
@@ -93,6 +94,17 @@ export default async function ResearchPage({
         }
         subtitle={`Watchlist universe · ${universe.length} names${data ? "" : " · sync pending"}`}
       />
+
+      {/* Lookup a Ticker — on-demand 2-year chart for any symbol, not just the roster. */}
+      <Link href="/chart" className="mt-3 block active:opacity-80">
+        <Card className="flex items-center justify-between gap-3 bg-violet-500/5 px-4 py-3 ring-1 ring-inset ring-violet-500/25">
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-violet-200">Lookup a Ticker</div>
+            <div className="text-[11px] text-muted">2-year chart · Bollinger, SMA 50/200, MACD, RSI, walls</div>
+          </div>
+          <span className="shrink-0 text-sm font-medium text-violet-300">Open ›</span>
+        </Card>
+      </Link>
 
       <ResearchView data={data} symbols={universe} holdings={holdings} initialVehicle={initialVehicle} />
 

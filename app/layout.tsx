@@ -5,6 +5,7 @@ import "./globals.css";
 import { BottomNav } from "@/components/BottomNav";
 import { ScrollArea } from "@/components/ScrollArea";
 import { SkewHydrator } from "@/components/SkewHydrator";
+import { TickerLongPress } from "@/components/TickerLongPress";
 import { PrivacyProvider } from "@/components/privacy";
 import { MarginModeProvider } from "@/components/margin-mode";
 import { ThemeModeProvider } from "@/components/theme-mode";
@@ -108,6 +109,8 @@ export default async function RootLayout({
           <PrivacyProvider>
             <MarginModeProvider>
               <SkewHydrator />
+              {/* Hold any ticker for 2.5s anywhere in the app to open it in Lookup a Ticker. */}
+              <TickerLongPress />
               {/* A public demo shows invented numbers, so say so plainly — with the
                   Example toggle hidden there's otherwise nothing marking it. */}
               {DEMO_MODE && (

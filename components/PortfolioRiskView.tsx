@@ -1,7 +1,7 @@
 import { Card, SectionTitle } from "@/components/ui";
 import { Amt } from "@/components/privacy";
 import { fmtMoney, fmtPct } from "@/lib/calc";
-import type { RiskView, AccountThetaView, BlendedRiskView } from "@/lib/types";
+import type { RiskView, AccountThetaView, BlendedRiskView, SectorBucket } from "@/lib/types";
 
 const STATUS_STYLE: Record<RiskView["thetaStatus"], { label: string; chip: string }> = {
   below_target: { label: "Below target", chip: "bg-sky-500/15 text-sky-300 ring-sky-500/30" },
@@ -83,34 +83,53 @@ function ThetaGauge({ risk }: { risk: ThetaGaugeInput }) {
   );
 }
 
-function SectorBars({ risk, portfolioValue }: { risk: RiskView; portfolioValue: number }) {
-  const sectors = Object.entries(risk.sectorValues).sort((a, b) => b[1] - a[1]);
+// Sector bars, ported back from upstream Trading_Dashboard_App's
+// components/PortfolioRiskView.tsx (which itself started from this file's
+// flat version): each bar carries its tickers for the drill-in line, and
+// `over`/the cap both come from the data bridge (RULE-011) — never a
+// literal here. Exported so the Home card can reuse it compact.
+function tickerList(b: SectorBucket): string {
+  const names = b.tickers.map((t) => t.symbol);
+  return names.length > 6 ? `${names.slice(0, 6).join(" · ")} +${names.length - 6}` : names.join(" · ");
+}
+
+export function SectorBars({ sectors, maxAllocationPct, compact = false }: { sectors: SectorBucket[]; maxAllocationPct: number; compact?: boolean }) {
   if (sectors.length === 0) {
     return <p className="text-[11px] text-muted">No sector exposure from current positions.</p>;
   }
+  const hasUnclassified = sectors.some((b) => b.unclassified);
   return (
     <div className="space-y-2">
-      {sectors.map(([sector, value]) => {
-        const pct = portfolioValue > 0 ? value / portfolioValue : 0;
-        const over = pct > risk.maxSectorAllocationPct;
+      {sectors.map((b) => {
+        const tone = b.over ? "text-rose-300" : b.unclassified ? "text-amber-300" : "text-text";
         return (
-          <div key={sector}>
-            <div className="flex items-center justify-between text-[11px]">
-              <span className={over ? "font-semibold text-rose-300" : "text-text"}>{sector}</span>
-              <span className={`tabular ${over ? "font-semibold text-rose-300" : "text-muted"}`}>
-                <Amt>{fmtMoney(value)}</Amt> · {(pct * 100).toFixed(1)}%
+          <div key={b.sector}>
+            <div className="flex items-center justify-between gap-2 text-[11px]">
+              <span className={`min-w-0 truncate ${tone} ${b.over ? "font-semibold" : ""}`}>{b.sector}</span>
+              <span className={`tabular shrink-0 ${b.over ? "font-semibold text-rose-300" : "text-muted"}`}>
+                <Amt>{fmtMoney(b.value)}</Amt> · {(b.pct * 100).toFixed(1)}%
               </span>
             </div>
             <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
               <div
-                className={`h-full rounded-full ${over ? "bg-rose-400" : "bg-sky-400"}`}
-                style={{ width: `${Math.min(100, pct * 100)}%` }}
+                className={`h-full rounded-full ${b.over ? "bg-rose-400" : b.unclassified ? "bg-amber-400/70" : "bg-sky-400"}`}
+                style={{ width: `${Math.min(100, b.pct * 100)}%` }}
               />
             </div>
+            {!compact && <div className="mt-0.5 truncate text-[10px] text-muted">{tickerList(b)}</div>}
           </div>
         );
       })}
-      <p className="pt-1 text-[10px] text-muted">Sector cap: {(risk.maxSectorAllocationPct * 100).toFixed(0)}% per sector</p>
+      <p className="pt-1 text-[10px] text-muted">
+        Sector cap: {(maxAllocationPct * 100).toFixed(0)}% of portfolio value per sector, judged across every account.
+        Capital counts stock value and CSP collateral at strike basis; money-market sweep funds are cash, not a position.
+      </p>
+      {hasUnclassified && !compact && (
+        <p className="text-[10px] text-amber-300/80">
+          Unclassified is capital in names with no sector on the wheel watchlist — mostly broad index funds. It is never
+          judged against the cap.
+        </p>
+      )}
     </div>
   );
 }
@@ -175,15 +194,7 @@ function BetaGauge({ blended }: { blended: BlendedRiskView }) {
   );
 }
 
-export function PortfolioRiskView({
-  overall,
-  perAccount,
-  blended,
-}: {
-  overall: RiskView;
-  perAccount: AccountThetaView[];
-  blended: BlendedRiskView;
-}) {
+export function PortfolioRiskView({ perAccount, blended }: { perAccount: AccountThetaView[]; blended: BlendedRiskView }) {
   return (
     <div>
       <SectionTitle>Overall portfolio</SectionTitle>
@@ -195,14 +206,13 @@ export function PortfolioRiskView({
         <BetaGauge blended={blended} />
         <OpenPnLRow openPnL={blended.openPnL} openPnLPct={blended.openPnLPct} status={blended.openPnLStatus} floorPct={blended.openPnLMinPct} />
         <div className="mt-3 border-t border-border pt-3">
-          <SectorBars risk={overall} portfolioValue={overall.portfolioValue} />
+          <SectorBars sectors={blended.sectors} maxAllocationPct={blended.maxSectorAllocationPct} />
         </div>
         <p className="mt-3 text-[10px] leading-relaxed text-muted">
-          Theta, beta &amp; open P&amp;L above are whole-account (Schwab + SnapTrade + E*TRADE combined) —
-          informational only. The theta reading that actually gates a new suggestion is computed Schwab-only
-          (accounts here are mostly tax/custodial wrappers, not independent risk pools). Sector exposure has no
-          blended equivalent: the other accounts&apos; own holdings are mostly broad index funds with no one
-          meaningful sector to attribute, so it reads Schwab-only too.
+          Everything above is whole-account (Schwab + SnapTrade + E*TRADE combined). Sector concentration is the
+          same blended reading that gates a new suggestion; theta, beta &amp; open P&amp;L here are informational —
+          the theta reading that actually gates is computed Schwab-only (accounts here are mostly tax/custodial
+          wrappers, not independent risk pools).
         </p>
       </Card>
 

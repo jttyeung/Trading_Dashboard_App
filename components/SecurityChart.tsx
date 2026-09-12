@@ -2,12 +2,12 @@
 
 // On-demand 2-year daily chart: candles + Bollinger Bands + 50/200-day SMA
 // overlaid on the main pane (with golden/death cross markers where the two
-// SMAs cross), call/put-wall + gamma-flip reference lines, and MACD/RSI in
-// their own panes underneath. Talks to internal/chartapi's localhost-only
-// API (see lib/chart-api.ts) -- computed fresh per search rather than
-// pre-built for the whole watchlist, since most of the ~70+ watchlist
-// names won't be looked at in a given session (see CLAUDE.md's
-// "on-demand security chart" entry).
+// SMAs cross), call/put-wall + gamma-flip reference lines for held names, and
+// MACD/RSI in their own panes underneath. Data comes from this app's own
+// /api/chart route (see lib/chart-api.ts), computed fresh per search.
+//
+// Ported from jttyeung's fork (components/desktop/SecurityChart.tsx on her
+// staging branch); the example-mode branch moved server-side into the route.
 import { useEffect, useRef, useState, useMemo } from "react";
 import {
   createChart,
@@ -23,35 +23,32 @@ import {
 } from "lightweight-charts";
 import { Card } from "@/components/ui";
 import { fetchChart, type ChartData } from "@/lib/chart-api";
-import { exampleChartData } from "@/lib/example";
 
 const UP_COLOR = "#34d399";
 const DOWN_COLOR = "#f87171";
-// A distinct green from UP_COLOR -- Call Wall used to share the exact same
+// A distinct green from UP_COLOR — Call Wall used to share the exact same
 // shade as up-candles/the Last Close line, which read as "one thing," not
-// three. Teal reads as clearly green (still "the bullish-ish side") without
-// being visually interchangeable with them.
+// three. Teal reads as clearly green without being interchangeable with them.
 const CALL_WALL_COLOR = "#0d9488";
 const BAND_COLOR = "#60a5fa";
 const SMA50_COLOR = "#c084fc";
 const SMA200_COLOR = "#f59e0b";
 const MACD_LINE_COLOR = "#60a5fa";
-// Light gray, not orange -- orange was also SMA200's color one pane up,
-// and (per the account holder's own ask) too close in weight to the blue
-// MACD line to tell at a glance which one crosses which.
+// Light gray, not orange — orange is also SMA200's color one pane up.
 const MACD_SIGNAL_COLOR = "#9ca3af";
 const RSI_COLOR = "#a78bfa";
+const CHART_HEIGHT = 720; // total across the three panes; split 5:3:2 below
 
 function toTime(dateStr: string): UTCTimestamp {
-  // lightweight-charts wants a UTC seconds timestamp for a daily bar --
+  // lightweight-charts wants a UTC seconds timestamp for a daily bar —
   // parsing as UTC midnight (not local) avoids an off-by-one-day shift
   // for anyone west of UTC.
   return (Date.parse(dateStr + "T00:00:00Z") / 1000) as UTCTimestamp;
 }
 
-export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[]; exampleMode: boolean }) {
-  const [symbolInput, setSymbolInput] = useState("");
-  const [activeSymbol, setActiveSymbol] = useState<string | null>(null);
+export function SecurityChart({ watchlist, initialSymbol }: { watchlist: string[]; initialSymbol?: string }) {
+  const [symbolInput, setSymbolInput] = useState(initialSymbol ?? "");
+  const [activeSymbol, setActiveSymbol] = useState<string | null>(initialSymbol ?? null);
   const [data, setData] = useState<ChartData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -66,20 +63,14 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
     setSymbolInput(s);
   }
 
+  // A deep link that changes while this page is already mounted (the hold-a-
+  // ticker gesture used from the chart page itself) re-runs the search.
+  useEffect(() => {
+    if (initialSymbol) search(initialSymbol);
+  }, [initialSymbol]);
+
   useEffect(() => {
     if (!activeSymbol) return;
-    // A demo deployment can't reach internal/chartapi's localhost API at
-    // all (it's the VIEWER's own localhost, not the app author's machine)
-    // -- rather than let every search fail with a fetch error, demo mode
-    // renders a fake-but-internally-consistent chart instead, same
-    // "complete, non-empty demo experience" convention every other
-    // data/*.json-backed screen already follows (see SECURITY.md).
-    if (exampleMode) {
-      setLoading(false);
-      setError(null);
-      setData(exampleChartData(activeSymbol));
-      return;
-    }
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -96,7 +87,7 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
     return () => {
       cancelled = true;
     };
-  }, [activeSymbol, exampleMode]);
+  }, [activeSymbol]);
 
   useEffect(() => {
     if (!data || !containerRef.current) return;
@@ -106,25 +97,18 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
       grid: { vertLines: { color: "#27272a" }, horzLines: { color: "#27272a" } },
       rightPriceScale: { borderColor: "#3f3f46" },
       timeScale: { borderColor: "#3f3f46", timeVisible: false },
-      // Default is CrosshairMode.Magnet, which snaps the horizontal line
-      // to each bar's close price instead of tracking the actual cursor
-      // position -- read by the account holder as the crosshair "not
-      // moving smoothly." Normal lets both lines follow the mouse
-      // continuously.
+      // Magnet mode snaps the horizontal line to each bar's close instead of
+      // tracking the cursor; Normal lets both lines follow the pointer.
       crosshair: { mode: CrosshairMode.Normal },
-      // Total height across all three panes combined -- the container div
-      // has no CSS height of its own, and lightweight-charts sizes off this
-      // value at creation time; leaving it unset (or too small) collapses
-      // the container to zero/near-zero height. The panes' own relative
-      // split below (setStretchFactor) divides this total, so it's this
-      // number alone that controls how tall the whole chart actually is.
-      height: 720,
+      // The container div has no CSS height of its own; lightweight-charts
+      // sizes off this at creation time and the panes split it below.
+      height: CHART_HEIGHT,
     });
     chartRef.current = chart;
 
     const times = data.dates.map(toTime);
 
-    // --- Pane 0: candles + Bollinger Bands + 200-day SMA + wall lines ---
+    // --- Pane 0: candles + Bollinger Bands + SMAs + wall lines ---
     const candleSeries = chart.addSeries(CandlestickSeries, {
       upColor: UP_COLOR,
       downColor: DOWN_COLOR,
@@ -187,11 +171,8 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
     );
 
     // Golden cross (50-day SMA crossing above the 200-day) / death cross
-    // (crossing below) -- every occurrence in the 2-year window, not just
-    // the latest, mirroring quant/indicators.py's detect_all_crosses.
-    // Placed on the candle series (not either SMA line) so the marker sits
-    // relative to real price action, which is what the crossover is meant
-    // to say something about.
+    // (crossing below) — every occurrence in the window. Placed on the candle
+    // series so the marker sits relative to real price action.
     const crossMarkers: SeriesMarker<UTCTimestamp>[] = data.crosses.map((c) => ({
       time: toTime(c.date),
       position: c.type === "golden" ? "belowBar" : "aboveBar",
@@ -255,15 +236,8 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
     rsiSeries.createPriceLine({ price: 70, color: "#52525b", lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: "70" });
     rsiSeries.createPriceLine({ price: 30, color: "#52525b", lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: "30" });
 
-    // lightweight-charts v5 sizes panes by RELATIVE stretch factor, not a
-    // persistent pixel height -- setHeight() exists but only converts to an
-    // equivalent stretch factor at that exact moment, which then gets
-    // recomputed (and effectively discarded) as later series/panes are
-    // still being added, confirmed live: calling setHeight() here, even
-    // repeatedly across animation frames, never stuck, while
-    // setStretchFactor() does. 5:3:2 (main:MACD:RSI) makes MACD noticeably
-    // taller than RSI, per the account holder's own ask (MACD was hard to
-    // read at the original, roughly-equal 360:140:140 mix).
+    // lightweight-charts v5 sizes panes by relative stretch factor; 5:3:2
+    // (main:MACD:RSI) keeps MACD readable.
     const panes = chart.panes();
     if (panes[0]) panes[0].setStretchFactor(5);
     if (panes[1]) panes[1].setStretchFactor(3);
@@ -285,13 +259,15 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
   }, [data]);
 
   // Nothing until at least one character is typed, then at most a handful of
-  // prefix matches -- enough to save typing without the dropdown swallowing
+  // prefix matches — enough to save typing without the dropdown swallowing
   // the screen on a phone.
   const suggestions = useMemo(() => {
     const q = symbolInput.trim().toUpperCase();
     if (!q) return [];
     return watchlist.filter((t) => t.startsWith(q) && t !== q).slice(0, 6);
   }, [watchlist, symbolInput]);
+
+  const lastUp = data ? data.close[data.close.length - 1] >= data.open[data.open.length - 1] : true;
 
   return (
     <div>
@@ -302,6 +278,9 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
           onKeyDown={(e) => e.key === "Enter" && search(symbolInput)}
           placeholder="Search any ticker (e.g. GLW)"
           list="chart-watchlist-suggestions"
+          autoCapitalize="characters"
+          autoCorrect="off"
+          spellCheck={false}
           className="w-48 rounded-md bg-surface-2 px-3 py-1.5 text-sm ring-1 ring-inset ring-border placeholder:text-muted"
         />
         <datalist id="chart-watchlist-suggestions">
@@ -328,7 +307,7 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
             </span>
             <span className="tabular shrink-0">${data.spotPrice.toFixed(2)}</span>
           </div>
-          <div className="mb-1 flex items-center gap-3 px-2 text-xs text-muted">
+          <div className="mb-1 flex flex-wrap items-center gap-3 px-2 text-xs text-muted">
             <span className="flex items-center gap-1">
               <span className="inline-block h-0.5 w-3" style={{ backgroundColor: SMA50_COLOR }} />
               SMA 50
@@ -338,15 +317,16 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
               SMA 200
             </span>
             <span className="flex items-center gap-1">
-              <span
-                className="inline-block h-0.5 w-3"
-                style={{
-                  backgroundColor:
-                    data.close[data.close.length - 1] >= data.open[data.open.length - 1] ? UP_COLOR : DOWN_COLOR,
-                }}
-              />
+              <span className="inline-block h-0.5 w-3" style={{ backgroundColor: BAND_COLOR }} />
+              Bollinger 20
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-0.5 w-3" style={{ backgroundColor: lastUp ? UP_COLOR : DOWN_COLOR }} />
               Last Close
             </span>
+            {data.callWall == null && data.putWall == null && (
+              <span className="text-[10px]">walls appear for held names (≥100 sh)</span>
+            )}
           </div>
           <div ref={containerRef} />
         </Card>
@@ -355,7 +335,7 @@ export function SecurityChart({ watchlist, exampleMode }: { watchlist: string[];
       {!data && !loading && !error && (
         <Card className="mt-1 px-4 py-8 text-center text-sm text-muted">
           Search a ticker above for a 2-year daily chart with Bollinger Bands, MACD, RSI, 50/200-day SMA with
-          golden/death cross markers, and today's call/put walls.
+          golden/death cross markers, and call/put walls for names you hold.
         </Card>
       )}
     </div>
