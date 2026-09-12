@@ -1,0 +1,16 @@
+# Files `vercel deploy` must never upload from a local checkout.
+#
+# Vercel CLI does not apply .gitignore the way git does: `/data/*` with a
+# `!/data/.gitkeep` re-include let the whole real data/ folder (account
+# snapshots, P&L, bot trades) ride along as deployment source on every
+# previous deploy. Confirmed via the deployment files API, not assumed.
+# A demo build never renders it (NEXT_PUBLIC_DEMO_MODE pins the fixtures),
+# but real account data has no business sitting on a third-party host at
+# all -- see SECURITY.md. Plain directory patterns, no negation, on
+# purpose.
+data/
+.env*
+!.env.docker.example
+.next/
+node_modules/
+.vercel/
