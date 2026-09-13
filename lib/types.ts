@@ -733,6 +733,10 @@ export interface MatchedSuggestion {
   closeDate: string;
   realizedPnl: number;
   closeReason: string;
+  // Other strategies the same contract was suggested under (a strangle's
+  // put leg shares a CSP's OCC symbol; CSP/CSP_SAFE overlap in delta).
+  // One real trade is one row; these are the attributions it didn't get.
+  alsoSuggestedAs?: string[];
 }
 
 export interface SuggestionPerformanceFile {
