@@ -1,17 +1,19 @@
 "use client";
 
-// Phase 1 of the paper-bot feedback-loop plan: real trades (broker-
-// confirmed, matched suggestion_history) and paper trades (both bots'
-// own resolved simulated outcomes — a much bigger sample, simplified
-// P&L) unioned into one comparison, so "does the paper bots' bigger
-// sample agree with the smaller real-trade sample" is answerable on one
-// screen. Real/Paper summary stats sit side by side always; the Origin
-// toggle below controls which set the strategy -> delta-bucket
-// drill-down reflects. Aggregation happens entirely client-side, same
-// convention as PnlView.tsx's own "By strategy"/"By ticker" breakdowns
-// — this view reuses that file's own DivergingBar rather than a second
-// copy of it. A mirror for spotting patterns; nothing here feeds back
-// into what the app suggests.
+// Outcomes by strategy, with a delta-bucket drill-down, for ONE origin
+// at a time: the account holder's real trades (broker-confirmed, matched
+// from suggestion_history) on the desktop "My Trades" tab, or the paper
+// bots' own resolved picks on the "Bot Scorecard" tab. These used to
+// share one view with an All/Real/Paper toggle (Phase 1 of the paper-bot
+// feedback-loop plan, "does the bigger paper sample agree with the real
+// one"); split per the account holder's own call — "I want my trade
+// scorecard to be separate from the bots" — since they answer different
+// questions and the union kept reading as one track record.
+// Aggregation happens entirely client-side, same convention as
+// PnlView.tsx's own "By strategy"/"By ticker" breakdowns — this view
+// reuses that file's own DivergingBar rather than a second copy of it. A
+// mirror for spotting patterns; nothing here feeds back into what the
+// app suggests.
 import { useMemo, useState } from "react";
 import { Card, SectionTitle, Stat } from "@/components/ui";
 import { Amt } from "@/components/privacy";
@@ -20,8 +22,6 @@ import { DivergingBar } from "@/components/PnlView";
 import type { PerformanceRow } from "@/lib/types";
 
 const signed = (n: number) => `${n >= 0 ? "+" : "−"}${fmtMoney(Math.abs(n))}`;
-
-type Origin = "all" | "real" | "paper";
 
 interface Agg {
   key: string;
@@ -130,23 +130,34 @@ function StrategyRow({ agg, rows, maxAbsStrategy }: { agg: Agg; rows: Performanc
   );
 }
 
-export function ScorecardView({ rows, totalSuggestions }: { rows: PerformanceRow[]; totalSuggestions: number }) {
-  const [origin, setOrigin] = useState<Origin>("all");
-
-  const real = useMemo(() => rows.filter((r) => r.origin === "real"), [rows]);
-  const paper = useMemo(() => rows.filter((r) => r.origin === "paper"), [rows]);
-  const realSummary = useMemo(() => summarize(real), [real]);
-  const paperSummary = useMemo(() => summarize(paper), [paper]);
-
-  const filtered = origin === "all" ? rows : origin === "real" ? real : paper;
-  const byStrategy = useMemo(() => aggregate(filtered, (m) => m.strategy, (k) => k), [filtered]);
+export function ScorecardView({
+  rows,
+  origin,
+  totalSuggestions,
+}: {
+  rows: PerformanceRow[];
+  origin: "real" | "paper";
+  // totalSuggestions is context for the real view only ("how small a
+  // slice of everything ever suggested this is").
+  totalSuggestions?: number;
+}) {
+  const mine = useMemo(() => rows.filter((r) => r.origin === origin), [rows, origin]);
+  const summary = useMemo(() => summarize(mine), [mine]);
+  const byStrategy = useMemo(() => aggregate(mine, (m) => m.strategy, (k) => k), [mine]);
   const maxAbsStrategy = byStrategy.reduce((m, b) => Math.max(m, Math.abs(b.pnl)), 0);
 
-  if (rows.length === 0) {
+  if (mine.length === 0) {
     return (
       <Card className="mt-3 px-4 py-6 text-center text-sm text-muted">
-        No resolved trades yet — real or paper — {totalSuggestions} suggestion{totalSuggestions === 1 ? "" : "s"} logged
-        so far. This fills in as a suggested trade closes (real) or a paper-bot candidate resolves.
+        {origin === "real" ? (
+          <>
+            No suggested trade has closed yet
+            {totalSuggestions != null ? ` — ${totalSuggestions} suggestion${totalSuggestions === 1 ? "" : "s"} logged so far` : ""}.
+            This fills in when a contract the app suggested shows up in your realized trades.
+          </>
+        ) : (
+          <>No paper-bot pick has resolved yet. This fills in as picks reach expiration.</>
+        )}
       </Card>
     );
   }
@@ -155,52 +166,29 @@ export function ScorecardView({ rows, totalSuggestions }: { rows: PerformanceRow
     <div>
       <div className="mt-3 grid grid-cols-2 gap-2">
         <Stat
-          label="Real trades"
-          value={realSummary.count}
-          tone={realSummary.count > 0 ? (realSummary.pnl >= 0 ? "pos" : "neg") : "default"}
-          sub={realSummary.count > 0 ? `${realSummary.winRate}% win · ${signed(realSummary.pnl)}` : "none yet"}
+          label={origin === "real" ? "Closed trades" : "Resolved picks"}
+          value={summary.count}
+          tone={summary.pnl >= 0 ? "pos" : "neg"}
+          sub={`${summary.winRate}% win · ${signed(summary.pnl)}`}
         />
-        <Stat
-          label="Paper trades"
-          value={paperSummary.count}
-          tone={paperSummary.count > 0 ? (paperSummary.pnl >= 0 ? "pos" : "neg") : "default"}
-          sub={paperSummary.count > 0 ? `${paperSummary.winRate}% win · ${signed(paperSummary.pnl)}` : "none yet"}
-        />
+        {origin === "real" && totalSuggestions != null ? (
+          <Stat label="Suggestions logged" value={totalSuggestions} sub="ever, taken or not" />
+        ) : (
+          <Stat label="Profitable" value={summary.wins} sub={`of ${summary.count}`} tone={summary.wins === summary.count ? "pos" : "default"} />
+        )}
       </div>
 
-      <div className="mt-3 flex items-center gap-1.5 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
-        Show
-        <div className="flex overflow-hidden rounded-lg border border-border">
-          {(["all", "real", "paper"] as Origin[]).map((o) => (
-            <button
-              key={o}
-              onClick={() => setOrigin(o)}
-              className={`px-2.5 py-1 text-xs font-medium capitalize ${
-                origin === o ? "bg-surface-2 text-text" : "bg-transparent text-muted"
-              }`}
-            >
-              {o}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <SectionTitle>By strategy{origin !== "all" ? ` (${origin})` : ""}</SectionTitle>
-      {byStrategy.length === 0 ? (
-        <Card className="px-4 py-6 text-center text-sm text-muted">No {origin} trades yet.</Card>
-      ) : (
-        <Card className="divide-y divide-border">
-          {byStrategy.map((agg) => (
-            <StrategyRow key={agg.key} agg={agg} rows={filtered} maxAbsStrategy={maxAbsStrategy} />
-          ))}
-        </Card>
-      )}
+      <SectionTitle>By strategy</SectionTitle>
+      <Card className="divide-y divide-border">
+        {byStrategy.map((agg) => (
+          <StrategyRow key={agg.key} agg={agg} rows={mine} maxAbsStrategy={maxAbsStrategy} />
+        ))}
+      </Card>
 
       <p className="mt-3 px-1 text-[11px] leading-relaxed text-muted">
-        Real trades are broker-confirmed and actually taken. Paper trades are the wheel bots&apos; own simulated
-        outcomes — a much bigger sample, but a simplified P&L (no rolls or partial closes). A mirror for spotting your
-        own patterns and checking whether the bigger paper sample agrees with the smaller real one; nothing here
-        changes what the app suggests.
+        {origin === "real"
+          ? "Broker-confirmed trades that matched a contract the app suggested — one row per traded contract, under the single-leg strategy that suggested it most. A mirror for spotting your own patterns; nothing here changes what the app suggests."
+          : "The paper bots' own simulated outcomes — a much bigger sample than your real trades, but a simplified P&L (no rolls or partial closes). Win means the pick expired worthless or closed profitable."}
       </p>
     </div>
   );
