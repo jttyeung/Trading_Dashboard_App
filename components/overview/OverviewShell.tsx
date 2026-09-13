@@ -11,10 +11,10 @@ import { SecurityChart } from "@/components/SecurityChart";
 import { WatchlistBoard } from "@/components/desktop/WatchlistBoard";
 import { SchwabReconnect } from "@/components/desktop/SchwabReconnect";
 import { ETradeReconnect } from "@/components/desktop/ETradeReconnect";
-import { ScorecardDesktop } from "@/components/desktop/ScorecardDesktop";
+import { MyTradesScorecard, BotScorecard } from "@/components/desktop/ScorecardDesktop";
 import type { PerformanceRow, ScoreFactorsFile } from "@/lib/types";
 
-type Tab = "desktop" | "bot-safe" | "bot" | "bot-aggressive" | "scorecard" | "calculator" | "chart" | "watchlist" | "connections";
+type Tab = "desktop" | "trades" | "bot-safe" | "bot" | "bot-aggressive" | "scorecard" | "calculator" | "chart" | "watchlist" | "connections";
 
 // Order: Desktop, 20 Delta Safe, Wheel Bot, Aggressive Bot, Watchlist,
 // Chart — Watchlist moved just above Chart per the account holder's own
@@ -28,6 +28,20 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="4" width="18" height="16" rx="2" />
         <path d="M3 9h18M9 9v11" />
+      </svg>
+    ),
+  },
+  {
+    // My Trades sits right after Positions: it's the account holder's OWN
+    // track record (broker-confirmed trades that matched a suggestion),
+    // kept apart from the bot tabs and their scorecard below.
+    key: "trades",
+    label: "My Trades",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4 21a8 8 0 0 1 16 0" />
+        <path d="M15 12l2 2 4-4" />
       </svg>
     ),
   },
@@ -60,11 +74,12 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
     ),
   },
   {
-    // Scorecard sits right after the three bot tabs: it grades those
-    // tables' own picks (real vs paper by strategy, and which score
-    // factors correlated with a better outcome).
+    // Bot Scorecard sits right after the three bot tabs: it grades those
+    // tables' own picks (by strategy, and which score factors correlated
+    // with a better outcome). Bots only — the account holder's own
+    // trades are the My Trades tab above.
     key: "scorecard",
-    label: "Scorecard",
+    label: "Bot Scorecard",
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
         <rect x="4" y="3" width="16" height="18" rx="2" />
@@ -107,7 +122,7 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
 
 const TAB_KEY = "overviewActiveTab";
 
-const ALL_TABS: Tab[] = ["desktop", "bot", "bot-safe", "bot-aggressive", "scorecard", "calculator", "chart", "watchlist", "connections"];
+const ALL_TABS: Tab[] = ["desktop", "trades", "bot", "bot-safe", "bot-aggressive", "scorecard", "calculator", "chart", "watchlist", "connections"];
 
 // loadTab: a ?tab= query param wins (a bookmarkable deep link to one tab),
 // else the last tab used on this device.
@@ -122,6 +137,7 @@ function loadTab(): Tab {
     const raw = localStorage.getItem(TAB_KEY);
     if (
       raw === "desktop" ||
+      raw === "trades" ||
       raw === "bot" ||
       raw === "bot-safe" ||
       raw === "bot-aggressive" ||
@@ -148,10 +164,14 @@ const HEADINGS: Record<Tab, { title: string; subtitle: string }> = {
     title: "20 Delta Safe Moves",
     subtitle: "A conservative 0.10–0.20 delta CSP band, biased toward near-zero assignment odds.",
   },
+  trades: {
+    title: "My Trades",
+    subtitle: "Your broker-confirmed trades that matched a suggestion — outcomes by strategy and delta. Yours only; the bots' paper track record is under Bot Scorecard.",
+  },
   scorecard: {
-    title: "Scorecard",
+    title: "Bot Scorecard",
     subtitle:
-      "Real vs paper outcomes by strategy, and — for every factor in the bots' own score — whether picks that earned it did better, with the correlation replayed as the sample grew. A mirror; nothing here re-weights the bots.",
+      "The paper bots' resolved picks by strategy, and — for every factor in their score — whether picks that earned it did better, with the correlation replayed as the sample grew. A mirror; nothing here re-weights the bots.",
   },
   calculator: {
     title: "Return Calculator",
@@ -312,7 +332,8 @@ export function OverviewShell({
         {tab === "bot-aggressive" && (
           <BotTable trades={aggressiveBot.trades} myGrade={aggressiveBot.myGrade} storageKey="aggressive" exampleMode={exampleMode} />
         )}
-        {tab === "scorecard" && <ScorecardDesktop rows={scoreRows} totalSuggestions={totalSuggestions} scoreFactors={scoreFactors} />}
+        {tab === "trades" && <MyTradesScorecard rows={scoreRows} totalSuggestions={totalSuggestions} />}
+        {tab === "scorecard" && <BotScorecard rows={scoreRows} scoreFactors={scoreFactors} />}
         {/* Always mounted (just hidden), unlike the other four tabs above --
             this panel does its own live fetch plus in-flight add/remove
             state that a conditional mount/unmount would otherwise discard
