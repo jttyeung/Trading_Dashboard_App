@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Card, PageHeader } from "@/components/ui";
 import { ShowAmounts } from "@/components/privacy";
 import { AccountSwitcher } from "@/components/AccountSwitcher";
@@ -125,15 +124,16 @@ export default async function PnlPage() {
         <ManualStockEntry sales={manualSales} />
         <PnlView realized={realized} open={open} capitalHistory={capitalHistory} />
 
-        <Link href="/scorecard" className="mt-3 block active:opacity-80">
-          <Card className="flex items-center justify-between gap-3 bg-amber-500/5 px-4 py-3 ring-1 ring-inset ring-amber-500/25">
-            <div className="min-w-0">
-              <div className="text-sm font-semibold text-amber-200">Suggestion scorecard</div>
-              <div className="text-[11px] text-muted">Win rate &amp; P&amp;L by strategy for suggestions you traded</div>
-            </div>
-            <span className="shrink-0 text-sm font-medium text-amber-300">View ›</span>
-          </Card>
-        </Link>
+        {/* The suggestion scorecard (real vs paper by strategy, and which
+            score factors correlated with a better outcome) lives on the
+            desktop /overview Scorecard tab only — the phone page it used
+            to link to was a strict subset of that tab, removed so there's
+            one place for that read. A pointer rather than nothing, so the
+            path to it isn't lost from where it used to start. */}
+        <Card className="mt-3 px-4 py-3 text-[11px] text-muted">
+          <span className="font-medium text-text">Suggestion scorecard</span> — win rate &amp; P&amp;L by strategy, and
+          which score factors are earning their place — is on the desktop Scorecard tab.
+        </Card>
       </ShowAmounts>
     </main>
   );
