@@ -1,6 +1,7 @@
 "use client";
 
-// Score-factor scorecard: for each term in the paper bots' own score
+// Score-factor scorecard (the desktop /overview Scorecard tab): for each
+// term in the paper bots' own score
 // breakdown, did the trades that EARNED it do better than the ones that
 // didn't — and how has that read moved as the sample grew? Given
 // directly by the account holder when RULE-022 (VRP / IV-rank points)
@@ -97,47 +98,7 @@ function CorrelationSparkline({ series }: { series: CorrelationPoint[] }) {
   );
 }
 
-function FactorRow({ f, minSample }: { f: FactorStat; minSample: number }) {
-  const tone = rTone(f.correlation);
-  const splitWord = f.split === "median" ? "above median" : "earned";
-  return (
-    <div className="px-3 py-2 text-xs">
-      <div className="flex items-baseline justify-between gap-2">
-        <div className="min-w-0">
-          <span className="font-medium text-text">{f.label}</span>
-          <span className="ml-1.5 text-[10px] text-muted">
-            {f.nWith}/{f.n} {splitWord}
-          </span>
-        </div>
-        <div className={`shrink-0 tabular ${tone.className}`}>
-          <span className="text-sm font-semibold">{f.correlation == null ? "—" : `r ${f.correlation.toFixed(2)}`}</span>
-          <span className="ml-1 text-[10px]">
-            {f.correlation != null
-              ? tone.word
-              : f.n < minSample
-                ? `building (${f.n}/${minSample})`
-                : f.nWith === 0
-                  ? "never earned"
-                  : "no variance"}
-          </span>
-        </div>
-      </div>
-      <div className="mt-0.5 flex flex-wrap gap-x-3 tabular text-[11px] text-muted">
-        <span>
-          win <span className="text-text">{pct(f.winRateWith)}</span> vs {pct(f.winRateWithout)}
-        </span>
-        <span>
-          return <span className="text-text">{ret(f.avgReturnWith)}</span> vs {ret(f.avgReturnWithout)}
-        </span>
-      </div>
-      <CorrelationSparkline series={f.series} />
-    </div>
-  );
-}
-
-// FactorTableRow — the same numbers as FactorRow, one row per factor for
-// the desktop Scorecard tab, where there's width for the sparkline to sit
-// beside the numbers instead of under them.
+// FactorTableRow — one row per factor, the sparkline beside its numbers.
 function FactorTableRow({ f, minSample }: { f: FactorStat; minSample: number }) {
   const tone = rTone(f.correlation);
   const splitWord = f.split === "median" ? "above median" : "earned";
@@ -196,10 +157,7 @@ function BucketBars({ title, buckets, empty }: { title: string; buckets: BucketS
   );
 }
 
-// variant: "phone" stacks each factor (the /scorecard page inside the
-// phone frame); "desktop" lays them out as a table for the /overview
-// Scorecard tab. Same data, same verdict logic, just the geometry.
-export function FactorScorecard({ file, variant = "phone" }: { file: ScoreFactorsFile; variant?: "phone" | "desktop" }) {
+export function FactorScorecard({ file }: { file: ScoreFactorsFile }) {
   const [bot, setBot] = useState<FactorGroup["bot"]>("all");
   const group = file.groups.find((g) => g.bot === bot) ?? file.groups[0];
 
@@ -243,7 +201,7 @@ export function FactorScorecard({ file, variant = "phone" }: { file: ScoreFactor
         </div>
         {shown.length === 0 ? (
           <div className="px-3 py-4 text-xs text-muted">No resolved picks for this bot yet.</div>
-        ) : variant === "desktop" ? (
+        ) : (
           <table className="w-full border-collapse text-xs">
             <thead>
               <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted">
@@ -260,12 +218,6 @@ export function FactorScorecard({ file, variant = "phone" }: { file: ScoreFactor
               ))}
             </tbody>
           </table>
-        ) : (
-          <div className="divide-y divide-border">
-            {shown.map((f) => (
-              <FactorRow key={f.key} f={f} minSample={file.meta.minSample} />
-            ))}
-          </div>
         )}
       </Card>
 
