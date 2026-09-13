@@ -816,3 +816,54 @@ export interface BenchmarkFile {
   actualToday: number;
   actualDailyReturns: ActualDailyReturn[];
 }
+
+// ---------------------------------------------------------------------------
+// Score-factor scorecard (data/score-factors.json) — for every term in the
+// paper bots' own score breakdown, did the trades that EARNED it do better
+// than the ones that didn't? Computed server-side in OptionsEvaluator's
+// internal/export/score_factors.go (one tested definition of the split and
+// the correlation, unlike the group-bys above that happen client-side)
+// because a Pearson r with a sample floor and a cumulative series is more
+// than a group-by. A mirror only; nothing here changes a weight.
+// ---------------------------------------------------------------------------
+export interface ScoreFactorsFile {
+  meta: { generatedAt: string; minSample: number };
+  groups: FactorGroup[];
+}
+
+export interface FactorGroup {
+  bot: "all" | "general" | "20_delta_safe" | "aggressive";
+  resolved: number; // resolved trades carrying a score breakdown
+  tracked: number; // of those, rows that also froze IV rank / VRP at post time
+  factors: FactorStat[];
+  vrpBuckets: BucketStat[];
+  ivrBuckets: BucketStat[];
+}
+
+export interface FactorStat {
+  key: string;
+  label: string;
+  split: "earned" | "median";
+  n: number;
+  nWith: number;
+  winRateWith: number | null;
+  winRateWithout: number | null;
+  avgReturnWith: number | null; // mean return % on collateral
+  avgReturnWithout: number | null;
+  correlation: number | null; // Pearson r vs return %, null below minSample or when the term never varied
+  series: CorrelationPoint[]; // r recomputed over the first k trades, k = minSample..n
+}
+
+export interface CorrelationPoint {
+  date: string;
+  n: number;
+  r: number;
+}
+
+export interface BucketStat {
+  bucket: string;
+  n: number;
+  wins: number;
+  winRate: number;
+  avgReturnPct: number;
+}

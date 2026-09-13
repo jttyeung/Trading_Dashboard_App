@@ -23,6 +23,8 @@ import type {
   SpreadCandidatesFile,
   SuggestionPerformanceFile,
   StrategyPerformanceFile,
+  ScoreFactorsFile,
+  FactorStat,
   BotSnapshot,
   BotTrade,
 } from "./types";
@@ -1135,3 +1137,62 @@ export function exampleRollAnalysis(
     recommended: mode === "target_apy" ? ordered[0] ?? null : null,
   };
 }
+
+// exampleScoreFactorsFile — demo data for the Scorecard's factor
+// section. Built from a deterministic pseudo-random walk so the
+// correlation series has a plausible shape (noisy early, settling as n
+// grows) without any real outcome data behind it. The VRP/IVR rows
+// deliberately show a positive read and the gamma-regime row a flat one,
+// so the demo shows what "earning its place" vs "dead weight" look like.
+function exampleFactor(key: string, label: string, split: "earned" | "median", n: number, nWith: number, target: number, seed: number): FactorStat {
+  const series = [];
+  let x = seed;
+  const rnd = () => {
+    x = (x * 1103515245 + 12345) % 2147483648;
+    return x / 2147483648 - 0.5;
+  };
+  for (let k = 10; k <= n; k++) {
+    // Noise shrinks as the sample grows — the actual statistical story.
+    const r = Math.max(-1, Math.min(1, target + (rnd() * 1.2) / Math.sqrt(k - 8)));
+    series.push({ date: isoDay(-(n - k) * 3), n: k, r: Math.round(r * 100) / 100 });
+  }
+  const last = series[series.length - 1]?.r ?? null;
+  return {
+    key, label, split, n, nWith,
+    winRateWith: Math.round(70 + target * 20), winRateWithout: Math.round(70 - target * 15),
+    avgReturnWith: Math.round((1.4 + target) * 100) / 100, avgReturnWithout: Math.round((1.4 - target * 0.6) * 100) / 100,
+    correlation: last, series,
+  };
+}
+
+export const exampleScoreFactorsFile: ScoreFactorsFile = {
+  meta: { generatedAt: NOW_ISO, minSample: 10 },
+  groups: [
+    {
+      bot: "all", resolved: 42, tracked: 31,
+      factors: [
+        exampleFactor("vrpBonus", "VRP (RULE-022)", "earned", 42, 18, 0.34, 7),
+        exampleFactor("ivRankBonus", "IV Rank (RULE-022)", "earned", 42, 15, 0.22, 11),
+        exampleFactor("signalsScore", "Indicator signals", "median", 42, 20, 0.12, 3),
+        exampleFactor("annualizedRorBonus", "Annualized ROR", "median", 42, 21, -0.18, 5),
+        exampleFactor("gexProximityBonus", "At the put wall", "earned", 42, 9, 0.08, 13),
+        exampleFactor("gammaRegimeBonus", "Positive gamma regime", "earned", 42, 33, 0.02, 17),
+        exampleFactor("entryTimingBonus", "Entry timing", "earned", 42, 12, 0.15, 19),
+      ],
+      vrpBuckets: [
+        { bucket: "rich", n: 11, wins: 10, winRate: 90.9, avgReturnPct: 2.1 },
+        { bucket: "fair", n: 12, wins: 9, winRate: 75, avgReturnPct: 1.3 },
+        { bucket: "thin", n: 8, wins: 5, winRate: 62.5, avgReturnPct: 0.4 },
+      ],
+      ivrBuckets: [
+        { bucket: "70+", n: 6, wins: 6, winRate: 100, avgReturnPct: 2.4 },
+        { bucket: "50-69", n: 9, wins: 7, winRate: 77.8, avgReturnPct: 1.6 },
+        { bucket: "30-49", n: 10, wins: 7, winRate: 70, avgReturnPct: 1.1 },
+        { bucket: "<30", n: 6, wins: 4, winRate: 66.7, avgReturnPct: 0.7 },
+      ],
+    },
+    { bot: "general", resolved: 18, tracked: 12, factors: [exampleFactor("vrpBonus", "VRP (RULE-022)", "earned", 18, 8, 0.3, 23)], vrpBuckets: [], ivrBuckets: [] },
+    { bot: "20_delta_safe", resolved: 9, tracked: 7, factors: [exampleFactor("vrpBonus", "VRP (RULE-022)", "earned", 9, 4, 0.1, 29)], vrpBuckets: [], ivrBuckets: [] },
+    { bot: "aggressive", resolved: 15, tracked: 12, factors: [exampleFactor("vrpBonus", "VRP (RULE-022)", "earned", 15, 6, 0.4, 31)], vrpBuckets: [], ivrBuckets: [] },
+  ],
+};
