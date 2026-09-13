@@ -28,7 +28,9 @@ built-in demo dataset, so you can explore the whole UI immediately.
   QQQ, and an open-P&L floor, all across every account. Sector buckets (with the tickers behind
   each) come from the daemon's `data/portfolio-risk.json`; sectors are the wheel watchlist
   sheet's own, so a name not on the sheet shows under "Unclassified"
-- **Scorecard** (desktop `/overview` tab) — real vs paper outcomes by strategy, plus a score-factor section
+- **My Trades** (desktop `/overview` tab) — the account holder's own broker-confirmed trades that
+  matched a suggestion, by strategy and delta bucket — kept separate from the bots
+- **Bot Scorecard** (desktop `/overview` tab) — the paper bots' resolved picks by strategy, plus a score-factor section
   (`data/score-factors.json`): for each term in the paper bots' own score (VRP, IV rank,
   indicator signals, walls, gamma, entry timing) the win rate and mean return with vs without
   it, the correlation between the term and the trade's return, and that correlation replayed
