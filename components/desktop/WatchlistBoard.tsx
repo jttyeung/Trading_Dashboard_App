@@ -2,10 +2,10 @@
 
 // Every active watchlist ticker (sheet-synced + manually added) with a
 // small visual "lever" per ticker showing where its current mark sits on
-// Bollinger Bands and RSI(14), IV Rank, a MACD momentum badge, and price
-// read against today's put/call gamma walls (replacing a plain Price
-// column -- see PriceWallsCell) -- plus the ability to add/remove
-// tickers by hand.
+// Bollinger Bands and RSI(14), IV Rank, a MACD momentum badge, a VRP
+// (IV vs blended realized vol) read, and price read against today's
+// put/call gamma walls (replacing a plain Price column -- see
+// PriceWallsCell) -- plus the ability to add/remove tickers by hand.
 // Talks to internal/watchlistapi's localhost-only API (see
 // lib/watchlist-api.ts), fully live-fetched rather than backed by a
 // static data/*.json export -- same "on demand, not pre-built" shape as
@@ -21,6 +21,7 @@ import {
   type WatchlistRow,
 } from "@/lib/watchlist-api";
 import { exampleWatchlistBoard } from "@/lib/example";
+import { VRP_STYLE } from "@/lib/am-report-types";
 
 function Lever({
   value,
@@ -162,6 +163,44 @@ function MacdBadge({ line, signal }: { line: number | null; signal: number | nul
   );
 }
 
+// VrpCell -- the IV/RV ratio with its rich/fair/thin read, styled with
+// the same tokens the Brief board uses for its own VRP column so the two
+// never disagree on what "rich" looks like. The two inputs (ATM IV and
+// the blended realized vol, both shown as vol %) live in the tooltip
+// along with the IV sample's date, since that side only moves when the
+// Brief agent logs one -- a stale date is the tell when a ticker's gate
+// contract has stopped qualifying. Deliberately a number + word rather
+// than a Lever: a ratio has no natural 0-100 bound, and "1.31 rich" is
+// what the account holder actually reads off the Brief already.
+function VrpCell({ row }: { row: WatchlistRow }) {
+  if (row.vrpRatio == null) {
+    const why =
+      row.atmIV == null && row.realizedVolBlend == null
+        ? "no IV sample or realized vol yet"
+        : row.atmIV == null
+          ? "no IV sample yet"
+          : "needs ~6 months of price history";
+    return (
+      <div className="flex flex-col gap-0.5" title={why}>
+        <span className={`text-xs ${VRP_STYLE["n/a"]}`}>n/a</span>
+        <span className="text-[9px] text-muted">{why}</span>
+      </div>
+    );
+  }
+  const pct = (v: number) => `${(v * 100).toFixed(0)}%`;
+  const tip = `IV ${pct(row.atmIV ?? 0)} (as of ${row.ivAsOf || "?"}) ÷ realized ${pct(row.realizedVolBlend ?? 0)} (20/60/120-day blend)`;
+  return (
+    <div className="flex flex-col gap-0.5" title={tip}>
+      <span className={`tabular text-xs font-medium ${VRP_STYLE[row.vrp]}`}>
+        {row.vrpRatio.toFixed(2)}× {row.vrp}
+      </span>
+      <span className="tabular text-[9px] text-muted">
+        {pct(row.atmIV ?? 0)} / {pct(row.realizedVolBlend ?? 0)}
+      </span>
+    </div>
+  );
+}
+
 // bbPosition is where currentPrice sits within [bollingerLower,
 // bollingerUpper] as a 0-1 fraction (same math the BB Lever itself uses
 // to place its marker) -- null when any of the three inputs is missing,
@@ -193,7 +232,7 @@ function compareNullable(av: number | null, bv: number | null, dir: 1 | -1): num
   return (av - bv) * dir;
 }
 
-type SortKey = "ticker" | "bb" | "walls" | "chg" | "rsi";
+type SortKey = "ticker" | "bb" | "walls" | "chg" | "rsi" | "ivr" | "vrp";
 
 function SortHeader({
   label,
@@ -253,6 +292,10 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
           return compareNullable(a.dayChangePct, b.dayChangePct, sortDir);
         case "rsi":
           return compareNullable(a.rsi14, b.rsi14, sortDir);
+        case "ivr":
+          return compareNullable(a.ivRank, b.ivRank, sortDir);
+        case "vrp":
+          return compareNullable(a.vrpRatio, b.vrpRatio, sortDir);
       }
     });
     return list;
@@ -349,7 +392,7 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
       </div>
 
       <Card className="mt-1 w-full overflow-x-auto">
-        <table className="w-full min-w-[980px] border-collapse text-sm">
+        <table className="w-full min-w-[1080px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted">
               <th className="px-3 py-2 font-medium">
@@ -369,7 +412,12 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
                 <SortHeader label="RSI" sortKeyName="rsi" active={sortKey} dir={sortDir} onClick={toggleSort} />
               </th>
               <th className="px-3 py-2 font-medium">MACD</th>
-              <th className="px-3 py-2 font-medium">IVR</th>
+              <th className="px-3 py-2 font-medium">
+                <SortHeader label="IVR" sortKeyName="ivr" active={sortKey} dir={sortDir} onClick={toggleSort} />
+              </th>
+              <th className="px-3 py-2 font-medium" title="IV ÷ blended 20/60/120-day realized vol — rich ≥1.20, thin ≤0.90">
+                <SortHeader label="VRP" sortKeyName="vrp" active={sortKey} dir={sortDir} onClick={toggleSort} />
+              </th>
               <th className="px-3 py-2" />
             </tr>
           </thead>
@@ -410,6 +458,9 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
                 <td className="px-3 py-2">
                   <Lever value={r.ivRank} min={0} max={100} label="IVR" buildingSamples={r.ivRankSamples} />
                 </td>
+                <td className="whitespace-nowrap px-3 py-2">
+                  <VrpCell row={r} />
+                </td>
                 <td className="px-3 py-2 text-right">
                   <button
                     onClick={() => handleRemove(r.ticker)}
@@ -424,7 +475,7 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
             ))}
             {!loading && rows.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-3 py-8 text-center text-sm text-muted">
+                <td colSpan={9} className="px-3 py-8 text-center text-sm text-muted">
                   No active watchlist tickers.
                 </td>
               </tr>
