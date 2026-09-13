@@ -28,6 +28,12 @@ built-in demo dataset, so you can explore the whole UI immediately.
   QQQ, and an open-P&L floor, all across every account. Sector buckets (with the tickers behind
   each) come from the daemon's `data/portfolio-risk.json`; sectors are the wheel watchlist
   sheet's own, so a name not on the sheet shows under "Unclassified"
+- **Suggestion Scorecard** — real vs paper outcomes by strategy, plus a score-factor section
+  (`data/score-factors.json`): for each term in the paper bots' own score (VRP, IV rank,
+  indicator signals, walls, gamma, entry timing) the win rate and mean return with vs without
+  it, the correlation between the term and the trade's return, and that correlation replayed
+  as the resolved sample grew — a mirror for judging whether a factor earns its place, never a
+  feedback loop into the bots
 - **Example mode** — a full, self-consistent demo dataset so the app is presentable
   without exposing (or even having) real data
 
