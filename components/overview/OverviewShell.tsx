@@ -11,8 +11,10 @@ import { SecurityChart } from "@/components/SecurityChart";
 import { WatchlistBoard } from "@/components/desktop/WatchlistBoard";
 import { SchwabReconnect } from "@/components/desktop/SchwabReconnect";
 import { ETradeReconnect } from "@/components/desktop/ETradeReconnect";
+import { ScorecardDesktop } from "@/components/desktop/ScorecardDesktop";
+import type { PerformanceRow, ScoreFactorsFile } from "@/lib/types";
 
-type Tab = "desktop" | "bot-safe" | "bot" | "bot-aggressive" | "calculator" | "chart" | "watchlist" | "connections";
+type Tab = "desktop" | "bot-safe" | "bot" | "bot-aggressive" | "scorecard" | "calculator" | "chart" | "watchlist" | "connections";
 
 // Order: Desktop, 20 Delta Safe, Wheel Bot, Aggressive Bot, Watchlist,
 // Chart — Watchlist moved just above Chart per the account holder's own
@@ -58,6 +60,20 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
     ),
   },
   {
+    // Scorecard sits right after the three bot tabs: it grades those
+    // tables' own picks (real vs paper by strategy, and which score
+    // factors correlated with a better outcome).
+    key: "scorecard",
+    label: "Scorecard",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="4" y="3" width="16" height="18" rx="2" />
+        <path d="M8 13l2.5 2.5L16 10" />
+        <path d="M9 3v2h6V3" />
+      </svg>
+    ),
+  },
+  {
     key: "calculator",
     label: "Calculator",
     icon: (
@@ -91,7 +107,17 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
 
 const TAB_KEY = "overviewActiveTab";
 
+const ALL_TABS: Tab[] = ["desktop", "bot", "bot-safe", "bot-aggressive", "scorecard", "calculator", "chart", "watchlist", "connections"];
+
+// loadTab: a ?tab= query param wins (a bookmarkable deep link to one tab),
+// else the last tab used on this device.
 function loadTab(): Tab {
+  try {
+    const fromURL = new URLSearchParams(window.location.search).get("tab");
+    if (fromURL && (ALL_TABS as string[]).includes(fromURL)) return fromURL as Tab;
+  } catch {
+    /* ignore */
+  }
   try {
     const raw = localStorage.getItem(TAB_KEY);
     if (
@@ -99,6 +125,7 @@ function loadTab(): Tab {
       raw === "bot" ||
       raw === "bot-safe" ||
       raw === "bot-aggressive" ||
+      raw === "scorecard" ||
       raw === "calculator" ||
       raw === "chart" ||
       raw === "watchlist" ||
@@ -120,6 +147,11 @@ const HEADINGS: Record<Tab, { title: string; subtitle: string }> = {
   "bot-safe": {
     title: "20 Delta Safe Moves",
     subtitle: "A conservative 0.10–0.20 delta CSP band, biased toward near-zero assignment odds.",
+  },
+  scorecard: {
+    title: "Scorecard",
+    subtitle:
+      "Real vs paper outcomes by strategy, and — for every factor in the bots' own score — whether picks that earned it did better, with the correlation replayed as the sample grew. A mirror; nothing here re-weights the bots.",
   },
   calculator: {
     title: "Return Calculator",
@@ -155,6 +187,9 @@ export function OverviewShell({
   generalBot,
   safeBot,
   aggressiveBot,
+  scoreRows,
+  totalSuggestions,
+  scoreFactors,
   exampleMode,
 }: {
   options: SourcedOption[];
@@ -162,6 +197,9 @@ export function OverviewShell({
   generalBot: BotSnapshot;
   safeBot: BotSnapshot;
   aggressiveBot: BotSnapshot;
+  scoreRows: PerformanceRow[];
+  totalSuggestions: number;
+  scoreFactors: ScoreFactorsFile;
   exampleMode: boolean;
 }) {
   const anyConnectionDown = useAnyConnectionDown();
@@ -274,6 +312,7 @@ export function OverviewShell({
         {tab === "bot-aggressive" && (
           <BotTable trades={aggressiveBot.trades} myGrade={aggressiveBot.myGrade} storageKey="aggressive" exampleMode={exampleMode} />
         )}
+        {tab === "scorecard" && <ScorecardDesktop rows={scoreRows} totalSuggestions={totalSuggestions} scoreFactors={scoreFactors} />}
         {/* Always mounted (just hidden), unlike the other four tabs above --
             this panel does its own live fetch plus in-flight add/remove
             state that a conditional mount/unmount would otherwise discard
