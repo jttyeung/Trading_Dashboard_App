@@ -15,10 +15,12 @@ import { useMemo, useState } from "react";
 import { Card, SectionTitle } from "@/components/ui";
 import type { BucketStat, CorrelationPoint, FactorGroup, FactorStat, ScoreFactorsFile } from "@/lib/types";
 
+// Short on purpose: all four pills have to fit a phone's 278px of content
+// width when this desktop shell is opened over Tailscale.
 const BOT_LABEL: Record<FactorGroup["bot"], string> = {
-  all: "All bots",
+  all: "All",
   general: "Wheel",
-  "20_delta_safe": "20Δ Safe",
+  "20_delta_safe": "Safe",
   aggressive: "Aggressive",
 };
 
@@ -59,7 +61,9 @@ function CorrelationSparkline({ series }: { series: CorrelationPoint[] }) {
   }, [series]);
 
   if (pts.length === 0) {
-    return <div className="h-9 text-[10px] leading-9 text-muted">correlation series appears from n=10</div>;
+    // Fixed height + nowrap: in a squeezed table cell this used to wrap
+    // onto three lines and spill into the rows above and below.
+    return <div className="h-9 truncate whitespace-nowrap text-[10px] leading-9 text-muted">series from n=10</div>;
   }
   const path = pts.map((q, i) => `${i === 0 ? "M" : "L"}${q.x.toFixed(1)},${q.y.toFixed(1)}`).join(" ");
   const zeroY = PAD + 0.5 * (H - 2 * PAD);
@@ -118,7 +122,7 @@ function FactorTableRow({ f, minSample }: { f: FactorStat; minSample: number }) 
       <td className="whitespace-nowrap px-3 py-2 tabular">
         <span className="text-text">{ret(f.avgReturnWith)}</span> <span className="text-muted">vs {ret(f.avgReturnWithout)}</span>
       </td>
-      <td className="w-56 px-3 py-1">
+      <td className="w-56 min-w-[11rem] px-3 py-1">
         <CorrelationSparkline series={f.series} />
       </td>
       <td className={`whitespace-nowrap px-3 py-2 text-right tabular ${tone.className}`}>
@@ -178,38 +182,44 @@ export function FactorScorecard({ file }: { file: ScoreFactorsFile }) {
 
   return (
     <>
-      <SectionTitle
-        action={
-          <div className="flex overflow-hidden rounded-lg border border-border">
-            {file.groups.map((g) => (
-              <button
-                key={g.bot}
-                onClick={() => setBot(g.bot)}
-                className={`px-2 py-0.5 text-[11px] font-medium ${bot === g.bot ? "bg-surface-2 text-text" : "bg-transparent text-muted"}`}
-              >
-                {BOT_LABEL[g.bot]}
-              </button>
-            ))}
-          </div>
-        }
-      >
-        Score factors
-      </SectionTitle>
-      <Card className="divide-y divide-border">
+      <SectionTitle>Score factors</SectionTitle>
+      {/* The bot toggle gets its own row (same shape as ScorecardView's
+          "Show" row) rather than SectionTitle's action slot: beside the
+          title it only fits on a wide screen, and on a phone reaching
+          this desktop shell over Tailscale the pills split mid-word. */}
+      <div className="mb-2 flex items-center px-1">
+        <div className="flex overflow-hidden rounded-lg border border-border">
+          {file.groups.map((g) => (
+            <button
+              key={g.bot}
+              onClick={() => setBot(g.bot)}
+              className={`whitespace-nowrap px-2.5 py-1 text-xs font-medium ${bot === g.bot ? "bg-surface-2 text-text" : "bg-transparent text-muted"}`}
+            >
+              {BOT_LABEL[g.bot]}
+            </button>
+          ))}
+        </div>
+      </div>
+      {/* overflow-x-auto + a table min-width: on a phone (the desktop
+          shell is reachable over Tailscale) the table is wider than the
+          card, and without a scroll container it bled straight through
+          the card's right edge. Same treatment WatchlistBoard's table
+          already gets. */}
+      <Card className="divide-y divide-border overflow-x-auto">
         <div className="px-3 py-1.5 text-[10px] text-muted">
-          {`${group.resolved} resolved ${BOT_LABEL[group.bot].toLowerCase()} pick${group.resolved === 1 ? "" : "s"} with a breakdown · ${group.tracked} with IV rank / VRP frozen at post time · r is the correlation between a factor's points and the trade's return on collateral, shown from n=${file.meta.minSample}`}
+          {`${group.resolved} resolved ${group.bot === "all" ? "" : BOT_LABEL[group.bot].toLowerCase() + " "}pick${group.resolved === 1 ? "" : "s"} with a breakdown · ${group.tracked} with IV rank / VRP frozen at post time · r is the correlation between a factor's points and the trade's return on collateral, shown from n=${file.meta.minSample}`}
         </div>
         {shown.length === 0 ? (
           <div className="px-3 py-4 text-xs text-muted">No resolved picks for this bot yet.</div>
         ) : (
-          <table className="w-full border-collapse text-xs">
+          <table className="w-full min-w-[720px] border-collapse text-xs">
             <thead>
               <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted">
-                <th className="px-3 py-1.5 font-medium">Factor</th>
-                <th className="px-3 py-1.5 font-medium">Win rate with vs without</th>
-                <th className="px-3 py-1.5 font-medium">Avg return with vs without</th>
-                <th className="px-3 py-1.5 font-medium">r over the sample</th>
-                <th className="px-3 py-1.5 text-right font-medium">r</th>
+                <th className="whitespace-nowrap px-3 py-1.5 font-medium">Factor</th>
+                <th className="whitespace-nowrap px-3 py-1.5 font-medium">Win rate with vs without</th>
+                <th className="whitespace-nowrap px-3 py-1.5 font-medium">Avg return with vs without</th>
+                <th className="whitespace-nowrap px-3 py-1.5 font-medium">r over the sample</th>
+                <th className="whitespace-nowrap px-3 py-1.5 text-right font-medium">r</th>
               </tr>
             </thead>
             <tbody>
