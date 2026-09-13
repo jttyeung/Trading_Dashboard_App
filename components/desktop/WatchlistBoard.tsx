@@ -163,6 +163,24 @@ function MacdBadge({ line, signal }: { line: number | null; signal: number | nul
   );
 }
 
+// Premium-setup highlight: a row where IV Rank AND VRP are both high is
+// the starting filter for selling a CSP -- IVR says the premium is rich
+// for THIS name, VRP says it's rich against how much the stock actually
+// moves; either alone is easy to get fooled by (IVR spikes into every
+// known catalyst, VRP alone doesn't know the name's own normal). The 50
+// IVR bar is the usual "above its own median" line premium sellers use;
+// the VRP side reuses the Brief's own rich threshold via the row's vrp
+// flag rather than re-deriving it here. Deliberately a highlight only,
+// never a sort or a filter: the account holder still checks earnings,
+// trend and walls before anything is sold.
+const PREMIUM_SETUP_IVR_MIN = 50;
+
+function isPremiumSetup(r: WatchlistRow): boolean {
+  return r.ivRank != null && r.ivRank >= PREMIUM_SETUP_IVR_MIN && r.vrp === "rich";
+}
+
+const PREMIUM_SETUP_TIP = `IV Rank ≥ ${PREMIUM_SETUP_IVR_MIN} and VRP rich — premium is high for this name AND high vs. its realized moves; a starting point for a CSP, not a signal on its own`;
+
 // VrpCell -- the IV/RV ratio with its rich/fair/thin read, styled with
 // the same tokens the Brief board uses for its own VRP column so the two
 // never disagree on what "rich" looks like. The two inputs (ATM IV and
@@ -423,9 +441,24 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
           </thead>
           <tbody>
             {sorted.map((r) => (
-              <tr key={r.ticker} className="border-b border-border/60 hover:bg-surface-2/40">
+              <tr
+                key={r.ticker}
+                className={`border-b border-border/60 ${
+                  isPremiumSetup(r)
+                    ? "bg-emerald-500/10 shadow-[inset_3px_0_0_0_theme(colors.emerald.400)] hover:bg-emerald-500/15"
+                    : "hover:bg-surface-2/40"
+                }`}
+              >
                 <td className="whitespace-nowrap px-3 py-2 font-medium text-text">
                   {r.ticker}
+                  {isPremiumSetup(r) && (
+                    <span
+                      title={PREMIUM_SETUP_TIP}
+                      className="ml-1.5 inline-flex items-center rounded-full bg-emerald-500/25 px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-emerald-200 ring-1 ring-emerald-500/40"
+                    >
+                      premium
+                    </span>
+                  )}
                   {r.source === "manual" && (
                     <sup
                       title="Added manually — not synced from the sheet"

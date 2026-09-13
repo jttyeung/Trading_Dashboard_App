@@ -135,7 +135,7 @@ const HEADINGS: Record<Tab, { title: string; subtitle: string }> = {
   },
   watchlist: {
     title: "Watchlist Board",
-    subtitle: "Every active watchlist ticker with a lever showing where its mark sits on Bollinger Bands, RSI, and IV Rank, plus VRP (IV over a 20/60/120-day blended realized vol — rich ≥1.20×, thin ≤0.90×) — add or remove tickers by hand; a manual addition is marked ᴹ and survives the sheet sync.",
+    subtitle: "Every active watchlist ticker with a lever showing where its mark sits on Bollinger Bands, RSI, and IV Rank, plus VRP (IV over a 20/60/120-day blended realized vol — rich ≥1.20×, thin ≤0.90×); a row lights up green when IVR ≥ 50 and VRP is rich, the starting filter for a CSP — add or remove tickers by hand; a manual addition is marked ᴹ and survives the sheet sync.",
   },
   connections: {
     title: "Connections",
