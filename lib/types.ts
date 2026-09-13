@@ -737,6 +737,9 @@ export interface MatchedSuggestion {
   // put leg shares a CSP's OCC symbol; CSP/CSP_SAFE overlap in delta).
   // One real trade is one row; these are the attributions it didn't get.
   alsoSuggestedAs?: string[];
+  deltaAtOpen?: number | null;
+  dteAtOpen?: number | null;
+  ivAtOpen?: number | null;
 }
 
 export interface SuggestionPerformanceFile {
@@ -768,6 +771,13 @@ export interface PerformanceRow {
   win: boolean;
   openDate: string;
   closeDate: string;
+  // Real trades only: the delta/DTE the contract was ACTUALLY sold at, from
+  // the daemon's first-sighting entry snapshot — preferred over `delta` (a
+  // suggestion row's own reading, possibly days earlier) for the delta
+  // buckets. Absent for paper rows (their delta IS at post) and for real
+  // trades opened before capture existed.
+  deltaAtOpen?: number | null;
+  dteAtOpen?: number | null;
 }
 
 export interface StrategyPerformanceFile {
