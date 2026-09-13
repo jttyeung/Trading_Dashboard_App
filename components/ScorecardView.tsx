@@ -74,7 +74,12 @@ function deltaBucketLabel(key: string): string {
 function StrategyRow({ agg, rows, maxAbsStrategy }: { agg: Agg; rows: PerformanceRow[]; maxAbsStrategy: number }) {
   const [open, setOpen] = useState(false);
   const strategyItems = rows.filter((m) => m.strategy === agg.key);
-  const byDelta = useMemo(() => aggregate(strategyItems, (m) => deltaBucketKey(m.delta), deltaBucketLabel), [strategyItems]);
+  // Measured entry delta first (real trades with an entry snapshot),
+  // the suggestion's own reading otherwise.
+  const byDelta = useMemo(
+    () => aggregate(strategyItems, (m) => deltaBucketKey(m.deltaAtOpen ?? m.delta), deltaBucketLabel),
+    [strategyItems],
+  );
   const maxAbsDelta = byDelta.reduce((m, x) => Math.max(m, Math.abs(x.pnl)), 0);
   const winPct = agg.count > 0 ? Math.round((agg.wins / agg.count) * 100) : 0;
 
