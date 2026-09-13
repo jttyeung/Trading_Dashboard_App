@@ -135,6 +135,39 @@ function FactorRow({ f, minSample }: { f: FactorStat; minSample: number }) {
   );
 }
 
+// FactorTableRow — the same numbers as FactorRow, one row per factor for
+// the desktop Scorecard tab, where there's width for the sparkline to sit
+// beside the numbers instead of under them.
+function FactorTableRow({ f, minSample }: { f: FactorStat; minSample: number }) {
+  const tone = rTone(f.correlation);
+  const splitWord = f.split === "median" ? "above median" : "earned";
+  const verdict =
+    f.correlation != null ? tone.word : f.n < minSample ? `building (${f.n}/${minSample})` : f.nWith === 0 ? "never earned" : "no variance";
+  return (
+    <tr className="border-b border-border/60">
+      <td className="whitespace-nowrap px-3 py-2">
+        <div className="font-medium text-text">{f.label}</div>
+        <div className="text-[10px] text-muted">
+          {f.nWith}/{f.n} {splitWord}
+        </div>
+      </td>
+      <td className="whitespace-nowrap px-3 py-2 tabular">
+        <span className="text-text">{pct(f.winRateWith)}</span> <span className="text-muted">vs {pct(f.winRateWithout)}</span>
+      </td>
+      <td className="whitespace-nowrap px-3 py-2 tabular">
+        <span className="text-text">{ret(f.avgReturnWith)}</span> <span className="text-muted">vs {ret(f.avgReturnWithout)}</span>
+      </td>
+      <td className="w-56 px-3 py-1">
+        <CorrelationSparkline series={f.series} />
+      </td>
+      <td className={`whitespace-nowrap px-3 py-2 text-right tabular ${tone.className}`}>
+        <span className="text-sm font-semibold">{f.correlation == null ? "—" : f.correlation.toFixed(2)}</span>
+        <span className="ml-1.5 text-[10px]">{verdict}</span>
+      </td>
+    </tr>
+  );
+}
+
 // BucketBars — win rate per raw-input bucket (VRP flag / IV-rank band),
 // each bar 0-100% in the shared accent with n and mean return spelled
 // out. One measure, one hue; magnitude is the bar, identity is the label.
@@ -163,7 +196,10 @@ function BucketBars({ title, buckets, empty }: { title: string; buckets: BucketS
   );
 }
 
-export function FactorScorecard({ file }: { file: ScoreFactorsFile }) {
+// variant: "phone" stacks each factor (the /scorecard page inside the
+// phone frame); "desktop" lays them out as a table for the /overview
+// Scorecard tab. Same data, same verdict logic, just the geometry.
+export function FactorScorecard({ file, variant = "phone" }: { file: ScoreFactorsFile; variant?: "phone" | "desktop" }) {
   const [bot, setBot] = useState<FactorGroup["bot"]>("all");
   const group = file.groups.find((g) => g.bot === bot) ?? file.groups[0];
 
@@ -203,12 +239,27 @@ export function FactorScorecard({ file }: { file: ScoreFactorsFile }) {
       </SectionTitle>
       <Card className="divide-y divide-border">
         <div className="px-3 py-1.5 text-[10px] text-muted">
-          {group.resolved} resolved {BOT_LABEL[group.bot].toLowerCase()} pick{group.resolved === 1 ? "" : "s"} with a breakdown ·{" "}
-          {group.tracked} with IV rank / VRP frozen at post time · r is the correlation between a factor&apos;s points and the
-          trade&apos;s return on collateral, shown from n={file.meta.minSample}
+          {`${group.resolved} resolved ${BOT_LABEL[group.bot].toLowerCase()} pick${group.resolved === 1 ? "" : "s"} with a breakdown · ${group.tracked} with IV rank / VRP frozen at post time · r is the correlation between a factor's points and the trade's return on collateral, shown from n=${file.meta.minSample}`}
         </div>
         {shown.length === 0 ? (
           <div className="px-3 py-4 text-xs text-muted">No resolved picks for this bot yet.</div>
+        ) : variant === "desktop" ? (
+          <table className="w-full border-collapse text-xs">
+            <thead>
+              <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted">
+                <th className="px-3 py-1.5 font-medium">Factor</th>
+                <th className="px-3 py-1.5 font-medium">Win rate with vs without</th>
+                <th className="px-3 py-1.5 font-medium">Avg return with vs without</th>
+                <th className="px-3 py-1.5 font-medium">r over the sample</th>
+                <th className="px-3 py-1.5 text-right font-medium">r</th>
+              </tr>
+            </thead>
+            <tbody>
+              {shown.map((f) => (
+                <FactorTableRow key={f.key} f={f} minSample={file.meta.minSample} />
+              ))}
+            </tbody>
+          </table>
         ) : (
           <div className="divide-y divide-border">
             {shown.map((f) => (

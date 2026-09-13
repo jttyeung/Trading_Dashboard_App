@@ -8,6 +8,9 @@
 import { getSnapshot } from "@/lib/snapshot";
 import { getAlerts } from "@/lib/alerts";
 import { getGeneralBot, get20DeltaSafeBot, getAggressiveBot } from "@/lib/bot";
+import { getSuggestionPerformance } from "@/lib/suggestion-performance";
+import { getStrategyPerformance } from "@/lib/strategy-performance";
+import { getScoreFactors } from "@/lib/score-factors";
 import { accountLabel } from "@/lib/account-shared";
 import { isExampleMode } from "@/lib/example-mode";
 import { OverviewShell } from "@/components/overview/OverviewShell";
@@ -17,10 +20,13 @@ export const dynamic = "force-dynamic";
 export default async function OverviewPage() {
   const snap = await getSnapshot();
   const alerts = (await getAlerts()).alerts;
-  const [generalBot, safeBot, aggressiveBot, exampleMode] = await Promise.all([
+  const [generalBot, safeBot, aggressiveBot, suggestionPerf, strategyPerf, scoreFactors, exampleMode] = await Promise.all([
     getGeneralBot(),
     get20DeltaSafeBot(),
     getAggressiveBot(),
+    getSuggestionPerformance(),
+    getStrategyPerformance(),
+    getScoreFactors(),
     isExampleMode(),
   ]);
 
@@ -38,6 +44,9 @@ export default async function OverviewPage() {
       generalBot={generalBot}
       safeBot={safeBot}
       aggressiveBot={aggressiveBot}
+      scoreRows={strategyPerf.rows}
+      totalSuggestions={suggestionPerf.meta.totalSuggestions}
+      scoreFactors={scoreFactors}
       exampleMode={exampleMode}
     />
   );
