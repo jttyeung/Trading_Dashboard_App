@@ -323,18 +323,27 @@ export function OverviewShell({
         </div>
 
         {tab === "desktop" && <PositionsTable options={options} alerts={alerts} />}
-        {tab === "bot" && (
+        {/* The three bot tables stay mounted (hidden, not unmounted) for
+            the same reason as the calculator/watchlist panels below. Caught
+            live: a thumbs-up/down is an optimistic edit to BotTable's own
+            localTrades state, and the daemon re-exports the JSON in the
+            background — but this page's server props were read BEFORE the
+            click and aren't re-read on a tab switch. A conditional mount
+            threw that local state away on every switch, so coming back to
+            the tab remounted from the stale props and the decision looked
+            like it hadn't stuck until a hard refresh. */}
+        <div className={tab === "bot" ? "" : "hidden"}>
           <BotTable trades={generalBot.trades} myGrade={generalBot.myGrade} storageKey="general" exampleMode={exampleMode} />
-        )}
-        {tab === "bot-safe" && (
+        </div>
+        <div className={tab === "bot-safe" ? "" : "hidden"}>
           <BotTable trades={safeBot.trades} myGrade={safeBot.myGrade} storageKey="20_delta_safe" exampleMode={exampleMode} />
-        )}
-        {tab === "bot-aggressive" && (
+        </div>
+        <div className={tab === "bot-aggressive" ? "" : "hidden"}>
           <BotTable trades={aggressiveBot.trades} myGrade={aggressiveBot.myGrade} storageKey="aggressive" exampleMode={exampleMode} />
-        )}
+        </div>
         {tab === "trades" && <MyTradesScorecard rows={scoreRows} totalSuggestions={totalSuggestions} />}
         {tab === "scorecard" && <BotScorecard rows={scoreRows} scoreFactors={scoreFactors} />}
-        {/* Always mounted (just hidden), unlike the other four tabs above --
+        {/* Always mounted (just hidden), unlike the desktop/trades/scorecard tabs above --
             this panel does its own live fetch plus in-flight add/remove
             state that a conditional mount/unmount would otherwise discard
             on every tab switch. */}
