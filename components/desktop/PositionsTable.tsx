@@ -274,16 +274,30 @@ function PctBar({ pct, label }: { pct: number; label?: string }) {
   );
 }
 
-// 0-7 / 8-21 mirror this app's own DTE-management framing (the 21-DTE
-// early-management window most rules already key off); 22-30/30-45/45+
-// split out what used to be one wide "22-45" bucket for more granularity
-// further from expiration, where less urgency means bigger natural bands.
+// Weekly buckets out to 45 DTE (the wheel bands' own ceiling), one
+// catch-all to 89, then the LEAPS-side bands the account holder asked
+// for directly — 90-119 / 120-179 / 180-364 / 365+ — instead of one
+// "LEAPS" pile, so a 4-month diagonal leg and a 2-year LEAP don't sit in
+// the same group. The last weekly bucket runs 36-45 (ten days) rather
+// than splitting a lone 43-45 sliver off. Upper bounds are inclusive.
+const DTE_BUCKETS: { max: number; key: string; label: string }[] = [
+  { max: 7, key: "0-7", label: "0-7 DTE" },
+  { max: 14, key: "8-14", label: "8-14 DTE" },
+  { max: 21, key: "15-21", label: "15-21 DTE" },
+  { max: 28, key: "22-28", label: "22-28 DTE" },
+  { max: 35, key: "29-35", label: "29-35 DTE" },
+  { max: 45, key: "36-45", label: "36-45 DTE" },
+  { max: 89, key: "46-89", label: "46-89 DTE" },
+  { max: 119, key: "90-119", label: "90-119 DTE" },
+  { max: 179, key: "120-179", label: "120-179 DTE" },
+  { max: 364, key: "180-364", label: "180-364 DTE" },
+  { max: Infinity, key: "365+", label: "365+ DTE" },
+];
+
 function dteBucket(dte: number): { key: string; label: string; order: number } {
-  if (dte <= 7) return { key: "0-7", label: "0-7 DTE", order: 0 };
-  if (dte <= 21) return { key: "8-21", label: "8-21 DTE", order: 1 };
-  if (dte <= 30) return { key: "22-30", label: "22-30 DTE", order: 2 };
-  if (dte <= 45) return { key: "30-45", label: "30-45 DTE", order: 3 };
-  return { key: "45+", label: "45+ DTE", order: 4 };
+  const i = DTE_BUCKETS.findIndex((b) => dte <= b.max);
+  const b = DTE_BUCKETS[i === -1 ? DTE_BUCKETS.length - 1 : i];
+  return { key: b.key, label: b.label, order: i === -1 ? DTE_BUCKETS.length - 1 : i };
 }
 
 function dteColor(dte: number): string {
