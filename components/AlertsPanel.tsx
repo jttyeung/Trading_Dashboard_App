@@ -22,7 +22,22 @@ const ACTION_STYLE: Record<Alert["action"], { label: string; chip: string }> = {
   // ("chase more credit"), not a risk warning, so it gets its own green
   // treatment distinct from ActionRoll's amber "at risk" framing.
   roll_up: { label: "Roll up", chip: "bg-green-500/15 text-green-300 ring-green-500/30" },
+  // An ITM short option with no roll inside RULE-023's $120/contract
+  // debit cap — assignment (or a manual close) is the realistic outcome.
+  // Rose like Close (it IS an assignment-risk signal) but a heads-up,
+  // not an action: there's deliberately no "roll to" line under it.
+  assignment_likely: { label: "Assignment likely", chip: "bg-rose-500/15 text-rose-300 ring-rose-500/30" },
+  // A held LEAP that's grown past RULE-007's allocation caps — usually
+  // from appreciation after a compliant entry, not a mistake.
+  leaps_over_allocated: { label: "Over-allocated", chip: "bg-amber-500/15 text-amber-300 ring-amber-500/30" },
 };
+
+// UNKNOWN_STYLE is what an action this build doesn't recognize yet gets
+// — the backend adds actions on its own cadence, and a missing map entry
+// used to throw on `style.chip` and take the whole panel down (a real
+// gap: leaps_over_allocated shipped server-side before it was added
+// here). Shown plainly with the raw action name so it's still legible.
+const UNKNOWN_STYLE = { label: "", chip: "bg-surface-2 text-muted ring-border" };
 
 // Position alerts (close/roll/watch/profit_target/leap_expiring/
 // roll_up) — the tracker's current full set, not history
@@ -43,11 +58,19 @@ const ACTION_STYLE: Record<Alert["action"], { label: string; chip: string }> = {
 const ACTION_RANK: Record<Alert["action"], number> = {
   close: 0,
   roll: 1,
-  watch: 2,
-  leap_expiring: 3,
-  profit_target: 4,
-  roll_up: 5,
+  // Already ITM like roll, so it sorts right behind it — ahead of the
+  // still-OTM watch — even though there's nothing to do but wait.
+  assignment_likely: 2,
+  watch: 3,
+  leap_expiring: 4,
+  leaps_over_allocated: 5,
+  profit_target: 6,
+  roll_up: 7,
 };
+
+function rankOf(a: Alert): number {
+  return ACTION_RANK[a.action] ?? 99;
+}
 
 // Read state ("which alerts has the account holder already reviewed")
 // lives on the backend (position_alert_reads via the :8095 settings API,
@@ -134,7 +157,7 @@ export function AlertsPanel({ alerts }: { alerts: Alert[] }) {
   }, []);
 
   if (alerts.length === 0) return null;
-  const sorted = [...alerts].sort((a, b) => ACTION_RANK[a.action] - ACTION_RANK[b.action] || a.dte - b.dte);
+  const sorted = [...alerts].sort((a, b) => rankOf(a) - rankOf(b) || a.dte - b.dte);
   const unreadCount = sorted.filter((a) => !read.has(a.contractSymbol)).length;
 
   // The tracker only re-evaluates during real market hours (see
@@ -186,7 +209,7 @@ export function AlertsPanel({ alerts }: { alerts: Alert[] }) {
       </SectionTitle>
       <Card className="divide-y divide-border p-0">
         {sorted.map((a) => {
-          const style = ACTION_STYLE[a.action];
+          const style = ACTION_STYLE[a.action] ?? { ...UNKNOWN_STYLE, label: a.action };
           const isRead = read.has(a.contractSymbol);
           return (
             <div key={a.contractSymbol} className={`px-4 py-3 ${isRead ? "opacity-50" : ""}`}>

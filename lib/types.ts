@@ -689,7 +689,19 @@ export interface Alert {
   profitLoss: number;
   profitPct: number;
   underlyingPrice: number;
-  action: "close" | "roll" | "watch" | "profit_target" | "leap_expiring" | "roll_up";
+  // Mirrors internal/agents/tracker/evaluate.go's Action* constants.
+  // assignment_likely is an ITM short option with no roll inside
+  // RULE-023's $120/contract debit cap (a heads-up, not an action);
+  // leaps_over_allocated is a held LEAP breaching RULE-007's caps.
+  action:
+    | "close"
+    | "roll"
+    | "watch"
+    | "profit_target"
+    | "leap_expiring"
+    | "roll_up"
+    | "assignment_likely"
+    | "leaps_over_allocated";
   rationale: string;
   rollToSymbol: string | null;
   rollToStrike: number | null;
