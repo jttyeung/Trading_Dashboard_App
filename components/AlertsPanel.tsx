@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Card, SectionTitle } from "@/components/ui";
 import type { Alert } from "@/lib/types";
 import { fmtWeekdayShort, isStaleTradingDate } from "@/lib/dates";
+import { fetchAlertReads, setAlertRead } from "@/lib/alert-reads-api";
+import { isExampleClient } from "@/lib/demo";
 
 const ACTION_STYLE: Record<Alert["action"], { label: string; chip: string }> = {
   close: { label: "Close", chip: "bg-rose-500/15 text-rose-300 ring-rose-500/30" },
@@ -47,18 +49,23 @@ const ACTION_RANK: Record<Alert["action"], number> = {
   roll_up: 5,
 };
 
-// READ_KEY: which alerts the viewer has already reviewed, persisted per
-// browser (localStorage, same pattern as margin-mode.tsx's own toggle) —
-// this is a per-viewer convenience, not something the backend needs to
-// know about, and every 15-min cycle re-derives the same full alert set
-// regardless (see this file's own doc comment above), so there's no
-// server-side "read" concept to sync against. Keyed by contractSymbol:
-// if the SAME contract's alert later changes (e.g. escalates from Watch
-// to Roll), it stays collapsed here rather than re-surfacing — a known,
-// accepted simplification rather than diffing each alert's own content.
+// Read state ("which alerts has the account holder already reviewed")
+// lives on the backend (position_alert_reads via the :8095 settings API,
+// see lib/alert-reads-api.ts) so a checkmark set on the desktop is the
+// same checkmark on the phone. It used to be localStorage-only here,
+// which didn't sync across devices -- the third per-viewer preference to
+// hit that wall, after the roll target and the monthly goal. Keyed by
+// contractSymbol: if the SAME contract's alert later changes (e.g.
+// escalates from Watch to Roll), it stays collapsed rather than
+// re-surfacing -- a known, accepted simplification carried over as-is.
+//
+// READ_KEY is now only the offline fallback: the demo build / example
+// mode has no daemon to talk to, and so does a viewer whose daemon is
+// momentarily unreachable. In both cases the checkmarks still work,
+// just per-browser, exactly as before.
 const READ_KEY = "alertsRead";
 
-function loadRead(): Set<string> {
+function loadLocalRead(): Set<string> {
   try {
     const raw = localStorage.getItem(READ_KEY);
     if (raw) return new Set(JSON.parse(raw));
@@ -68,7 +75,7 @@ function loadRead(): Set<string> {
   return new Set();
 }
 
-function saveRead(read: Set<string>) {
+function saveLocalRead(read: Set<string>) {
   try {
     localStorage.setItem(READ_KEY, JSON.stringify(Array.from(read)));
   } catch {
@@ -96,7 +103,35 @@ function ConvictionDots({ conviction }: { conviction: number }) {
 
 export function AlertsPanel({ alerts }: { alerts: Alert[] }) {
   const [read, setRead] = useState<Set<string>>(new Set());
-  useEffect(() => setRead(loadRead()), []);
+  // Whether the backend answered: while false, toggles write to
+  // localStorage only (demo build, or daemon unreachable). Flips to true
+  // on the first successful GET and stays there -- a later transient
+  // POST failure keeps the optimistic local state rather than silently
+  // demoting the whole panel back to per-browser mode.
+  const [synced, setSynced] = useState(false);
+
+  useEffect(() => {
+    if (isExampleClient()) {
+      setRead(loadLocalRead());
+      return;
+    }
+    let cancelled = false;
+    fetchAlertReads()
+      .then((r) => {
+        if (cancelled) return;
+        setRead(new Set(r.contractSymbols));
+        setSynced(true);
+      })
+      .catch(() => {
+        // Daemon unreachable (or not configured here) -- degrade to the
+        // per-browser checkmarks, same convention every other on-demand
+        // API in this app uses.
+        if (!cancelled) setRead(loadLocalRead());
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (alerts.length === 0) return null;
   const sorted = [...alerts].sort((a, b) => ACTION_RANK[a.action] - ACTION_RANK[b.action] || a.dte - b.dte);
@@ -115,13 +150,23 @@ export function AlertsPanel({ alerts }: { alerts: Alert[] }) {
     : null;
 
   function toggleRead(symbol: string) {
+    const nowRead = !read.has(symbol);
+    // Optimistic flip so the tap feels instant on a phone; the server's
+    // echoed-back list then replaces it wholesale (never diffed), so if
+    // another device toggled something in between, this one catches up.
     setRead((prev) => {
       const next = new Set(prev);
-      if (next.has(symbol)) next.delete(symbol);
-      else next.add(symbol);
-      saveRead(next);
+      if (nowRead) next.add(symbol);
+      else next.delete(symbol);
+      if (!synced) saveLocalRead(next);
       return next;
     });
+    if (!synced) return;
+    setAlertRead(symbol, nowRead)
+      .then((r) => setRead(new Set(r.contractSymbols)))
+      .catch(() => {
+        /* keep the optimistic state; the next page load re-syncs */
+      });
   }
 
   return (
