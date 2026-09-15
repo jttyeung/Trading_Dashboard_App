@@ -930,6 +930,24 @@ export interface MyTradesFile {
   earnings: BucketStat[];
   concurrency: BucketStat[];
   sizing: BucketStat[];
+  rollChains: RollChain[];
+}
+
+// RollChain — one position followed through every roll, linked by Schwab
+// order id (a roll is two transactions sharing one orderId). firstLegPnl
+// is what closing the first leg alone would have booked; laterLegsPnl is
+// what the rolls added since (realized legs only) — the "did rolling beat
+// taking the loss" read. An open chain's last leg has no P&L yet;
+// openLegCredit is the credit it still holds.
+export interface RollChain {
+  ticker: string;
+  putCall: string;
+  legs: { contractSymbol: string; openDate: string; closeDate: string; closeReason: string; realizedPnl: number | null }[];
+  firstLegPnl: number;
+  laterLegsPnl: number;
+  realizedPnl: number;
+  status: "closed" | "open";
+  openLegCredit: number | null;
 }
 
 export interface MyTrade {
@@ -965,6 +983,8 @@ export interface MyTrade {
   holdFraction: number;
   alertResponse: { action: string; firedAt: string; hoursToClose: number | null } | null;
   guidelines: Record<string, boolean>;
+  rolledFrom?: string;
+  rolledTo?: string;
 }
 
 export interface GuidelineStat {
