@@ -26,12 +26,38 @@ export interface RollAnalysisCandidate {
   meetsTarget: boolean;
 }
 
+// One contract within RULE-023's debit cap for an in-the-money put. No
+// resultingArr/meetsTarget on purpose — see internal/rollapi's
+// DefensiveRollCandidate. netCreditPerShare is signed: negative is a debit.
+export interface DefensiveRollCandidate {
+  symbol: string;
+  strike: number;
+  expirationDate: string;
+  dte: number;
+  delta: number;
+  premium: number;
+  netCreditPerShare: number;
+  netCreditTotal: number;
+}
+
+// Present only when the put is already ITM, where neither roll-up mode can
+// find anything by construction. Carries the tracker's own defensive
+// search (roll out and down for a credit or a small debit), so the panel
+// names the same contract the automatic alert does. recommended is null
+// when nothing is within the cap — "expect assignment, or close manually".
+export interface DefensiveRollAnalysis {
+  maxDebitPerShare: number;
+  candidates: DefensiveRollCandidate[];
+  recommended: DefensiveRollCandidate | null;
+}
+
 export interface RollAnalysisResponse {
   symbol: string;
   mode: RollAnalysisMode;
   targetArrUsed: number;
   candidates: RollAnalysisCandidate[] | null; // null when the pool is empty — guard before spreading
   recommended: RollAnalysisCandidate | null;
+  defensive: DefensiveRollAnalysis | null;
 }
 
 export interface RollAnalysisParams {

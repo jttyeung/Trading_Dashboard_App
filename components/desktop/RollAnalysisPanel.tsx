@@ -8,6 +8,7 @@ import {
   fetchRollAnalysis,
   fetchRollTarget,
   setRollTarget,
+  type DefensiveRollAnalysis,
   type RollAnalysisCandidate,
   type RollAnalysisMode,
   type RollAnalysisResponse,
@@ -50,6 +51,14 @@ function candidateSortValue(c: RollAnalysisCandidate, key: CandidateSortKey): nu
 //     collected, no ARR filtering at all -- for when the account holder
 //     is comfortable with assignment either way and just wants the
 //     single biggest number available right now.
+//
+// Both modes are roll-UP searches, so once the put is in the money they
+// are empty by construction (no strike above spot is allowed, no strike
+// below the current one counts as a roll-up). The backend then sends a
+// `defensive` section instead -- the tracker's own "roll out and down for
+// a credit or a small debit, aiming back toward Δ0.25" search, capped by
+// RULE-023 -- and this panel swaps the roll-up table for that block
+// (DefensiveRollBlock) rather than reporting "nothing found".
 //
 // Lazy: the parent only mounts this once a row is actually expanded, so
 // opening the Positions table never fires N live chain calls up front.
@@ -240,7 +249,11 @@ export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
       )}
       {error && <p className="text-xs text-rose-400">{error}</p>}
 
-      {!loading && !error && data && sortedCandidates.length === 0 && (
+      {!loading && !error && data?.defensive && (
+        <DefensiveRollBlock defensive={data.defensive} strike={position.strike} />
+      )}
+
+      {!loading && !error && data && !data.defensive && sortedCandidates.length === 0 && (
         <p className="text-xs text-muted">
           {mode === "target_arr"
             ? "No higher strike found that's both a real credit and clears your target ARR right now."
@@ -248,7 +261,7 @@ export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
         </p>
       )}
 
-      {!loading && !error && data && sortedCandidates.length > 0 && (
+      {!loading && !error && data && !data.defensive && sortedCandidates.length > 0 && (
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full min-w-[560px] text-xs">
             <thead>
@@ -270,6 +283,66 @@ export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
                   recommended={data.recommended?.symbol === c.symbol}
                 />
               ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// DefensiveRollBlock is the ITM replacement for the roll-up table. Amber
+// rather than the roll-up table's emerald: this is damage control (pay
+// nothing or a little to push assignment out and the strike down), not
+// an upgrade. The recommended row is the same contract the tracker's
+// automatic `roll` alert names; a debit row shows its real negative
+// number rather than being hidden, since the cap is the account
+// holder's own $/contract line and they may still prefer assignment.
+function DefensiveRollBlock({ defensive, strike }: { defensive: DefensiveRollAnalysis; strike: number }) {
+  const capPerContract = defensive.maxDebitPerShare * 100;
+  return (
+    <div className="space-y-2">
+      <p className="text-[11px] text-amber-300/90">
+        🛡️ In the money — no higher strike can be a credit roll. Defensive roll
+        instead: out and down from {fmtMoney(strike)} for a credit or a small
+        debit (RULE-023 cap {fmtMoney(capPerContract)}/contract), aiming back
+        toward Δ0.25.
+      </p>
+      {defensive.candidates.length === 0 ? (
+        <p className="text-xs text-muted">
+          Nothing within the {fmtMoney(capPerContract)}/contract cap — expect
+          assignment, or close manually.
+        </p>
+      ) : (
+        <div className="overflow-x-auto rounded-lg border border-amber-500/30">
+          <table className="w-full min-w-[480px] text-xs">
+            <thead>
+              <tr className="border-b border-border bg-amber-500/10 text-left uppercase tracking-wide text-muted">
+                <th className="px-2 py-1.5 font-medium">Strike</th>
+                <th className="px-2 py-1.5 font-medium">Exp</th>
+                <th className="px-2 py-1.5 text-right font-medium">DTE</th>
+                <th className="px-2 py-1.5 text-right font-medium">Δ</th>
+                <th className="px-2 py-1.5 text-right font-medium">Net credit</th>
+              </tr>
+            </thead>
+            <tbody>
+              {defensive.candidates.map((c) => {
+                const recommended = defensive.recommended?.symbol === c.symbol;
+                return (
+                  <tr key={c.symbol} className={`border-b border-border/60 ${recommended ? "bg-amber-500/15" : ""}`}>
+                    <td className="px-2 py-1.5 tabular text-text">
+                      {fmtMoney(c.strike)}
+                      {recommended && <span className="ml-1 text-[10px] text-amber-300">🛡️ recommended</span>}
+                    </td>
+                    <td className="whitespace-nowrap px-2 py-1.5 text-muted">{c.expirationDate}</td>
+                    <td className="px-2 py-1.5 text-right tabular text-text">{c.dte}</td>
+                    <td className="px-2 py-1.5 text-right tabular text-text">{c.delta.toFixed(2)}</td>
+                    <td className={`px-2 py-1.5 text-right tabular ${c.netCreditPerShare >= 0 ? "text-pos" : "text-neg"}`}>
+                      {fmtMoney(c.netCreditPerShare, { sign: true, cents: true })}/sh ({fmtMoney(c.netCreditTotal, { sign: true })})
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
