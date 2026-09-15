@@ -18,14 +18,14 @@
 import { Card, SectionTitle } from "@/components/ui";
 import { BucketBars, FactorTableRow } from "@/components/FactorScorecard";
 import { fmtMoney } from "@/lib/calc";
-import type { BucketStat, GuidelineStat, MyTradesFile, RollChain } from "@/lib/types";
+import type { BucketStat, GuidelineStat, LeapsSection, MyLeapTrade, MyTradesFile, RollChain } from "@/lib/types";
 
 const pct = (v: number | null) => (v == null ? "—" : `${Math.round(v)}%`);
 const ret = (v: number | null) => (v == null ? "—" : `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(2)}%`);
 
 // PROSPECTIVE marks the guideline keys that need an entry snapshot, so
 // an empty row can explain itself.
-const PROSPECTIVE = new Set(["deltaBand", "liquidity", "earnings"]);
+const PROSPECTIVE = new Set(["deltaBand", "liquidity", "earnings", "leapDelta"]);
 
 function fillsIn(capturedSince: string, what: string) {
   return capturedSince ? `Fills in for trades opened after ${capturedSince}, when the tracker began freezing ${what} at entry.` : `Fills in once the tracker has frozen ${what} at entry for a trade that later closes.`;
@@ -111,12 +111,115 @@ function RollChainRow({ c }: { c: RollChain }) {
   );
 }
 
+const day = (iso: string) => (iso ? iso.slice(0, 10) : "—");
+
+function LeapRow({ t }: { t: MyLeapTrade }) {
+  const dteOK = t.guidelines.leapDte;
+  const deltaOK = t.guidelines.leapDelta;
+  return (
+    <tr className="border-b border-border/60">
+      <td className="whitespace-nowrap px-3 py-2">
+        <div className="font-medium text-text">
+          {t.ticker} <span className="text-[10px] text-muted">{legLabel(t.contractSymbol)}</span>
+        </div>
+        <div className="text-[10px] text-muted">
+          {t.source === "fidelity" ? "Fidelity" : "Schwab"} · {t.quantity} contract{t.quantity === 1 ? "" : "s"}
+        </div>
+      </td>
+      <td className="whitespace-nowrap px-3 py-2 tabular text-muted">
+        {day(t.openDate)} → {day(t.closeDate)}
+        <span className="ml-1.5 text-[10px]">{t.dit}d held</span>
+      </td>
+      <td className="whitespace-nowrap px-3 py-2 tabular">
+        <span className={dteOK === false ? "text-neg" : "text-text"}>{t.dteAtOpen} DTE</span>
+        <span className="ml-1.5 text-[10px] text-muted">
+          {t.deltaAtOpen == null ? "Δ —" : <span className={deltaOK === false ? "text-neg" : ""}>Δ {Math.abs(t.deltaAtOpen).toFixed(2)}</span>}
+        </span>
+      </td>
+      <td className="whitespace-nowrap px-3 py-2 tabular text-muted">
+        {t.openPrice.toFixed(2)} → {t.closeReason === "EXPIRED" ? "expired" : t.closePrice.toFixed(2)}
+      </td>
+      <td className="whitespace-nowrap px-3 py-2 text-right tabular">
+        <span className={`font-semibold ${t.realizedPnl >= 0 ? "text-pos" : "text-neg"}`}>{money(t.realizedPnl)}</span>
+        <span className="ml-1.5 text-[10px] text-muted">{ret(t.returnPct)} on cost</span>
+      </td>
+    </tr>
+  );
+}
+
+// LeapsBlock — the bought side, on its own terms. STRAT-005 is the only
+// guideline the notes give a LEAP (365+ DTE, 0.70+ delta at entry), and a
+// long call's return is on what it cost, so none of these rows feed the
+// short-trade sections above; averaging a +$900 LEAP into "credit kept"
+// would misstate the CSP record.
+function LeapsBlock({ leaps, since }: { leaps: LeapsSection; since: string }) {
+  return (
+    <>
+      <SectionTitle>LEAPs you bought</SectionTitle>
+      <Card className="divide-y divide-border overflow-x-auto">
+        <div className="px-3 py-1.5 text-[10px] text-muted">
+          {leaps.trades.length === 0
+            ? "Closed long calls and puts will show here, graded against STRAT-005 — kept apart from the premium-selling stats above since a bought option has no collateral or credit to keep."
+            : `${leaps.trades.length} closed long trade${leaps.trades.length === 1 ? "" : "s"} · graded against STRAT-005 only · return is on cost, not collateral · delta at entry is known only for Schwab positions the tracker saw open`}
+        </div>
+        {leaps.trades.length > 0 && (
+          <table className="w-full min-w-[720px] border-collapse text-xs">
+            <thead>
+              <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted">
+                <th className="whitespace-nowrap px-3 py-1.5 font-medium">Contract</th>
+                <th className="whitespace-nowrap px-3 py-1.5 font-medium">Held</th>
+                <th className="whitespace-nowrap px-3 py-1.5 font-medium">At entry</th>
+                <th className="whitespace-nowrap px-3 py-1.5 font-medium">Paid → sold</th>
+                <th className="whitespace-nowrap px-3 py-1.5 text-right font-medium">Realized</th>
+              </tr>
+            </thead>
+            <tbody>
+              {leaps.trades.map((t) => (
+                <LeapRow key={`${t.source}|${t.contractSymbol}|${t.openDate}`} t={t} />
+              ))}
+            </tbody>
+          </table>
+        )}
+        {leaps.trades.length > 0 && (
+          <table className="w-full min-w-[640px] border-collapse text-xs">
+            <thead>
+              <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted">
+                <th className="whitespace-nowrap px-3 py-1.5 font-medium">Guideline</th>
+                <th className="whitespace-nowrap px-3 py-1.5 font-medium">Followed</th>
+                <th className="whitespace-nowrap px-3 py-1.5 font-medium">Win rate followed vs broken</th>
+                <th className="whitespace-nowrap px-3 py-1.5 font-medium">Avg return followed vs broken</th>
+                <th className="px-3 py-1.5" />
+              </tr>
+            </thead>
+            <tbody>
+              {leaps.guidelines.map((g) => (
+                <GuidelineRow key={g.key} g={g} />
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
+      {leaps.trades.length > 0 && (
+        <BucketGrid>
+          <BucketBars title="Win rate by how long it was held" buckets={leaps.hold} empty="No closed LEAP yet." />
+          <BucketBars title="Win rate by VIX regime at open" buckets={leaps.regime} empty="Fills in for LEAPs opened after VIX sampling began." />
+          <BucketBars title="Win rate by IV rank at open" buckets={leaps.ivrBuckets} empty="No closed LEAP yet." />
+          <Card className="px-3 py-2 text-[11px] leading-relaxed text-muted">
+            {`The delta grade needs the tracker's entry snapshot. ${fillsIn(since, "delta")} A Fidelity LEAP never gets one — the tracker only sees Schwab positions.`}
+          </Card>
+        </BucketGrid>
+      )}
+    </>
+  );
+}
+
 function BucketGrid({ children }: { children: React.ReactNode }) {
   return <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">{children}</div>;
 }
 
 export function MyTradesReport({ file }: { file: MyTradesFile }) {
   const { meta } = file;
+  const leaps = file.leaps ?? { trades: [], guidelines: [], regime: [], ivrBuckets: [], hold: [] };
   if (meta.tradeCount === 0) {
     return (
       <>
@@ -125,6 +228,7 @@ export function MyTradesReport({ file }: { file: MyTradesFile }) {
           No closed short option trades on file yet. Once a CSP or covered call closes, expires or is assigned, this grades
           it against your own guidelines and how you managed it.
         </Card>
+        {leaps.trades.length > 0 && <LeapsBlock leaps={leaps} since={meta.capturedSince} />}
       </>
     );
   }
@@ -242,6 +346,8 @@ export function MyTradesReport({ file }: { file: MyTradesFile }) {
           </table>
         )}
       </Card>
+
+      <LeapsBlock leaps={leaps} since={since} />
 
       <p className="mt-3 px-1 text-[11px] leading-relaxed text-muted">
         Every trade the broker confirmed closed counts here, whether or not it was ever suggested. Retroactive reads
