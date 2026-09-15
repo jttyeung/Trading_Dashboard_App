@@ -1312,4 +1312,37 @@ export const exampleMyTradesFile: MyTradesFile = {
       firstLegPnl: 211, laterLegsPnl: 0, realizedPnl: 211,
     },
   ],
+  leaps: {
+    trades: [
+      {
+        // A deep-ITM LEAP flipped inside a week — inside STRAT-005's DTE
+        // window, delta unknown (a Fidelity position has no entry snapshot).
+        ticker: "GOOGL", contractSymbol: "GOOGL 280616C00310000", putCall: "CALL", source: "fidelity", account: "acct-demo02",
+        openDate: isoDay(-8), closeDate: isoDay(-2), closeReason: "CLOSED", quantity: 1, openPrice: 87.75, closePrice: 97.55,
+        realizedPnl: 978.47, returnPct: 11.15, win: true, dit: 6, dteAtOpen: 647, deltaAtOpen: null, vixAtOpen: 15.7,
+        vixRegime: "Slight Fear", ivRankAtOpen: null, guidelines: { leapDte: true },
+      },
+      {
+        // A ~90 DTE call bought as if it were a LEAP: DTE grade broken,
+        // delta known from the tracker's entry snapshot.
+        ticker: "AMD", contractSymbol: "AMD   261218C00150000", putCall: "CALL", source: "schwab", account: "acct-demo01",
+        openDate: isoDay(-40), closeDate: isoDay(-12), closeReason: "CLOSED", quantity: 2, openPrice: 10.0, closePrice: 8.0,
+        realizedPnl: -401.32, returnPct: -20.07, win: false, dit: 28, dteAtOpen: 99, deltaAtOpen: 0.75, vixAtOpen: 21.4,
+        vixRegime: "Fear", ivRankAtOpen: 62, guidelines: { leapDte: false, leapDelta: true },
+      },
+    ],
+    guidelines: [
+      { key: "leapDte", label: "365+ DTE at entry", rule: "STRAT-005", nChecked: 2, nCompliant: 1, winRateCompliant: 100, winRateViolated: 0, avgReturnCompliant: 11.15, avgReturnViolated: -20.07 },
+      { key: "leapDelta", label: "0.70+ delta at entry", rule: "STRAT-005", nChecked: 1, nCompliant: 1, winRateCompliant: 0, winRateViolated: null, avgReturnCompliant: -20.07, avgReturnViolated: null },
+    ],
+    regime: [
+      { bucket: "Slight Fear", n: 1, wins: 1, winRate: 100, avgReturnPct: 11.15 },
+      { bucket: "Fear", n: 1, wins: 0, winRate: 0, avgReturnPct: -20.07 },
+    ],
+    ivrBuckets: [
+      { bucket: "50-69", n: 1, wins: 0, winRate: 0, avgReturnPct: -20.07 },
+      { bucket: "building", n: 1, wins: 1, winRate: 100, avgReturnPct: 11.15 },
+    ],
+    hold: [{ bucket: "<30d", n: 2, wins: 1, winRate: 50, avgReturnPct: -4.46 }],
+  },
 };
