@@ -17,7 +17,8 @@
 // entry inputs, so they say so instead of showing a hollow zero.
 import { Card, SectionTitle } from "@/components/ui";
 import { BucketBars, FactorTableRow } from "@/components/FactorScorecard";
-import type { BucketStat, GuidelineStat, MyTradesFile } from "@/lib/types";
+import { fmtMoney } from "@/lib/calc";
+import type { BucketStat, GuidelineStat, MyTradesFile, RollChain } from "@/lib/types";
 
 const pct = (v: number | null) => (v == null ? "—" : `${Math.round(v)}%`);
 const ret = (v: number | null) => (v == null ? "—" : `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(2)}%`);
@@ -58,6 +59,54 @@ function GuidelineRow({ g }: { g: GuidelineStat }) {
         <span className="text-text">{ret(g.avgReturnCompliant)}</span> <span className="text-muted">vs {ret(g.avgReturnViolated)}</span>
       </td>
       <td className="whitespace-nowrap px-3 py-2 text-right text-[10px] tabular text-muted">{violated > 0 ? `${violated} broke it` : ""}</td>
+    </tr>
+  );
+}
+
+// legLabel — "410P 9/25" from an OCC symbol: the strike and expiry are
+// what distinguish one leg of a chain from the next; the ticker is the
+// row's own label.
+function legLabel(symbol: string): string {
+  const m = symbol.slice(6).match(/^(\d{2})(\d{2})(\d{2})([CP])(\d{8})$/);
+  if (!m) return symbol.trim();
+  const strike = Number(m[5]) / 1000;
+  return `${strike}${m[4]} ${Number(m[2])}/${Number(m[3])}`;
+}
+
+const money = (v: number) => fmtMoney(v, { sign: true });
+
+function RollChainRow({ c }: { c: RollChain }) {
+  const added = c.laterLegsPnl;
+  const tone = c.status === "open" && added === 0 ? "text-muted" : added > 0 ? "text-pos" : added < 0 ? "text-neg" : "text-muted";
+  return (
+    <tr className="border-b border-border/60">
+      <td className="px-3 py-2">
+        <div className="font-medium text-text">
+          {c.ticker} <span className="text-[10px] text-muted">{c.putCall === "PUT" ? "puts" : "calls"}</span>
+        </div>
+        <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[10px] text-muted">
+          {c.legs.map((l, i) => (
+            <span key={l.contractSymbol} className="whitespace-nowrap">
+              {i > 0 && <span className="mx-0.5">→</span>}
+              <span className="text-text">{legLabel(l.contractSymbol)}</span>
+              <span className="ml-1">
+                {l.realizedPnl == null ? "open" : `${money(l.realizedPnl)} · ${l.closeReason.toLowerCase()}`}
+              </span>
+            </span>
+          ))}
+        </div>
+      </td>
+      <td className={`whitespace-nowrap px-3 py-2 tabular ${c.firstLegPnl < 0 ? "text-neg" : "text-text"}`}>{money(c.firstLegPnl)}</td>
+      <td className={`whitespace-nowrap px-3 py-2 tabular ${tone}`}>
+        {c.status === "open" && added === 0 ? "—" : money(added)}
+        {c.status === "open" && c.openLegCredit != null && (
+          <span className="ml-1.5 text-[10px] text-muted">{fmtMoney(c.openLegCredit)} credit still open</span>
+        )}
+      </td>
+      <td className="whitespace-nowrap px-3 py-2 text-right tabular">
+        <span className={`font-semibold ${c.realizedPnl >= 0 ? "text-pos" : "text-neg"}`}>{money(c.realizedPnl)}</span>
+        <span className="ml-1.5 text-[10px] text-muted">{c.status === "open" ? "so far" : "closed"}</span>
+      </td>
     </tr>
   );
 }
@@ -124,6 +173,34 @@ export function MyTradesReport({ file }: { file: MyTradesFile }) {
           empty={fillsIn(since, "when each alert first fired")}
         />
       </BucketGrid>
+
+      <SectionTitle>Did rolling beat taking the loss?</SectionTitle>
+      <Card className="divide-y divide-border overflow-x-auto">
+        <div className="px-3 py-1.5 text-[10px] text-muted">
+          Each row is one position followed through every roll (the two legs of a roll share a Schwab order id). &ldquo;First
+          leg&rdquo; is what closing it without rolling would have booked; &ldquo;added by rolling&rdquo; is what the later legs
+          have realized since.
+        </div>
+        {file.rollChains.length === 0 ? (
+          <div className="px-3 py-4 text-xs text-muted">No roll on file yet — a close and re-open placed as one order will show here.</div>
+        ) : (
+          <table className="w-full min-w-[640px] border-collapse text-xs">
+            <thead>
+              <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted">
+                <th className="px-3 py-1.5 font-medium">Chain</th>
+                <th className="whitespace-nowrap px-3 py-1.5 font-medium">First leg</th>
+                <th className="whitespace-nowrap px-3 py-1.5 font-medium">Added by rolling</th>
+                <th className="whitespace-nowrap px-3 py-1.5 text-right font-medium">Chain P&amp;L</th>
+              </tr>
+            </thead>
+            <tbody>
+              {file.rollChains.map((c) => (
+                <RollChainRow key={c.legs[0]?.contractSymbol ?? c.ticker} c={c} />
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
 
       <SectionTitle>Conditions at entry</SectionTitle>
       <BucketGrid>
