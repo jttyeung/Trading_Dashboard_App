@@ -1210,7 +1210,7 @@ function exampleMyTrade(t: Partial<MyTrade> & Pick<MyTrade, "ticker" | "contract
   const strike = Number(t.contractSymbol.slice(13)) / 1000;
   const returnPct = Math.round((t.realizedPnl / (strike * 100 * (t.quantity ?? 1))) * 10000) / 100;
   return {
-    putCall: "PUT", strategy: "", account: "acct-demo01", quantity: 1, openPrice: 2.5, closePrice: 0.8,
+    putCall: "PUT", strategy: "", source: "schwab", account: "acct-demo01", quantity: 1, openPrice: 2.5, closePrice: 0.8,
     closeReason: "CLOSED", deltaAtOpen: null, ivAtOpen: null, vixAtOpen: null, vixRegime: "", ivRankAtOpen: null,
     vrpAtOpen: "", daysToEarningsAtOpen: null, earningsBucket: "", concurrentPositions: 3, collateralPctOfAccount: null,
     profitCapturedPct: null, alertResponse: null, guidelines: {},
