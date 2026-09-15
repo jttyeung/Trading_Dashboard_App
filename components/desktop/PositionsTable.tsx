@@ -58,7 +58,7 @@ const STRATEGY_STYLE: Record<OptionKind, string> = {
 export type SourcedOption = OptionPosition & { sourceLabel: string };
 
 type GroupBy = "none" | "strategy" | "dte" | "ticker" | "account";
-type SortKey = "ticker" | "strategy" | "qty" | "dit" | "dte" | "strike" | "spot" | "spotPct" | "theta" | "apy" | "ror" | "unrealized" | "remApy" | "todayPl" | "marketValue" | "source";
+type SortKey = "ticker" | "strategy" | "qty" | "dit" | "dte" | "strike" | "spot" | "spotPct" | "theta" | "arr" | "ror" | "unrealized" | "remArr" | "todayPl" | "marketValue" | "source";
 
 interface Row {
   o: SourcedOption;
@@ -87,7 +87,7 @@ interface Row {
   remainingLabel: "left" | "value";
   // Same formula as the mobile "close for X% annualized" alert
   // (positionRemainingAnnualizedReturn) — null for anything that isn't a
-  // short CSP/covered-call, same gating as apy/ror above.
+  // short CSP/covered-call, same gating as arr/ror above.
   remainingAnnualized: number | null;
   todayPl: number | null;
   todayPlPct: number | null;
@@ -97,7 +97,7 @@ interface Row {
   todayPlAsOf: string | null;
   greeksAsOf: string | null;
   marketValue: number;
-  apy: number | null;
+  arr: number | null;
   ror: number | null;
   // Set only when a tracker alert matching this exact contract calls for
   // a ticker-adjacent glyph — 💸 for "good profits, consider closing"
@@ -178,7 +178,7 @@ function buildRow(
     todayPlAsOf: o.dayValueChangeAsOf ?? null,
     greeksAsOf: o.greeksAsOf ?? null,
     marketValue,
-    apy: positionAnnualizedReturn(o),
+    arr: positionAnnualizedReturn(o),
     ror: positionReturnOnCapital(o),
     tickerFlag,
   };
@@ -197,7 +197,7 @@ function buildRow(
 //
 // Both summary rows used to lay their figures out with hardcoded colSpans,
 // so inserting a column (Chg %) shifted every total one place left — the
-// theta sum rendering under Chg %, unrealized under APY — with nothing in
+// theta sum rendering under Chg %, unrealized under ARR — with nothing in
 // the types to catch it. Keying to COLUMNS makes the rows self-correcting:
 // a column added or reordered carries its total along automatically.
 function summaryCells(sum: Summary): Partial<Record<SortKey, React.ReactNode>> {
@@ -331,13 +331,13 @@ function sortValue(r: Row, key: SortKey): number | string {
       return r.spotPct ?? -Infinity;
     case "theta":
       return r.theta;
-    case "apy":
-      return r.apy ?? -Infinity;
+    case "arr":
+      return r.arr ?? -Infinity;
     case "ror":
       return r.ror ?? -Infinity;
     case "unrealized":
       return r.unrealized;
-    case "remApy":
+    case "remArr":
       return r.remainingAnnualized ?? -Infinity;
     case "todayPl":
       return r.todayPl ?? -Infinity;
@@ -390,9 +390,9 @@ const COLUMNS: { key: SortKey; label: string; align?: "right" }[] = [
   { key: "spotPct", label: "Chg %", align: "right" },
   { key: "theta", label: "Theta $", align: "right" },
   { key: "ror", label: "RoR %", align: "right" },
-  { key: "apy", label: "APY", align: "right" },
+  { key: "arr", label: "ARR", align: "right" },
   { key: "unrealized", label: "Unrealized", align: "right" },
-  { key: "remApy", label: "APY Left", align: "right" },
+  { key: "remArr", label: "ARR Left", align: "right" },
   { key: "todayPl", label: "Today P/L", align: "right" },
   { key: "marketValue", label: "Market Value", align: "right" },
   { key: "source", label: "Source" },
@@ -650,7 +650,7 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                         </div>
                       </td>
                       <td className="px-3 py-2 text-right tabular text-text">{r.ror != null ? fmtPct(r.ror, 1) : "-"}</td>
-                      <td className="px-3 py-2 text-right tabular text-text">{r.apy != null ? fmtPct(r.apy, 1) : "-"}</td>
+                      <td className="px-3 py-2 text-right tabular text-text">{r.arr != null ? fmtPct(r.arr, 1) : "-"}</td>
                       <td className="px-3 py-2 text-right tabular">
                         <div className="flex flex-col items-end gap-0.5">
                           <PctBar pct={r.unrealizedPct} label={fmtMoney(r.unrealized, { sign: true })} />

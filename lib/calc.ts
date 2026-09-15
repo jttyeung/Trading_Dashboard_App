@@ -123,8 +123,8 @@ export function capturedPct(o: OptionPosition): number {
 
 /** Annualization factor, matching rules.daysPerYear on the backend and
  *  quant/options_eval.py. Previously 360 here while the chain screener
- *  used 365, so a candidate's screening ARR and its displayed APY
- *  disagreed by ~1.4% for the same contract. */
+ *  used 365, so a candidate's screening ARR and the positions table's
+ *  displayed ARR disagreed by ~1.4% for the same contract. */
 export const DAYS_PER_YEAR = 365;
 
 /** Cash a CSP actually ties up: (strike − credit received) × 100 × contracts.
@@ -340,7 +340,7 @@ export function cspAnnualizedReturn(o: OptionPosition): number {
  *  CSP/covered-call, or when openedAt isn't known (no synced transaction
  *  history reaches back to the real open — left null rather than guessing
  *  from remaining DTE, same convention as BBSigma/ErDate above). Used for
- *  the desktop positions table's APY column. */
+ *  the desktop positions table's ARR column. */
 export function positionAnnualizedReturn(o: OptionPosition): number | null {
   if (o.side !== "short" || (o.kind !== "csp" && o.kind !== "covered-call")) return null;
   if (!o.openedAt) return null;
