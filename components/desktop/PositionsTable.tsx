@@ -104,11 +104,21 @@ interface Row {
   // (profit_target: a CSP whose remaining annualized return dropped
   // below the account holder's own floor, or a LEAP that hit a fast
   // profit-taking band), ⚠️ for "this LEAP is approaching expiration"
-  // (leap_expiring), or 📈 for "stock has run up, consider rolling up for
-  // more credit" (roll_up). The rationale text is the glyph's native
-  // hover tooltip, rather than duplicating AlertsPanel's own full card
-  // here.
+  // (leap_expiring), 🛡️ for "this position is ITM, roll defensively for
+  // credit or minimal debit before assignment" (roll — but only on a row
+  // with no roll-analysis button, i.e. a covered call; a short CSP's
+  // button itself becomes the 🛡️, see defensiveRoll), or 📈 for "stock
+  // has run up, consider rolling up for more credit" (roll_up — the
+  // opposite, opportunistic case: only ever searches strikes above the
+  // current one). The rationale text is the glyph's native hover tooltip,
+  // rather than duplicating AlertsPanel's own full card here.
   tickerFlag: { emoji: string; rationale: string } | null;
+  // The tracker's `roll` rationale for a short CSP: the row's 🔄
+  // roll-analysis button turns into 🛡️ with this as its tooltip, since
+  // the panel behind it switches to the defensive search for an ITM put
+  // (RollAnalysisPanel's DefensiveRollBlock) — one icon says both "this
+  // needs a roll" and "the roll on offer is the defensive kind".
+  defensiveRoll: string | null;
 }
 
 // OptionPosition.qty is a plain magnitude (side carries the sign) — signed
@@ -123,6 +133,7 @@ function buildRow(
   o: SourcedOption,
   profitTargetBySymbol: Map<string, string>,
   leapExpiringBySymbol: Map<string, string>,
+  rollBySymbol: Map<string, string>,
   rollUpBySymbol: Map<string, string>,
 ): Row {
   const marketValue = optionNetValue(o); // long +, short − (the buy-back liability)
@@ -139,21 +150,29 @@ function buildRow(
   // profit_target takes priority if a contract somehow matched both (it
   // shouldn't in practice — evaluateLeapPosition's own switch is mutually
   // exclusive — but "good profits to take" is the more actionable signal
-  // of the two either way). roll_up is checked last: it's opportunistic
-  // ("consider taking more"), a lower-priority signal than either "close
-  // now" case, and in practice won't often overlap with them anyway
-  // (evaluateCSPRollUpForCredit only fires well before a position's own
-  // profit-target or expiration window comes into play).
+  // of the two either way). roll (defensive, ITM) outranks roll_up
+  // (opportunistic, still OTM and profitable) since it's the more urgent of
+  // the two roll signals — and in practice they can't overlap anyway, since
+  // evaluatePosition's ActionRoll and evaluateCSPRollUpForCredit's ActionRollUp
+  // are mutually exclusive ITM/profitable-and-green-day branches. roll_up is
+  // checked last: it's the lowest-priority signal of the four, and in
+  // practice won't often overlap with the other two either (it only fires
+  // well before a position's own profit-target or expiration window comes
+  // into play).
   const profitRationale = profitTargetBySymbol.get(o.id);
   const expiringRationale = leapExpiringBySymbol.get(o.id);
+  const rollRationale = rollBySymbol.get(o.id) ?? null;
   const rollUpRationale = rollUpBySymbol.get(o.id);
+  const isShortCSP = o.kind === "csp" && o.side === "short";
   const tickerFlag = profitRationale
     ? { emoji: "💸", rationale: profitRationale }
     : expiringRationale
       ? { emoji: "⚠️", rationale: expiringRationale }
-      : rollUpRationale
-        ? { emoji: "📈", rationale: rollUpRationale }
-        : null;
+      : rollRationale && !isShortCSP
+        ? { emoji: "🛡️", rationale: rollRationale }
+        : rollUpRationale
+          ? { emoji: "📈", rationale: rollUpRationale }
+          : null;
 
   return {
     o,
@@ -181,6 +200,7 @@ function buildRow(
     arr: positionAnnualizedReturn(o),
     ror: positionReturnOnCapital(o),
     tickerFlag,
+    defensiveRoll: isShortCSP ? rollRationale : null,
   };
 }
 
@@ -433,6 +453,14 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
     return m;
   }, [alerts]);
 
+  const rollBySymbol = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const a of alerts) {
+      if (a.action === "roll") m.set(a.contractSymbol, a.rationale);
+    }
+    return m;
+  }, [alerts]);
+
   const rollUpBySymbol = useMemo(() => {
     const m = new Map<string, string>();
     for (const a of alerts) {
@@ -442,8 +470,8 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
   }, [alerts]);
 
   const rows = useMemo(
-    () => options.map((o) => buildRow(o, profitTargetBySymbol, leapExpiringBySymbol, rollUpBySymbol)),
-    [options, profitTargetBySymbol, leapExpiringBySymbol, rollUpBySymbol],
+    () => options.map((o) => buildRow(o, profitTargetBySymbol, leapExpiringBySymbol, rollBySymbol, rollUpBySymbol)),
+    [options, profitTargetBySymbol, leapExpiringBySymbol, rollBySymbol, rollUpBySymbol],
   );
 
   const groups = useMemo(() => {
@@ -612,10 +640,10 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                         {isShortCSP && (
                           <button
                             onClick={() => toggleRollAnalysis(r.o.id)}
-                            title="Roll analysis"
-                            className={`ml-1 text-xs ${rollOpen ? "text-accent" : "text-muted/50 hover:text-text"}`}
+                            title={r.defensiveRoll ?? "Roll analysis"}
+                            className={`ml-1 text-xs ${rollOpen ? "text-accent" : r.defensiveRoll ? "text-amber-400 hover:text-amber-300" : "text-muted/50 hover:text-text"}`}
                           >
-                            🔄
+                            {r.defensiveRoll ? "🛡️" : "🔄"}
                           </button>
                         )}
                       </td>
