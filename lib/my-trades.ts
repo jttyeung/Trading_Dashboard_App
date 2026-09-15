@@ -20,6 +20,7 @@ export const EMPTY_MY_TRADES: MyTradesFile = {
   earnings: [],
   concurrency: [],
   sizing: [],
+  rollChains: [],
 };
 
 export async function getMyTrades(): Promise<MyTradesFile> {
