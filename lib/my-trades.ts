@@ -1,0 +1,35 @@
+// Server-side loader for the My Trades scorecard (data/my-trades.json) —
+// same shape as lib/score-factors.ts.
+import fs from "node:fs";
+import path from "node:path";
+import type { MyTradesFile } from "./types";
+import { isExampleMode } from "./example-mode";
+import { exampleMyTradesFile } from "./example";
+
+export const MY_TRADES_PATH = path.join(process.cwd(), "data", "my-trades.json");
+
+export const EMPTY_MY_TRADES: MyTradesFile = {
+  meta: { generatedAt: "", minSample: 10, tradeCount: 0, matchedCount: 0, capturedSince: "" },
+  trades: [],
+  factors: [],
+  ivrBuckets: [],
+  vrpBuckets: [],
+  guidelines: [],
+  management: { closeReason: [], profitCaptured: [], holdFraction: [], alertResponse: [] },
+  regime: [],
+  earnings: [],
+  concurrency: [],
+  sizing: [],
+};
+
+export async function getMyTrades(): Promise<MyTradesFile> {
+  if (await isExampleMode()) return exampleMyTradesFile;
+  try {
+    const raw = fs.readFileSync(MY_TRADES_PATH, "utf8");
+    const parsed = JSON.parse(raw) as MyTradesFile;
+    if (Array.isArray(parsed?.trades) && parsed.management) return parsed;
+  } catch {
+    // file missing or malformed — return empty
+  }
+  return EMPTY_MY_TRADES;
+}
