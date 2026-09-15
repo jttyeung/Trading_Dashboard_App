@@ -12,7 +12,7 @@ import { WatchlistBoard } from "@/components/desktop/WatchlistBoard";
 import { SchwabReconnect } from "@/components/desktop/SchwabReconnect";
 import { ETradeReconnect } from "@/components/desktop/ETradeReconnect";
 import { MyTradesScorecard, BotScorecard } from "@/components/desktop/ScorecardDesktop";
-import type { PerformanceRow, ScoreFactorsFile } from "@/lib/types";
+import type { MyTradesFile, PerformanceRow, ScoreFactorsFile } from "@/lib/types";
 
 type Tab = "desktop" | "trades" | "bot-safe" | "bot" | "bot-aggressive" | "scorecard" | "calculator" | "chart" | "watchlist" | "connections";
 
@@ -33,8 +33,9 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
   },
   {
     // My Trades sits right after Positions: it's the account holder's OWN
-    // track record (broker-confirmed trades that matched a suggestion),
-    // kept apart from the bot tabs and their scorecard below.
+    // track record (every broker-confirmed closed trade, graded against
+    // their own guidelines), kept apart from the bot tabs and their
+    // scorecard below.
     key: "trades",
     label: "My Trades",
     icon: (
@@ -166,7 +167,8 @@ const HEADINGS: Record<Tab, { title: string; subtitle: string }> = {
   },
   trades: {
     title: "My Trades",
-    subtitle: "Your broker-confirmed trades that matched a suggestion — outcomes by strategy and delta. Yours only; the bots' paper track record is under Bot Scorecard.",
+    subtitle:
+      "Your broker-confirmed closed trades — by strategy and delta, then graded against your own guidelines, how you managed them, and the conditions you opened them in. Yours only; the bots' paper track record is under Bot Scorecard.",
   },
   scorecard: {
     title: "Bot Scorecard",
@@ -210,6 +212,7 @@ export function OverviewShell({
   scoreRows,
   totalSuggestions,
   scoreFactors,
+  myTrades,
   exampleMode,
 }: {
   options: SourcedOption[];
@@ -220,6 +223,7 @@ export function OverviewShell({
   scoreRows: PerformanceRow[];
   totalSuggestions: number;
   scoreFactors: ScoreFactorsFile;
+  myTrades: MyTradesFile;
   exampleMode: boolean;
 }) {
   const anyConnectionDown = useAnyConnectionDown();
@@ -341,7 +345,7 @@ export function OverviewShell({
         <div className={tab === "bot-aggressive" ? "" : "hidden"}>
           <BotTable trades={aggressiveBot.trades} myGrade={aggressiveBot.myGrade} storageKey="aggressive" exampleMode={exampleMode} />
         </div>
-        {tab === "trades" && <MyTradesScorecard rows={scoreRows} totalSuggestions={totalSuggestions} />}
+        {tab === "trades" && <MyTradesScorecard rows={scoreRows} totalSuggestions={totalSuggestions} myTrades={myTrades} />}
         {tab === "scorecard" && <BotScorecard rows={scoreRows} scoreFactors={scoreFactors} />}
         {/* Always mounted (just hidden), unlike the desktop/trades/scorecard tabs above --
             this panel does its own live fetch plus in-flight add/remove
