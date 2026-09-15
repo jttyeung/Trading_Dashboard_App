@@ -992,6 +992,7 @@ export interface MyTrade {
   putCall: string;
   strategy: string; // "" when no suggestion ever matched
   alsoSuggestedAs?: string[];
+  source: "schwab" | "fidelity" | "etrade"; // which broker's FIFO closed it
   account: string; // opaque masked id
   openDate: string;
   closeDate: string;
