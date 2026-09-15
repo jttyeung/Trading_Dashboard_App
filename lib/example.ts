@@ -1290,4 +1290,26 @@ export const exampleMyTradesFile: MyTradesFile = {
   earnings: exampleBuckets(["inside trade window", "≤7d after expiry", ">7d / none"], (t) => t.earningsBucket),
   concurrency: exampleBuckets(["1-3", "4-6", "7+"], (t) => (t.concurrentPositions <= 3 ? "1-3" : t.concurrentPositions <= 6 ? "4-6" : "7+")),
   sizing: exampleBuckets(["<5%", "5-10%", ">10%"], (t) => (t.collateralPctOfAccount == null ? "" : t.collateralPctOfAccount < 5 ? "<5%" : t.collateralPctOfAccount <= 10 ? "5-10%" : ">10%")),
+  rollChains: [
+    {
+      // A defensive roll that worked: the first leg was bought back at a
+      // loss, the replacement expired worthless.
+      ticker: "CLS", putCall: "PUT", status: "closed", openLegCredit: null,
+      legs: [
+        { contractSymbol: "CLS   260828P00120000", openDate: isoDay(-120), closeDate: isoDay(-100), closeReason: "CLOSED", realizedPnl: -410 },
+        { contractSymbol: "CLS   260925P00110000", openDate: isoDay(-100), closeDate: isoDay(-72), closeReason: "EXPIRED", realizedPnl: 585 },
+      ],
+      firstLegPnl: -410, laterLegsPnl: 585, realizedPnl: 175,
+    },
+    {
+      // A roll-up still in flight: the first leg closed for a profit, the
+      // higher strike is open with its credit in play.
+      ticker: "HPE", putCall: "PUT", status: "open", openLegCredit: 260,
+      legs: [
+        { contractSymbol: "HPE   260925P00047000", openDate: isoDay(-15), closeDate: isoDay(-10), closeReason: "CLOSED", realizedPnl: 211 },
+        { contractSymbol: "HPE   261016P00050000", openDate: isoDay(-10), closeDate: "", closeReason: "", realizedPnl: null },
+      ],
+      firstLegPnl: 211, laterLegsPnl: 0, realizedPnl: 211,
+    },
+  ],
 };
