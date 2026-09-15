@@ -931,6 +931,42 @@ export interface MyTradesFile {
   concurrency: BucketStat[];
   sizing: BucketStat[];
   rollChains: RollChain[];
+  // Closed LONG option trades (LEAPs), graded on their own terms and kept
+  // out of every section above — a bought call has no collateral, credit
+  // kept, or roll chain; its return is on cost.
+  leaps: LeapsSection;
+}
+
+export interface LeapsSection {
+  trades: MyLeapTrade[];
+  guidelines: GuidelineStat[]; // STRAT-005: 365+ DTE and 0.70+ delta at entry
+  regime: BucketStat[];
+  ivrBuckets: BucketStat[];
+  hold: BucketStat[]; // "<30d" | "30-90d" | "90-365d" | "365d+"
+}
+
+export interface MyLeapTrade {
+  ticker: string;
+  contractSymbol: string;
+  putCall: string;
+  source: "schwab" | "fidelity";
+  account: string; // opaque masked id
+  openDate: string;
+  closeDate: string;
+  closeReason: string;
+  quantity: number;
+  openPrice: number;
+  closePrice: number;
+  realizedPnl: number;
+  returnPct: number; // on open price × 100 × qty (cost), NOT collateral
+  win: boolean;
+  dit: number;
+  dteAtOpen: number;
+  deltaAtOpen: number | null; // only Schwab positions get an entry snapshot
+  vixAtOpen: number | null;
+  vixRegime: string;
+  ivRankAtOpen: number | null;
+  guidelines: Record<string, boolean>; // absent key = input unknown, not a pass
 }
 
 // RollChain — one position followed through every roll, linked by Schwab

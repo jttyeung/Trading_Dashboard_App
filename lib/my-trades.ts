@@ -21,6 +21,7 @@ export const EMPTY_MY_TRADES: MyTradesFile = {
   concurrency: [],
   sizing: [],
   rollChains: [],
+  leaps: { trades: [], guidelines: [], regime: [], ivrBuckets: [], hold: [] },
 };
 
 export async function getMyTrades(): Promise<MyTradesFile> {
@@ -28,7 +29,9 @@ export async function getMyTrades(): Promise<MyTradesFile> {
   try {
     const raw = fs.readFileSync(MY_TRADES_PATH, "utf8");
     const parsed = JSON.parse(raw) as MyTradesFile;
-    if (Array.isArray(parsed?.trades) && parsed.management) return parsed;
+    if (Array.isArray(parsed?.trades) && parsed.management) {
+      return { ...parsed, leaps: parsed.leaps ?? EMPTY_MY_TRADES.leaps };
+    }
   } catch {
     // file missing or malformed — return empty
   }
