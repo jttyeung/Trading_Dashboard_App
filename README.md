@@ -29,7 +29,9 @@ built-in demo dataset, so you can explore the whole UI immediately.
   each) come from the daemon's `data/portfolio-risk.json`; sectors are the wheel watchlist
   sheet's own, so a name not on the sheet shows under "Unclassified"
 - **My Trades** (desktop `/overview` tab) — the account holder's own broker-confirmed trades that
-  matched a suggestion, by strategy and delta bucket — kept separate from the bots. A separate
+  matched a suggestion, by strategy and delta bucket — kept separate from the bots. The guideline,
+  management and entry-condition sections cover every closed short option trade across Schwab,
+  Fidelity and E*TRADE (roll chains and alert response stay Schwab-only). A separate
   "LEAPs you bought" block grades closed long options (Schwab and Fidelity) against STRAT-005
   only (365+ DTE, 0.70+ delta at entry), with return on cost rather than collateral, so a bought
   call never averages into the premium-selling stats

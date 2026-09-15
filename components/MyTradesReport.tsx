@@ -242,7 +242,7 @@ export function MyTradesReport({ file }: { file: MyTradesFile }) {
       <SectionTitle>Execution vs the guidelines</SectionTitle>
       <Card className="divide-y divide-border overflow-x-auto">
         <div className="px-3 py-1.5 text-[10px] text-muted">
-          {`${meta.tradeCount} closed trade${meta.tradeCount === 1 ? "" : "s"} · a rule is only counted where its input is known for that trade — an unknown is left out, never marked broken`}
+          {`${meta.tradeCount} closed trade${meta.tradeCount === 1 ? "" : "s"} across Schwab, Fidelity and E*TRADE · a rule is only counted where its input is known for that trade — an unknown is left out, never marked broken`}
         </div>
         <table className="w-full min-w-[640px] border-collapse text-xs">
           <thead>
@@ -350,7 +350,9 @@ export function MyTradesReport({ file }: { file: MyTradesFile }) {
       <LeapsBlock leaps={leaps} since={since} />
 
       <p className="mt-3 px-1 text-[11px] leading-relaxed text-muted">
-        Every trade the broker confirmed closed counts here, whether or not it was ever suggested. Retroactive reads
+        Every trade a broker confirmed closed counts here — Schwab, Fidelity and E*TRADE alike — whether or not it was ever
+        suggested. Roll chains and alert response are Schwab-only (rolls are linked by Schwab order id; the tracker alerts on
+        Schwab positions), so they read as absent, not broken, elsewhere. Retroactive reads
         (DTE, monthly ROI, wash-sale, sizing, regime, IV rank, how it was managed) cover every trade; the ones that need
         the tracker to have frozen the entry (delta band, liquidity, earnings, VRP, alert response) start from{" "}
         {since || "the first captured entry"}. Nothing here changes what gets suggested.
