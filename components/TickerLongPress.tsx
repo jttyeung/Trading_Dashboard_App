@@ -25,7 +25,7 @@ const TICKER_RE = /^[A-Z][A-Z0-9]{0,4}(\.[A-Z])?$/;
 const STOPLIST = new Set([
   "CSP", "CSPS", "CC", "CCS", "LEAP", "LEAPS", "PUT", "PUTS", "CALL", "CALLS", "PMCC",
   "VIX", "VXN", "VVIX", "SKEW", "MES", "ES", "SPX", "NDX", "RUT", "S5FI",
-  "DTE", "DIT", "APY", "ROR", "ROI", "IV", "IVR", "OI", "ATM", "OTM", "ITM", "BE", "PL",
+  "DTE", "DIT", "APY", "ARR", "ROR", "ROI", "IV", "IVR", "OI", "ATM", "OTM", "ITM", "BE", "PL",
   "SMA", "EMA", "RSI", "MACD", "BB", "OTU", "BTC", "ETH", "USD", "ETF", "IRA", "ROTH",
   "AM", "PM", "ET", "EST", "EDT", "UTC", "YTD", "MTD", "QTD", "N", "A", "NA", "OK", "ID",
   "ALL", "MAX", "MIN", "AVG", "NET", "NEW", "EXP", "TOTAL", "CASH", "HOLD", "BUY", "SELL",

@@ -14,7 +14,7 @@ import {
 } from "@/lib/roll-api";
 import type { SourcedOption } from "./PositionsTable";
 
-type CandidateSortKey = "strike" | "expirationDate" | "dte" | "delta" | "netCredit" | "resultingApy";
+type CandidateSortKey = "strike" | "expirationDate" | "dte" | "delta" | "netCredit" | "resultingArr";
 
 function candidateSortValue(c: RollAnalysisCandidate, key: CandidateSortKey): number | string {
   switch (key) {
@@ -28,8 +28,8 @@ function candidateSortValue(c: RollAnalysisCandidate, key: CandidateSortKey): nu
       return c.delta;
     case "netCredit":
       return c.netCreditTotal;
-    case "resultingApy":
-      return c.resultingApy;
+    case "resultingArr":
+      return c.resultingArr;
   }
 }
 
@@ -39,7 +39,7 @@ function candidateSortValue(c: RollAnalysisCandidate, key: CandidateSortKey): nu
 // higher-strike replacement Schwab has for this ticker, across every
 // expiration including the current one. Two modes:
 //
-//   - "Target APY": only shows/recommends a roll that's a genuine net
+//   - "Target ARR": only shows/recommends a roll that's a genuine net
 //     credit AND brings the resulting position back above the account
 //     holder's own stored target annualized return (editable here,
 //     pencil-icon precedent from MonthlyGoalCard.tsx -- but this one
@@ -47,14 +47,14 @@ function candidateSortValue(c: RollAnalysisCandidate, key: CandidateSortKey): nu
 //     since the Go tracker agent's own automatic check needs to see the
 //     same number server-side).
 //   - "Max cash": every credit roll, any DTE, sorted by dollars
-//     collected, no APY filtering at all -- for when the account holder
+//     collected, no ARR filtering at all -- for when the account holder
 //     is comfortable with assignment either way and just wants the
 //     single biggest number available right now.
 //
 // Lazy: the parent only mounts this once a row is actually expanded, so
 // opening the Positions table never fires N live chain calls up front.
 export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
-  const [mode, setMode] = useState<RollAnalysisMode>("target_apy");
+  const [mode, setMode] = useState<RollAnalysisMode>("target_arr");
   const [target, setTarget] = useState<number | null>(null);
   const [editingTarget, setEditingTarget] = useState(false);
   const [targetDraft, setTargetDraft] = useState("");
@@ -62,7 +62,7 @@ export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Sortable in both views -- defaults match each mode's own natural
-  // framing (Target APY: closest/safest strike first; Max cash: biggest
+  // framing (Target ARR: closest/safest strike first; Max cash: biggest
   // credit first, matching the backend's own default ordering), but
   // either can be overridden by clicking any column.
   const [sortKey, setSortKey] = useState<CandidateSortKey>("strike");
@@ -106,8 +106,8 @@ export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
     }
     fetchRollTarget()
       .then((t) => {
-        setTarget(t.targetApyPercent);
-        setTargetDraft(String(t.targetApyPercent));
+        setTarget(t.targetArrPercent);
+        setTargetDraft(String(t.targetArrPercent));
       })
       .catch(() => setTarget(30)); // a reasonable fallback if the daemon isn't reachable yet
   }, []);
@@ -131,7 +131,7 @@ export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
       contracts: position.qty,
       costToClose: position.mark,
       mode,
-      targetApy: target,
+      targetArr: target,
     })
       .then((d) => {
         if (!cancelled) setData(d);
@@ -179,7 +179,7 @@ export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-1 rounded-lg border border-border p-0.5">
-          {(["target_apy", "max_cash"] as const).map((m) => (
+          {(["target_arr", "max_cash"] as const).map((m) => (
             <button
               key={m}
               onClick={() => setMode(m)}
@@ -189,12 +189,12 @@ export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
                   : "text-muted hover:text-text"
               }`}
             >
-              {m === "target_apy" ? "Target APY" : "Max cash"}
+              {m === "target_arr" ? "Target ARR" : "Max cash"}
             </button>
           ))}
         </div>
 
-        {mode === "target_apy" && (
+        {mode === "target_arr" && (
           <div className="flex items-center gap-1 text-xs text-muted">
             Target:
             {editingTarget ? (
@@ -219,7 +219,7 @@ export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
                 setTargetDraft(String(target ?? ""));
                 setEditingTarget(true);
               }}
-              title="Edit target APY"
+              title="Edit target ARR"
               className="text-muted/60 hover:text-text"
             >
               ✏️
@@ -230,7 +230,7 @@ export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
 
       {mode === "max_cash" && (
         <p className="text-[11px] text-muted">
-          Ignoring your APY target — every credit roll available, any DTE
+          Ignoring your ARR target — every credit roll available, any DTE
           including the current expiration, sorted by dollars collected.
         </p>
       )}
@@ -242,8 +242,8 @@ export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
 
       {!loading && !error && data && sortedCandidates.length === 0 && (
         <p className="text-xs text-muted">
-          {mode === "target_apy"
-            ? "No higher strike found that's both a real credit and clears your target APY right now."
+          {mode === "target_arr"
+            ? "No higher strike found that's both a real credit and clears your target ARR right now."
             : "No credit roll available above the current strike right now."}
         </p>
       )}
@@ -258,7 +258,7 @@ export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
                 <SortableHeader label="DTE" col="dte" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
                 <SortableHeader label="Δ" col="delta" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
                 <SortableHeader label="Net credit" col="netCredit" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
-                <SortableHeader label="Resulting APY" col="resultingApy" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
+                <SortableHeader label="Resulting ARR" col="resultingArr" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
               </tr>
             </thead>
             <tbody>
@@ -315,13 +315,13 @@ function CandidateRow({
   mode: RollAnalysisMode;
   recommended: boolean;
 }) {
-  // Target-APY mode dims a row that doesn't clear the bar (still visible
+  // Target-ARR mode dims a row that doesn't clear the bar (still visible
   // for context, since "how close is the next best" is useful too); the
   // recommended row is the same one the automatic backend alert would
   // pick (smallest qualifying strike). Max-cash mode never dims anything
   // -- every row shown there already cleared the credit-only floor, and
   // "meets target" isn't the point of that mode.
-  const dimmed = mode === "target_apy" && !c.meetsTarget;
+  const dimmed = mode === "target_arr" && !c.meetsTarget;
   return (
     <tr
       className={`border-b border-border/60 ${recommended ? "bg-emerald-500/10" : ""} ${dimmed ? "opacity-50" : ""}`}
@@ -348,7 +348,7 @@ function CandidateRow({
         {fmtMoney(c.netCreditTotal, { sign: true })})
       </td>
       <td className="px-2 py-1.5 text-right tabular text-text">
-        {fmtPct(c.resultingApy / 100, 1)}
+        {fmtPct(c.resultingArr / 100, 1)}
       </td>
     </tr>
   );
