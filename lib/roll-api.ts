@@ -11,7 +11,7 @@ function rollAPIBase(): string {
   return `${window.location.protocol}//${window.location.hostname}:8095`;
 }
 
-export type RollAnalysisMode = "target_apy" | "max_cash";
+export type RollAnalysisMode = "target_arr" | "max_cash";
 
 export interface RollAnalysisCandidate {
   symbol: string;
@@ -22,14 +22,14 @@ export interface RollAnalysisCandidate {
   premium: number;
   netCreditPerShare: number;
   netCreditTotal: number;
-  resultingApy: number;
+  resultingArr: number;
   meetsTarget: boolean;
 }
 
 export interface RollAnalysisResponse {
   symbol: string;
   mode: RollAnalysisMode;
-  targetApyUsed: number;
+  targetArrUsed: number;
   candidates: RollAnalysisCandidate[] | null; // null when the pool is empty — guard before spreading
   recommended: RollAnalysisCandidate | null;
 }
@@ -41,7 +41,7 @@ export interface RollAnalysisParams {
   contracts: number;
   costToClose: number;
   mode: RollAnalysisMode;
-  targetApy?: number;
+  targetArr?: number;
 }
 
 export async function fetchRollAnalysis(
@@ -55,7 +55,7 @@ export async function fetchRollAnalysis(
     costToClose: String(params.costToClose),
     mode: params.mode,
   });
-  if (params.targetApy != null) qs.set("targetApy", String(params.targetApy));
+  if (params.targetArr != null) qs.set("targetArr", String(params.targetArr));
 
   const res = await fetch(`${rollAPIBase()}/roll-analysis?${qs.toString()}`);
   if (!res.ok) {
@@ -68,7 +68,7 @@ export async function fetchRollAnalysis(
 }
 
 export interface RollTarget {
-  targetApyPercent: number;
+  targetArrPercent: number;
 }
 
 export async function fetchRollTarget(): Promise<RollTarget> {
@@ -83,7 +83,7 @@ export async function setRollTarget(percent: number): Promise<RollTarget> {
   const res = await fetch(`${rollAPIBase()}/roll-target`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ targetApyPercent: percent }),
+    body: JSON.stringify({ targetArrPercent: percent }),
   });
   if (!res.ok) {
     const text = await res.text();

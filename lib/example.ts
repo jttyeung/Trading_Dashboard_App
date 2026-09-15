@@ -1101,14 +1101,14 @@ export function exampleRollAnalysis(
   symbol: string,
   currentStrike: number,
   mode: RollAnalysisMode,
-  targetApy: number | null,
+  targetArr: number | null,
 ): RollAnalysisResponse {
-  const target = targetApy ?? 30;
+  const target = targetArr ?? 30;
   const candidates: RollAnalysisCandidate[] = [1, 2, 3, 4].map((i) => {
     const strike = Math.round(currentStrike * (1 + i * 0.01));
     const dte = 7 * i + 7;
     const netCreditPerShare = 0.55 + i * 0.28;
-    const resultingApy = (netCreditPerShare / Math.max(strike - netCreditPerShare, 1)) * (365 / dte) * 100;
+    const resultingArr = (netCreditPerShare / Math.max(strike - netCreditPerShare, 1)) * (365 / dte) * 100;
     return {
       symbol: `${symbol}  EXAMPLE${String(strike).padStart(8, "0")}`,
       strike,
@@ -1118,23 +1118,23 @@ export function exampleRollAnalysis(
       premium: netCreditPerShare + 0.9,
       netCreditPerShare,
       netCreditTotal: netCreditPerShare * 100,
-      resultingApy,
-      meetsTarget: resultingApy >= target,
+      resultingArr,
+      meetsTarget: resultingArr >= target,
     };
   });
 
-  const eligible = mode === "target_apy" ? candidates.filter((c) => c.meetsTarget) : candidates;
+  const eligible = mode === "target_arr" ? candidates.filter((c) => c.meetsTarget) : candidates;
   const ordered =
     mode === "max_cash" ? [...eligible].sort((a, b) => b.netCreditTotal - a.netCreditTotal) : eligible;
 
   return {
     symbol,
     mode,
-    targetApyUsed: target,
+    targetArrUsed: target,
     candidates: ordered,
     // "max cash" deliberately recommends nothing — it's an unfiltered
     // list, matching the real endpoint's own behavior.
-    recommended: mode === "target_apy" ? ordered[0] ?? null : null,
+    recommended: mode === "target_arr" ? ordered[0] ?? null : null,
   };
 }
 
