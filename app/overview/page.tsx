@@ -11,6 +11,7 @@ import { getGeneralBot, get20DeltaSafeBot, getAggressiveBot } from "@/lib/bot";
 import { getSuggestionPerformance } from "@/lib/suggestion-performance";
 import { getStrategyPerformance } from "@/lib/strategy-performance";
 import { getScoreFactors } from "@/lib/score-factors";
+import { getMyTrades } from "@/lib/my-trades";
 import { accountLabel } from "@/lib/account-shared";
 import { isExampleMode } from "@/lib/example-mode";
 import { OverviewShell } from "@/components/overview/OverviewShell";
@@ -20,13 +21,14 @@ export const dynamic = "force-dynamic";
 export default async function OverviewPage() {
   const snap = await getSnapshot();
   const alerts = (await getAlerts()).alerts;
-  const [generalBot, safeBot, aggressiveBot, suggestionPerf, strategyPerf, scoreFactors, exampleMode] = await Promise.all([
+  const [generalBot, safeBot, aggressiveBot, suggestionPerf, strategyPerf, scoreFactors, myTrades, exampleMode] = await Promise.all([
     getGeneralBot(),
     get20DeltaSafeBot(),
     getAggressiveBot(),
     getSuggestionPerformance(),
     getStrategyPerformance(),
     getScoreFactors(),
+    getMyTrades(),
     isExampleMode(),
   ]);
 
@@ -47,6 +49,7 @@ export default async function OverviewPage() {
       scoreRows={strategyPerf.rows}
       totalSuggestions={suggestionPerf.meta.totalSuggestions}
       scoreFactors={scoreFactors}
+      myTrades={myTrades}
       exampleMode={exampleMode}
     />
   );
