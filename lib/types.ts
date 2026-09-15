@@ -893,3 +893,88 @@ export interface BucketStat {
   winRate: number;
   avgReturnPct: number;
 }
+
+// ---------------------------------------------------------------------------
+// My Trades scorecard (data/my-trades.json) — the account holder's own
+// closed short-option trades graded against how THEY traded: execution
+// vs the OTU guidelines, management behavior, VIX regime at entry,
+// earnings proximity, concurrency/sizing, plus the same factor and
+// IVR/VRP buckets the Bot Scorecard shows for paper picks. Mirrors
+// internal/export/my_trades.go, which is the source of truth for every
+// number here (one tested definition; nothing is recomputed client-side).
+// Deliberately not a bot-vs-human comparison. Prospective inputs (entry
+// snapshot: delta band, liquidity, earnings, VRP, alert response) are
+// null/absent on trades opened before capture began and are left out of
+// those stats' N — an absent guideline key means "unknown," not "passed."
+// ---------------------------------------------------------------------------
+export interface MyTradesFile {
+  meta: {
+    generatedAt: string;
+    minSample: number;
+    tradeCount: number;
+    matchedCount: number; // trades that matched a suggestion (feed the factor rows)
+    capturedSince: string; // YYYY-MM-DD of the first entry snapshot; "" until one exists
+  };
+  trades: MyTrade[];
+  factors: FactorStat[];
+  ivrBuckets: BucketStat[];
+  vrpBuckets: BucketStat[];
+  guidelines: GuidelineStat[];
+  management: {
+    closeReason: BucketStat[];
+    profitCaptured: BucketStat[];
+    holdFraction: BucketStat[];
+    alertResponse: BucketStat[];
+  };
+  regime: BucketStat[];
+  earnings: BucketStat[];
+  concurrency: BucketStat[];
+  sizing: BucketStat[];
+}
+
+export interface MyTrade {
+  ticker: string;
+  contractSymbol: string;
+  putCall: string;
+  strategy: string; // "" when no suggestion ever matched
+  alsoSuggestedAs?: string[];
+  account: string; // opaque masked id
+  openDate: string;
+  closeDate: string;
+  closeReason: string;
+  quantity: number;
+  openPrice: number;
+  closePrice: number;
+  realizedPnl: number;
+  returnPct: number; // on strike × 100 × qty
+  win: boolean;
+  dit: number;
+  dteAtOpen: number;
+  deltaAtOpen: number | null;
+  ivAtOpen: number | null;
+  annualizedRorAtOpen: number;
+  vixAtOpen: number | null;
+  vixRegime: string;
+  ivRankAtOpen: number | null;
+  vrpAtOpen: string;
+  daysToEarningsAtOpen: number | null;
+  earningsBucket: string;
+  concurrentPositions: number;
+  collateralPctOfAccount: number | null;
+  profitCapturedPct: number | null;
+  holdFraction: number;
+  alertResponse: { action: string; firedAt: string; hoursToClose: number | null } | null;
+  guidelines: Record<string, boolean>;
+}
+
+export interface GuidelineStat {
+  key: string;
+  label: string;
+  rule: string;
+  nChecked: number;
+  nCompliant: number;
+  winRateCompliant: number | null;
+  winRateViolated: number | null;
+  avgReturnCompliant: number | null;
+  avgReturnViolated: number | null;
+}
