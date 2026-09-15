@@ -1138,6 +1138,9 @@ export function exampleRollAnalysis(
     // "max cash" deliberately recommends nothing — it's an unfiltered
     // list, matching the real endpoint's own behavior.
     recommended: mode === "target_arr" ? ordered[0] ?? null : null,
+    // The synthetic positions are all OTM, so the ITM-only defensive
+    // section never applies here.
+    defensive: null,
   };
 }
 
