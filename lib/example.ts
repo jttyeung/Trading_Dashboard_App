@@ -25,6 +25,9 @@ import type {
   StrategyPerformanceFile,
   ScoreFactorsFile,
   FactorStat,
+  MyTradesFile,
+  MyTrade,
+  BucketStat,
   BotSnapshot,
   BotTrade,
 } from "./types";
@@ -1195,4 +1198,96 @@ export const exampleScoreFactorsFile: ScoreFactorsFile = {
     { bot: "20_delta_safe", resolved: 9, tracked: 7, factors: [exampleFactor("vrpBonus", "VRP (RULE-022)", "earned", 9, 4, 0.1, 29)], vrpBuckets: [], ivrBuckets: [] },
     { bot: "aggressive", resolved: 15, tracked: 12, factors: [exampleFactor("vrpBonus", "VRP (RULE-022)", "earned", 15, 6, 0.4, 31)], vrpBuckets: [], ivrBuckets: [] },
   ],
+};
+
+// exampleMyTradesFile — demo data for the My Trades tab. The same four
+// real trades as exampleSuggestionPerformanceFile (kept consistent) plus
+// two unmatched ones, so the demo shows both a trade the engine had
+// suggested and one it hadn't. Two of the six predate "capture" so the
+// prospective sections show their fill-in state alongside graded rows.
+// Every number is synthetic; the account ids are opaque demo strings.
+function exampleMyTrade(t: Partial<MyTrade> & Pick<MyTrade, "ticker" | "contractSymbol" | "realizedPnl" | "dteAtOpen" | "dit">): MyTrade {
+  const strike = Number(t.contractSymbol.slice(13)) / 1000;
+  const returnPct = Math.round((t.realizedPnl / (strike * 100 * (t.quantity ?? 1))) * 10000) / 100;
+  return {
+    putCall: "PUT", strategy: "", account: "acct-demo01", quantity: 1, openPrice: 2.5, closePrice: 0.8,
+    closeReason: "CLOSED", deltaAtOpen: null, ivAtOpen: null, vixAtOpen: null, vixRegime: "", ivRankAtOpen: null,
+    vrpAtOpen: "", daysToEarningsAtOpen: null, earningsBucket: "", concurrentPositions: 3, collateralPctOfAccount: null,
+    profitCapturedPct: null, alertResponse: null, guidelines: {},
+    openDate: isoDay(-(t.dit + 10)), closeDate: isoDay(-10),
+    ...t,
+    returnPct, win: t.realizedPnl > 0, holdFraction: Math.min(1, t.dit / t.dteAtOpen),
+    annualizedRorAtOpen: Math.round((((t.openPrice ?? 2.5) / strike) * (365 / t.dteAtOpen)) * 10000) / 100,
+  };
+}
+
+const exampleMyTrades: MyTrade[] = [
+  exampleMyTrade({ ticker: "IREN", contractSymbol: "IREN  260815P00015000", strategy: "CSP", realizedPnl: 171, dteAtOpen: 30, dit: 30, closeReason: "EXPIRED", openPrice: 1.8, closePrice: 0, vixAtOpen: 17.8, vixRegime: "Slight Fear", ivRankAtOpen: 61, concurrentPositions: 2,
+    guidelines: { dteBand: true, monthlyRoi: true, washSale: true } }),
+  exampleMyTrade({ ticker: "GLW", contractSymbol: "GLW   260824P00045000", strategy: "CSP", realizedPnl: 270, dteAtOpen: 34, dit: 34, closeReason: "EXPIRED", openPrice: 2.7, closePrice: 0, vixAtOpen: 15.9, vixRegime: "Slight Fear", ivRankAtOpen: 44, concurrentPositions: 4,
+    guidelines: { dteBand: true, monthlyRoi: true, washSale: true } }),
+  exampleMyTrade({ ticker: "CLS", contractSymbol: "CLS   260828P00120000", strategy: "CSP", realizedPnl: -170, dteAtOpen: 24, dit: 24, closeReason: "ASSIGNED", openPrice: 3.5, closePrice: 0, vixAtOpen: 22.4, vixRegime: "Fear", ivRankAtOpen: 78, concurrentPositions: 5, collateralPctOfAccount: 12.1,
+    deltaAtOpen: -0.31, ivAtOpen: 58.2, vrpAtOpen: "rich", daysToEarningsAtOpen: 9, earningsBucket: "inside trade window", alertResponse: { action: "roll", firedAt: isoDay(-8), hoursToClose: null },
+    guidelines: { deltaBand: true, dteBand: true, monthlyRoi: true, positionSize: false, sectorCap: true, washSale: true, earnings: false, liquidity: true } }),
+  exampleMyTrade({ ticker: "AAPL", contractSymbol: "AAPL  260821C00200000", putCall: "CALL", strategy: "CC", realizedPnl: 600, dteAtOpen: 31, dit: 19, openPrice: 6.0, closePrice: 1.2, vixAtOpen: 14.2, vixRegime: "Greed", ivRankAtOpen: 27, concurrentPositions: 5, collateralPctOfAccount: 8.4, profitCapturedPct: 80,
+    deltaAtOpen: 0.32, ivAtOpen: 24.9, vrpAtOpen: "fair", daysToEarningsAtOpen: 40, earningsBucket: ">7d / none", alertResponse: { action: "profit_target", firedAt: isoDay(-12), hoursToClose: 19 },
+    guidelines: { deltaBand: true, dteBand: true, monthlyRoi: true, positionSize: true, sectorCap: true, washSale: true, earnings: true, liquidity: true } }),
+  exampleMyTrade({ ticker: "SOFI", contractSymbol: "SOFI  260918P00017000", realizedPnl: 46, dteAtOpen: 23, dit: 9, openPrice: 0.5, closePrice: 0.2, vixAtOpen: 16.4, vixRegime: "Slight Fear", ivRankAtOpen: null, concurrentPositions: 6, collateralPctOfAccount: 2.9, profitCapturedPct: 60,
+    deltaAtOpen: -0.22, ivAtOpen: 71.0, vrpAtOpen: "thin", daysToEarningsAtOpen: 26, earningsBucket: "≤7d after expiry", alertResponse: { action: "close", firedAt: isoDay(-13), hoursToClose: 70 },
+    guidelines: { deltaBand: true, dteBand: true, monthlyRoi: false, positionSize: true, sectorCap: true, washSale: true, earnings: true, liquidity: false } }),
+  exampleMyTrade({ ticker: "HPE", contractSymbol: "HPE   260925P00047000", realizedPnl: 211, dteAtOpen: 24, dit: 5, openPrice: 2.1, closePrice: 0.8, vixAtOpen: 19.1, vixRegime: "Slight Fear", ivRankAtOpen: 52, concurrentPositions: 7, collateralPctOfAccount: 7.9, profitCapturedPct: 62,
+    deltaAtOpen: -0.27, ivAtOpen: 43.5, vrpAtOpen: "rich", daysToEarningsAtOpen: null, earningsBucket: ">7d / none",
+    guidelines: { deltaBand: true, dteBand: true, monthlyRoi: true, positionSize: true, sectorCap: false, washSale: false, earnings: true, liquidity: true } }),
+];
+
+// exampleBuckets / exampleGuidelines derive the section stats from the
+// six demo trades above with the same definitions the Go export uses, so
+// the demo can't disagree with its own rows.
+function exampleBuckets(order: string[], keyOf: (t: MyTrade) => string): BucketStat[] {
+  return order.flatMap((bucket) => {
+    const rows = exampleMyTrades.filter((t) => keyOf(t) === bucket);
+    if (rows.length === 0) return [];
+    const wins = rows.filter((t) => t.win).length;
+    return [{ bucket, n: rows.length, wins, winRate: (wins / rows.length) * 100, avgReturnPct: rows.reduce((a, t) => a + t.returnPct, 0) / rows.length }];
+  });
+}
+function exampleGuideline(key: string, label: string, rule: string) {
+  const checked = exampleMyTrades.filter((t) => key in t.guidelines);
+  const ok = checked.filter((t) => t.guidelines[key]);
+  const bad = checked.filter((t) => !t.guidelines[key]);
+  const wr = (rows: MyTrade[]) => (rows.length === 0 ? null : (rows.filter((t) => t.win).length / rows.length) * 100);
+  const ar = (rows: MyTrade[]) => (rows.length === 0 ? null : rows.reduce((a, t) => a + t.returnPct, 0) / rows.length);
+  return { key, label, rule, nChecked: checked.length, nCompliant: ok.length, winRateCompliant: wr(ok), winRateViolated: wr(bad), avgReturnCompliant: ar(ok), avgReturnViolated: ar(bad) };
+}
+
+export const exampleMyTradesFile: MyTradesFile = {
+  meta: { generatedAt: NOW_ISO, minSample: 10, tradeCount: exampleMyTrades.length, matchedCount: 4, capturedSince: isoDay(-50).slice(0, 10) },
+  trades: exampleMyTrades,
+  factors: [
+    exampleFactor("vrpBonus", "VRP (RULE-022)", "earned", 4, 2, 0.3, 41),
+    exampleFactor("signalsScore", "Indicator signals", "median", 4, 2, 0.1, 43),
+    exampleFactor("gammaRegimeBonus", "Positive gamma regime", "earned", 4, 3, 0.05, 47),
+  ].map((f) => ({ ...f, correlation: null, series: [] })),
+  ivrBuckets: exampleBuckets(["70+", "50-69", "30-49", "<30", "building"], (t) => (t.ivRankAtOpen == null ? "building" : t.ivRankAtOpen >= 70 ? "70+" : t.ivRankAtOpen >= 50 ? "50-69" : t.ivRankAtOpen >= 30 ? "30-49" : "<30")),
+  vrpBuckets: exampleBuckets(["rich", "fair", "thin", "n/a"], (t) => t.vrpAtOpen),
+  guidelines: [
+    exampleGuideline("deltaBand", "Delta inside a strategy band", "STRAT-001/003/011"),
+    exampleGuideline("dteBand", "DTE inside a strategy window", "STRAT-001/003/011"),
+    exampleGuideline("monthlyRoi", "Clears the monthly ROI floor", "RULE-010"),
+    exampleGuideline("positionSize", "Position within single-stock cap", "RULE-007"),
+    exampleGuideline("sectorCap", "Sector within allocation cap", "RULE-011"),
+    exampleGuideline("washSale", "No recent loss on the same name", "RULE-014"),
+    exampleGuideline("earnings", "No earnings before expiry", "RULE-008"),
+    exampleGuideline("liquidity", "Liquid at entry", "RULE-012"),
+  ],
+  management: {
+    closeReason: exampleBuckets(["CLOSED", "EXPIRED", "ASSIGNED", "EXERCISED"], (t) => t.closeReason),
+    profitCaptured: exampleBuckets(["<50%", "50-75%", "75-100%", "loss"], (t) => (t.profitCapturedPct == null ? "" : t.profitCapturedPct < 0 ? "loss" : t.profitCapturedPct < 50 ? "<50%" : t.profitCapturedPct < 75 ? "50-75%" : "75-100%")),
+    holdFraction: exampleBuckets(["first third", "middle third", "last third", "to expiry"], (t) => (t.closeReason !== "CLOSED" ? "to expiry" : t.holdFraction < 1 / 3 ? "first third" : t.holdFraction < 2 / 3 ? "middle third" : "last third")),
+    alertResponse: exampleBuckets(["<1 day", "1-3 days", ">3 days", "not acted"], (t) => (t.alertResponse == null ? "" : t.alertResponse.hoursToClose == null ? "not acted" : t.alertResponse.hoursToClose < 24 ? "<1 day" : t.alertResponse.hoursToClose <= 72 ? "1-3 days" : ">3 days")),
+  },
+  regime: exampleBuckets(["Extreme Greed", "Greed", "Slight Fear", "Fear", "Very Fearful", "Extreme Fear"], (t) => t.vixRegime),
+  earnings: exampleBuckets(["inside trade window", "≤7d after expiry", ">7d / none"], (t) => t.earningsBucket),
+  concurrency: exampleBuckets(["1-3", "4-6", "7+"], (t) => (t.concurrentPositions <= 3 ? "1-3" : t.concurrentPositions <= 6 ? "4-6" : "7+")),
+  sizing: exampleBuckets(["<5%", "5-10%", ">10%"], (t) => (t.collateralPctOfAccount == null ? "" : t.collateralPctOfAccount < 5 ? "<5%" : t.collateralPctOfAccount <= 10 ? "5-10%" : ">10%")),
 };

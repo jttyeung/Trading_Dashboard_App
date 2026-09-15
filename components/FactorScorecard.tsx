@@ -43,7 +43,7 @@ function rTone(r: number | null): { className: string; word: string } {
 // only reference; 2px stroke in the accent; hover shows the date, n and r
 // for the nearest point. Recessive on purpose: the number at the right
 // is the read, the line is how it got there.
-function CorrelationSparkline({ series }: { series: CorrelationPoint[] }) {
+export function CorrelationSparkline({ series }: { series: CorrelationPoint[] }) {
   const [hover, setHover] = useState<number | null>(null);
   // viewBox units; rendered at the row's full width (preserveAspectRatio
   // none keeps the zero line and hover math in these units regardless).
@@ -103,7 +103,9 @@ function CorrelationSparkline({ series }: { series: CorrelationPoint[] }) {
 }
 
 // FactorTableRow — one row per factor, the sparkline beside its numbers.
-function FactorTableRow({ f, minSample }: { f: FactorStat; minSample: number }) {
+// Exported (with BucketBars and CorrelationSparkline) so the My Trades
+// tab renders its real-trade factors with the same row, not a copy.
+export function FactorTableRow({ f, minSample }: { f: FactorStat; minSample: number }) {
   const tone = rTone(f.correlation);
   const splitWord = f.split === "median" ? "above median" : "earned";
   const verdict =
@@ -136,7 +138,7 @@ function FactorTableRow({ f, minSample }: { f: FactorStat; minSample: number }) 
 // BucketBars — win rate per raw-input bucket (VRP flag / IV-rank band),
 // each bar 0-100% in the shared accent with n and mean return spelled
 // out. One measure, one hue; magnitude is the bar, identity is the label.
-function BucketBars({ title, buckets, empty }: { title: string; buckets: BucketStat[]; empty: string }) {
+export function BucketBars({ title, buckets, empty }: { title: string; buckets: BucketStat[]; empty: string }) {
   return (
     <Card className="px-3 py-2">
       <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">{title}</div>
