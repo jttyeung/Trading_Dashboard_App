@@ -21,6 +21,8 @@ import { dailyThetaBreakdown } from "@/lib/theta";
 import { getPortfolioRisk } from "@/lib/portfolio-risk";
 import { getSelectedAccount } from "@/lib/account";
 import { getVixSnapshot } from "@/lib/vix-data";
+import { getFomc } from "@/lib/fomc-data";
+import { FomcCard } from "@/components/FomcCard";
 import { getBtcQuote, fmtBtc } from "@/lib/btc-data";
 import { getRefreshStatus } from "@/lib/refresh-status";
 import { DataRefresh } from "@/components/DataRefresh";
@@ -67,6 +69,7 @@ export default async function HomePage() {
   const example = meta.source === "example";
   const vixSnap = getVixSnapshot(example);
   const vix = vixSnap ? assessVix(vixSnap) : null;
+  const fomc = getFomc(example);
   // Latest BTC spot for the header stat stack. Null (offline / slow / example off)
   // just drops the line — see lib/btc-data.ts.
   const btc = await getBtcQuote();
@@ -338,6 +341,9 @@ export default async function HomePage() {
                 <span className="shrink-0 text-muted">›</span>
               </div>
             </Link>
+            {/* Next Fed decision + what futures price into it (RULE-024) — macro
+                context that belongs with the regime read, not a card of its own. */}
+            {fomc && <FomcCard file={fomc} compact />}
             {/* Outside the Link so the reserve-base toggle and breakdown don't navigate. */}
             <div className="px-4 py-3">
               <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted">Your portfolio</div>
