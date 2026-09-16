@@ -17,7 +17,10 @@ built-in demo dataset, so you can explore the whole UI immediately.
   Greeks, breakevens, and chance-of-profit
 - **Closed trades** — realized round-trips per strategy bucket
 - **Research & screeners** — approved-stock research signals and a CSP candidate screener
-- **Market context** — VIX regime guide and morning briefing
+- **Market context** — VIX regime guide and morning briefing, plus the Fed calendar: the next
+  FOMC decision with a countdown and what CME fed funds futures price into it (hike / cut /
+  hold, odds of a 25bp move, the implied rate path), read from the daemon's `data/fomc.json`.
+  Informational only — nothing gates on it
 - **Lookup a Ticker** — on-demand 2-year daily chart for any symbol: candles, Bollinger Bands,
   50/200-day SMA with golden/death cross markers, MACD and RSI panes, plus call/put walls and
   the gamma flip. Served by the app's own `/api/chart` route, which asks the OptionsEvaluator
