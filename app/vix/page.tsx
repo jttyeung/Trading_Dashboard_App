@@ -10,6 +10,8 @@ import { DataRefresh } from "@/components/DataRefresh";
 import { getSnapshot } from "@/lib/snapshot";
 import { getSelectedAccount } from "@/lib/account";
 import { getVixSnapshot } from "@/lib/vix-data";
+import { getFomc } from "@/lib/fomc-data";
+import { FomcCard } from "@/components/FomcCard";
 import { assessVix, REGIME_COLORS, type Regime } from "@/lib/vix";
 import { assessVxn, compareVixVxn, VXN_REGIME_COLORS, type VxnRegime } from "@/lib/vxn";
 import { freeCashValue } from "@/lib/calc";
@@ -37,6 +39,7 @@ export default async function VixPage() {
   const snap = await getSnapshot();
   const { id, data } = await getSelectedAccount(snap);
   const vix = getVixSnapshot(snap.meta.source === "example");
+  const fomc = getFomc(snap.meta.source === "example");
   // Independent of the bridge (straight from Yahoo), so it renders even when
   // there's no VIX snapshot; null on any failure just drops the section.
   const mes = await getMesQuote();
@@ -71,6 +74,7 @@ export default async function VixPage() {
             totalValue={data.summary.totalValue}
             optionsBuyingPower={data.summary.optionsBuyingPower ?? 0}
             mes={mes}
+            fomc={fomc}
           />
         )}
 
@@ -85,8 +89,10 @@ function VixBody({
   uncommitted,
   totalValue,
   optionsBuyingPower,
+  fomc,
 }: {
   vix: NonNullable<ReturnType<typeof getVixSnapshot>>;
+  fomc: ReturnType<typeof getFomc>;
   uncommitted: number; // free cash (calc.freeCashValue)
   totalValue: number;
   optionsBuyingPower: number;
@@ -177,6 +183,15 @@ function VixBody({
           </div>
         )}
       </Card>
+
+      {/* Next Fed decision and the futures-implied hike/cut read (RULE-024) —
+          the one scheduled macro event that moves both indices above. */}
+      {fomc && (
+        <>
+          <SectionTitle>Fed calendar</SectionTitle>
+          <FomcCard file={fomc} />
+        </>
+      )}
 
       {/* Posture — framework target band + where you actually sit */}
       <div className="mt-3 grid grid-cols-2 gap-2">
