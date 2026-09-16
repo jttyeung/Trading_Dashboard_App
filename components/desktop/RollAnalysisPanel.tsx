@@ -303,10 +303,14 @@ function DefensiveRollBlock({ defensive, strike }: { defensive: DefensiveRollAna
   return (
     <div className="space-y-2">
       <p className="text-[11px] text-amber-300/90">
-        🛡️ In the money — no higher strike can be a credit roll. Defensive roll
-        instead: out and down from {fmtMoney(strike)} for a credit or a small
-        debit (RULE-023 cap {fmtMoney(capPerContract)}/contract), aiming back
-        toward Δ0.25.
+        🛡️ In the money — a roll up (any strike above {fmtMoney(strike)}) isn&apos;t
+        on the table. These are defensive rolls instead: same strike or lower,
+        later expiration, for a credit or a debit within the RULE-023 cap
+        ({fmtMoney(capPerContract)}/contract). Recommended is the closest to
+        Δ0.25 among the credit-or-breakeven rows — the tracker&apos;s own pick.
+        A bigger credit further down the list is time value at a strike that
+        stays near {fmtMoney(strike)}: more cash now, but the same assignment
+        risk you have today.
       </p>
       {defensive.candidates.length === 0 ? (
         <p className="text-xs text-muted">
