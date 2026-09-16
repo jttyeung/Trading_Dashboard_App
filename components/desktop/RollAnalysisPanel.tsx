@@ -9,6 +9,7 @@ import {
   fetchRollTarget,
   setRollTarget,
   type DefensiveRollAnalysis,
+  type DefensiveRollCandidate,
   type RollAnalysisCandidate,
   type RollAnalysisMode,
   type RollAnalysisResponse,
@@ -16,6 +17,7 @@ import {
 import type { SourcedOption } from "./PositionsTable";
 
 type CandidateSortKey = "strike" | "expirationDate" | "dte" | "delta" | "netCredit" | "resultingArr";
+type DefensiveSortKey = "strike" | "expirationDate" | "dte" | "delta" | "netCredit";
 
 function candidateSortValue(c: RollAnalysisCandidate, key: CandidateSortKey): number | string {
   switch (key) {
@@ -31,6 +33,21 @@ function candidateSortValue(c: RollAnalysisCandidate, key: CandidateSortKey): nu
       return c.netCreditTotal;
     case "resultingArr":
       return c.resultingArr;
+  }
+}
+
+function defensiveSortValue(c: DefensiveRollCandidate, key: DefensiveSortKey): number | string {
+  switch (key) {
+    case "strike":
+      return c.strike;
+    case "expirationDate":
+      return c.expirationDate;
+    case "dte":
+      return c.dte;
+    case "delta":
+      return c.delta;
+    case "netCredit":
+      return c.netCreditTotal;
   }
 }
 
@@ -300,6 +317,26 @@ export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
 // holder's own $/contract line and they may still prefer assignment.
 function DefensiveRollBlock({ defensive, strike }: { defensive: DefensiveRollAnalysis; strike: number }) {
   const capPerContract = defensive.maxDebitPerShare * 100;
+  const [sortKey, setSortKey] = useState<DefensiveSortKey>("netCredit");
+  const [sortDir, setSortDir] = useState<1 | -1>(-1);
+
+  function toggleSort(key: DefensiveSortKey) {
+    if (key === sortKey) setSortDir((d) => (d === 1 ? -1 : 1));
+    else {
+      setSortKey(key);
+      setSortDir(1);
+    }
+  }
+
+  const sortedCandidates = useMemo(() => {
+    return [...defensive.candidates].sort((a, b) => {
+      const av = defensiveSortValue(a, sortKey);
+      const bv = defensiveSortValue(b, sortKey);
+      const cmp = typeof av === "string" ? av.localeCompare(bv as string) : (av as number) - (bv as number);
+      return cmp * sortDir;
+    });
+  }, [defensive.candidates, sortKey, sortDir]);
+
   return (
     <div className="space-y-2">
       <p className="text-[11px] text-amber-300/90">
@@ -322,15 +359,15 @@ function DefensiveRollBlock({ defensive, strike }: { defensive: DefensiveRollAna
           <table className="w-full min-w-[480px] text-xs">
             <thead>
               <tr className="border-b border-border bg-amber-500/10 text-left uppercase tracking-wide text-muted">
-                <th className="px-2 py-1.5 font-medium">Strike</th>
-                <th className="px-2 py-1.5 font-medium">Exp</th>
-                <th className="px-2 py-1.5 text-right font-medium">DTE</th>
-                <th className="px-2 py-1.5 text-right font-medium">Δ</th>
-                <th className="px-2 py-1.5 text-right font-medium">Net credit</th>
+                <SortableHeader label="Strike" col="strike" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortableHeader label="Exp" col="expirationDate" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortableHeader label="DTE" col="dte" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
+                <SortableHeader label="Δ" col="delta" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
+                <SortableHeader label="Net credit" col="netCredit" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
               </tr>
             </thead>
             <tbody>
-              {defensive.candidates.map((c) => {
+              {sortedCandidates.map((c) => {
                 const recommended = defensive.recommended?.symbol === c.symbol;
                 return (
                   <tr key={c.symbol} className={`border-b border-border/60 ${recommended ? "bg-amber-500/15" : ""}`}>
@@ -355,7 +392,7 @@ function DefensiveRollBlock({ defensive, strike }: { defensive: DefensiveRollAna
   );
 }
 
-function SortableHeader({
+function SortableHeader<K extends string>({
   label,
   col,
   sortKey,
@@ -364,10 +401,10 @@ function SortableHeader({
   align = "left",
 }: {
   label: string;
-  col: CandidateSortKey;
-  sortKey: CandidateSortKey;
+  col: K;
+  sortKey: K;
   sortDir: 1 | -1;
-  onSort: (col: CandidateSortKey) => void;
+  onSort: (col: K) => void;
   align?: "left" | "right";
 }) {
   return (
