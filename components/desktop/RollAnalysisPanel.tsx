@@ -81,7 +81,25 @@ function defensiveSortValue(c: DefensiveRollCandidate, key: DefensiveSortKey): n
 //
 // Lazy: the parent only mounts this once a row is actually expanded, so
 // opening the Positions table never fires N live chain calls up front.
-export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
+//
+// currentArrLeft is the SAME "ARR Left" figure already shown on the
+// position's own row (lib/calc.ts's positionRemainingAnnualizedReturn,
+// passed down rather than recomputed here per this repo's own "reuse,
+// don't recompute" convention) -- the annualized rate of just holding
+// the current contract to its own expiration. A candidate whose
+// IncrementalARR doesn't beat that number is putting the same tied-up
+// capital to WORSE use than doing nothing, regardless of how its
+// ResultingARR or raw net credit look in isolation. It's a plain
+// fraction (0.206), unlike the roll-analysis API's own ARR fields
+// (already percentage points, e.g. 20.6) -- CandidateRow normalizes
+// before comparing.
+export function RollAnalysisPanel({
+  position,
+  currentArrLeft,
+}: {
+  position: SourcedOption;
+  currentArrLeft: number | null;
+}) {
   const [mode, setMode] = useState<RollAnalysisMode>("target_arr");
   const [target, setTarget] = useState<number | null>(null);
   const [editingTarget, setEditingTarget] = useState(false);
@@ -280,6 +298,15 @@ export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
         </p>
       )}
 
+      {!loading && !error && data && !data.defensive && sortedCandidates.length > 0 && currentArrLeft != null && (
+        <p className="text-[11px] text-muted">
+          Dimmed rows return less, annualized, than simply holding this
+          contract to its own expiration ({fmtPct(currentArrLeft, 1)} ARR
+          Left) — rolling there is putting the same tied-up capital to
+          worse use than doing nothing.
+        </p>
+      )}
+
       {!loading && !error && data && !data.defensive && sortedCandidates.length > 0 && (
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full min-w-[560px] text-xs">
@@ -317,6 +344,7 @@ export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
                   candidate={c}
                   mode={mode}
                   recommended={data.recommended?.symbol === c.symbol}
+                  currentArrLeft={currentArrLeft}
                 />
               ))}
             </tbody>
@@ -445,18 +473,30 @@ function CandidateRow({
   candidate: c,
   mode,
   recommended,
+  currentArrLeft,
 }: {
   candidate: RollAnalysisCandidate;
   mode: RollAnalysisMode;
   recommended: boolean;
+  currentArrLeft: number | null;
 }) {
   // Target-ARR mode dims a row that doesn't clear the bar (still visible
   // for context, since "how close is the next best" is useful too); the
   // recommended row is the same one the automatic backend alert would
-  // pick (smallest qualifying strike). Max-cash mode never dims anything
-  // -- every row shown there already cleared the credit-only floor, and
-  // "meets target" isn't the point of that mode.
-  const dimmed = mode === "target_arr" && !c.meetsTarget;
+  // pick (smallest qualifying strike). Max-cash mode never dims on
+  // meetsTarget -- every row shown there already cleared the credit-only
+  // floor, and "meets target" isn't the point of that mode.
+  //
+  // belowHold dims regardless of mode: a candidate whose IncrementalARR
+  // doesn't beat the position's own ARR Left is putting the same tied-up
+  // capital to WORSE use than just letting the current contract ride to
+  // its own expiration -- true whether the account holder is chasing a
+  // target ARR or just maximizing cash, so it isn't gated on mode the
+  // way meetsTarget is. Units: currentArrLeft is a plain fraction
+  // (lib/calc.ts convention), c.incrementalArr is already a percentage
+  // point (this API's own convention) -- divide by 100 to compare.
+  const belowHold = currentArrLeft != null && c.incrementalArr / 100 < currentArrLeft;
+  const dimmed = (mode === "target_arr" && !c.meetsTarget) || belowHold;
   return (
     <tr
       className={`border-b border-border/60 ${recommended ? "bg-emerald-500/10" : ""} ${dimmed ? "opacity-50" : ""}`}
