@@ -712,7 +712,7 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                     {rollOpen && (
                       <tr className="border-b border-border/60 bg-surface-2/30">
                         <td colSpan={COLUMNS.length} className="px-4 py-3">
-                          <RollAnalysisPanel position={r.o} />
+                          <RollAnalysisPanel position={r.o} currentArrLeft={r.remainingAnnualized} />
                         </td>
                       </tr>
                     )}
