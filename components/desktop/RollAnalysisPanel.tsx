@@ -497,16 +497,34 @@ function CandidateRow({
   // point (this API's own convention) -- divide by 100 to compare.
   const belowHold = currentArrLeft != null && c.incrementalArr / 100 < currentArrLeft;
   const dimmed = (mode === "target_arr" && !c.meetsTarget) || belowHold;
+  // The backend's pick and belowHold are independent checks (BestRollUp
+  // never sees ARR Left -- it's a frontend-only figure) and CAN disagree:
+  // the smallest strike clearing the account holder's target ARR is still
+  // free to return less than just holding the current contract would.
+  // Showing a plain green "★ recommended" on a simultaneously-dimmed row
+  // reads as a contradiction (a live case: recommended AND dimmed at the
+  // same time) -- so a conflicted pick gets its own amber label instead of
+  // silently overlaying two badges that disagree.
+  const recommendedButBelowHold = recommended && belowHold;
   return (
     <tr
-      className={`border-b border-border/60 ${recommended ? "bg-emerald-500/10" : ""} ${dimmed ? "opacity-50" : ""}`}
+      className={`border-b border-border/60 ${recommended && !belowHold ? "bg-emerald-500/10" : ""} ${dimmed ? "opacity-50" : ""}`}
     >
       <td className="px-2 py-1.5 tabular text-text">
         {fmtMoney(c.strike)}
-        {recommended && (
-          <span className="ml-1 text-[10px] text-emerald-400">
-            ★ recommended
+        {recommendedButBelowHold ? (
+          <span
+            className="ml-1 text-[10px] text-amber-400"
+            title="This is the smallest strike clearing your target ARR -- what the automatic backend alert would pick -- but its Incremental ARR still doesn't beat just holding the current contract to expiration."
+          >
+            ★ backend pick, but below ARR Left
           </span>
+        ) : (
+          recommended && (
+            <span className="ml-1 text-[10px] text-emerald-400">
+              ★ recommended
+            </span>
+          )
         )}
       </td>
       <td className="whitespace-nowrap px-2 py-1.5 text-muted">
