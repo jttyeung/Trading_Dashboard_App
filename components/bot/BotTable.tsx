@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useState, useMemo } from "react";
 import type { BotTrade, BotGrade, MyGradeSummary } from "@/lib/types";
 import { fmtMoney, fmtPct } from "@/lib/calc";
-import { decideTrade, setPersonallySelected, annotateTrade, type BotStatus } from "@/lib/paperbot-api";
+import { decideTrade, annotateTrade, type BotStatus } from "@/lib/paperbot-api";
 import { Stat } from "@/components/ui";
 
 type SortKey =
@@ -102,10 +102,9 @@ const COLUMNS: { key: SortKey; label: string; title?: string }[] = [
 ];
 
 // TOTAL_COLUMNS: the sortable COLUMNS above, plus Current/Outcome/P&L/
-// Return %/Stock @ Expiry and the trailing Mine checkbox — kept in sync
-// manually since the expanded rationale row's colSpan has to span every
-// column.
-const TOTAL_COLUMNS = COLUMNS.length + 6;
+// Return %/Stock @ Expiry — kept in sync manually since the expanded
+// rationale row's colSpan has to span every column.
+const TOTAL_COLUMNS = COLUMNS.length + 5;
 
 function ThumbButton({
   active,
@@ -359,18 +358,6 @@ export function BotTable({
     }
   }
 
-  async function handlePersonalToggle(t: BotTrade) {
-    const next = !t.personallySelected;
-    setLocalTrades((cur) => cur.map((x) => (x.id === t.id ? { ...x, personallySelected: next } : x)));
-    if (exampleMode) return;
-    try {
-      await setPersonallySelected(t.id, next);
-    } catch {
-      setLocalTrades((cur) => cur.map((x) => (x.id === t.id ? { ...x, personallySelected: !next } : x)));
-      showApiError();
-    }
-  }
-
   // "Pending" here means no outcome yet (still awaiting expiration),
   // regardless of approve/reject/pending_approval status — Total =
   // Pending + Wins + Losses always holds, matching the reference
@@ -386,7 +373,6 @@ export function BotTable({
   const totalPnl = localTrades.reduce((s, t) => s + (t.realizedPnl ?? 0), 0);
 
   const needsReview = localTrades.filter((t) => t.status === "pending_approval").length;
-  const mineCount = localTrades.filter((t) => t.personallySelected).length;
 
   const decidedGraded = myGrade.goodCalls + myGrade.riskRealized + myGrade.missedWins + myGrade.goodPasses;
   const rightCalls = myGrade.goodCalls + myGrade.goodPasses;
@@ -406,7 +392,6 @@ export function BotTable({
 
       <div className="flex flex-wrap items-center gap-4 border-b border-border px-4 py-2 text-xs text-muted">
         <span>{needsReview} awaiting your review</span>
-        <span className="text-info">{mineCount} mine</span>
       </div>
 
       <div className="flex flex-wrap items-center gap-4 border-b border-border bg-surface-2/30 px-4 py-2 text-[11px] text-muted">
@@ -421,7 +406,7 @@ export function BotTable({
             {fmtPct(accuracy, 0)} of your decided-and-resolved calls matched the outcome
           </span>
         )}
-        <span className="ml-auto">👍/👎 = your call · checkbox = trades you actually took</span>
+        <span className="ml-auto">👍/👎 = your call</span>
       </div>
 
       {apiError && (
@@ -460,7 +445,6 @@ export function BotTable({
             <th className="whitespace-nowrap px-2 py-1.5 font-medium normal-case">Outcome</th>
             <th className="whitespace-nowrap px-2 py-1.5 font-medium normal-case">P&amp;L</th>
             <th className="whitespace-nowrap px-2 py-1.5 font-medium normal-case">Return %</th>
-            <th className="whitespace-nowrap px-2 py-1.5 text-center font-medium normal-case">Mine</th>
           </tr>
         </thead>
         <tbody>
@@ -571,15 +555,6 @@ export function BotTable({
                   ) : (
                     <span className="text-muted">-</span>
                   )}
-                </td>
-                <td className="px-2 py-1.5 text-center" onClick={(e) => e.stopPropagation()}>
-                  <input
-                    type="checkbox"
-                    checked={t.personallySelected}
-                    onChange={() => handlePersonalToggle(t)}
-                    className="h-4 w-4 cursor-pointer accent-emerald-500"
-                    title="I actually took this trade in my real portfolio"
-                  />
                 </td>
               </tr>
               {expanded.has(t.id) && (

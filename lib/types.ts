@@ -198,10 +198,10 @@ export type BotGrade = "good_call" | "risk_realized" | "missed_win" | "good_pass
 // One row of the /bot or /bot-20-delta-safe paper-trading review table —
 // a frozen snapshot of a real suggestion-engine candidate (same scoring,
 // same rationale as the live digest), plus whatever approval/outcome
-// state has accumulated since. status/personallySelected are writable
-// from the dashboard itself via lib/paperbot-api.ts (a live call into
-// OptionsEvaluator's own localhost API) — the one place this app's
-// frontend writes anything back, rather than only reading exported JSON.
+// state has accumulated since. status is writable from the dashboard
+// itself via lib/paperbot-api.ts (a live call into OptionsEvaluator's
+// own localhost API) — the one place this app's frontend writes
+// anything back, rather than only reading exported JSON.
 export interface BotTrade {
   id: number;
   ticker: string;
@@ -229,7 +229,6 @@ export interface BotTrade {
   returnPct?: number;
   currentPrice?: number;
   itmOtm?: "ITM" | "OTM";
-  personallySelected: boolean;
   grade?: BotGrade;
   // annotationTags/annotationNote are the account holder's own freeform
   // "why I thought this was/wasn't a good trade" notes -- editable any
