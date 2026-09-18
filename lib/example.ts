@@ -1111,17 +1111,24 @@ export function exampleRollAnalysis(
     const strike = Math.round(currentStrike * (1 + i * 0.01));
     const dte = 7 * i + 7;
     const netCreditPerShare = 0.55 + i * 0.28;
+    const premium = netCreditPerShare + 0.9; // pretends a $0.90/sh cost to close the current leg
     const resultingArr = (netCreditPerShare / Math.max(strike - netCreditPerShare, 1)) * (365 / dte) * 100;
+    // Same collateral base as resultingArr, but numerator is just the net
+    // credit -- mirrors internal/rules/rollup.go's IncrementalARR, so the
+    // demo shows the same "incremental reads well below resulting"
+    // relationship the real endpoint does.
+    const incrementalArr = (netCreditPerShare / Math.max(strike - premium, 1)) * (365 / dte) * 100;
     return {
       symbol: `${symbol}  EXAMPLE${String(strike).padStart(8, "0")}`,
       strike,
       expirationDate: "2026-12-19",
       dte,
       delta: -(0.18 + i * 0.04),
-      premium: netCreditPerShare + 0.9,
+      premium,
       netCreditPerShare,
       netCreditTotal: netCreditPerShare * 100,
       resultingArr,
+      incrementalArr,
       meetsTarget: resultingArr >= target,
     };
   });
