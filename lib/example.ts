@@ -975,11 +975,10 @@ export function exampleWatchlistBoard(): WatchlistRow[] {
 // exampleBotTrade fills in every field a real BotTrade row needs, with
 // sensible always-off defaults for the ones the account holder explicitly
 // asked NOT to expose in demo mode: status is always "pending_approval"
-// (no approve/reject judgment shown) and personallySelected is always
-// false (no "Mine" state shown) -- see the three exampleXBot functions
-// below for why. decidedAt/outcome/grade/annotationTags/annotationNote/
-// similarTrades are all omitted for the same reason -- none of it is
-// real judgment or real outcome data to reveal.
+// (no approve/reject judgment shown) -- see the three exampleXBot
+// functions below for why. decidedAt/outcome/grade/annotationTags/
+// annotationNote/similarTrades are all omitted for the same reason --
+// none of it is real judgment or real outcome data to reveal.
 function exampleBotTrade(base: {
   id: number;
   ticker: string;
@@ -1021,7 +1020,6 @@ function exampleBotTrade(base: {
     stockPriceAtPost: base.stockPriceAtPost,
     postedAt: base.postedAt,
     status: "pending_approval",
-    personallySelected: false,
   };
 }
 
@@ -1035,11 +1033,11 @@ function exampleMyGrade(tradeCount: number) {
 // score, in the same ballpark as this app's own real historical trades
 // for these same shortlist tickers) frozen at two fixed past dates,
 // rather than a live/procedural feed -- but with fresh, hand-written
-// rationale text (not copied from any real row) and status/
-// personallySelected always at their neutral defaults, since a demo
-// viewer should never see the account holder's own real approve/reject
-// judgment or "Mine" picks. Uses the same shortlist roster as
-// exampleWatchlistBoard above, for consistency across the demo dataset.
+// rationale text (not copied from any real row) and status always at
+// its neutral default, since a demo viewer should never see the account
+// holder's own real approve/reject judgment. Uses the same shortlist
+// roster as exampleWatchlistBoard above, for consistency across the
+// demo dataset.
 export function exampleGeneralBot(): BotSnapshot {
   const trades = [
     exampleBotTrade({

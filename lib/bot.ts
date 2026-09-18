@@ -7,10 +7,10 @@
 // instead of the real file — a real gap caught live: these three tables
 // used to have no example-mode data at all, so toggling "Example mode"
 // showed the account holder's own real watchlist tickers, real
-// strikes/premiums, AND their real approve/reject judgments and "Mine"
-// picks regardless of the toggle. The example data below deliberately
-// omits both: every trade is frozen at status="pending_approval" and
-// personallySelected=false, never real decision state.
+// strikes/premiums, AND their real approve/reject judgments regardless
+// of the toggle. The example data below deliberately omits that: every
+// trade is frozen at status="pending_approval", never real decision
+// state.
 import fs from "node:fs";
 import path from "node:path";
 import type { BotSnapshot } from "./types";
