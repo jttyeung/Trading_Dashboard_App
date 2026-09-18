@@ -23,6 +23,13 @@ export interface RollAnalysisCandidate {
   netCreditPerShare: number;
   netCreditTotal: number;
   resultingArr: number;
+  // Annualizes only netCreditTotal (already net of the cost to close the
+  // current leg) over the same collateral/DTE resultingArr uses -- unlike
+  // resultingArr (the candidate's own gross premium, as if opened fresh
+  // today), this is the number actually comparable to "what do I give up
+  // by not just closing now." See internal/rules/rollup.go's
+  // IncrementalARR doc comment for the live case that prompted this.
+  incrementalArr: number;
   meetsTarget: boolean;
 }
 

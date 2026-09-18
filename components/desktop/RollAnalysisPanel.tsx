@@ -16,7 +16,7 @@ import {
 } from "@/lib/roll-api";
 import type { SourcedOption } from "./PositionsTable";
 
-type CandidateSortKey = "strike" | "expirationDate" | "dte" | "delta" | "netCredit" | "resultingArr";
+type CandidateSortKey = "strike" | "expirationDate" | "dte" | "delta" | "netCredit" | "resultingArr" | "incrementalArr";
 type DefensiveSortKey = "strike" | "expirationDate" | "dte" | "delta" | "netCredit";
 
 function candidateSortValue(c: RollAnalysisCandidate, key: CandidateSortKey): number | string {
@@ -33,6 +33,8 @@ function candidateSortValue(c: RollAnalysisCandidate, key: CandidateSortKey): nu
       return c.netCreditTotal;
     case "resultingArr":
       return c.resultingArr;
+    case "incrementalArr":
+      return c.incrementalArr;
   }
 }
 
@@ -288,7 +290,24 @@ export function RollAnalysisPanel({ position }: { position: SourcedOption }) {
                 <SortableHeader label="DTE" col="dte" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
                 <SortableHeader label="Δ" col="delta" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
                 <SortableHeader label="Net credit" col="netCredit" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
-                <SortableHeader label="Resulting ARR" col="resultingArr" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
+                <SortableHeader
+                  label="Resulting ARR"
+                  col="resultingArr"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                  align="right"
+                  title="This candidate's own annualized return if opened fresh today — includes the whole premium, not just what rolling adds on top of closing now."
+                />
+                <SortableHeader
+                  label="Incremental ARR"
+                  col="incrementalArr"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                  align="right"
+                  title="Annualized return on JUST the net credit rolling adds over closing now — the number to compare against a position you could simply close today."
+                />
               </tr>
             </thead>
             <tbody>
@@ -399,6 +418,7 @@ function SortableHeader<K extends string>({
   sortDir,
   onSort,
   align = "left",
+  title,
 }: {
   label: string;
   col: K;
@@ -406,9 +426,10 @@ function SortableHeader<K extends string>({
   sortDir: 1 | -1;
   onSort: (col: K) => void;
   align?: "left" | "right";
+  title?: string;
 }) {
   return (
-    <th className={`px-2 py-1.5 font-medium ${align === "right" ? "text-right" : ""}`}>
+    <th className={`px-2 py-1.5 font-medium ${align === "right" ? "text-right" : ""}`} title={title}>
       <button
         onClick={() => onSort(col)}
         className={`inline-flex items-center gap-1 hover:text-text ${align === "right" ? "flex-row-reverse" : ""}`}
@@ -463,6 +484,9 @@ function CandidateRow({
       </td>
       <td className="px-2 py-1.5 text-right tabular text-text">
         {fmtPct(c.resultingArr / 100, 1)}
+      </td>
+      <td className="px-2 py-1.5 text-right tabular text-text">
+        {fmtPct(c.incrementalArr / 100, 1)}
       </td>
     </tr>
   );
