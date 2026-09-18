@@ -89,10 +89,11 @@ function defensiveSortValue(c: DefensiveRollCandidate, key: DefensiveSortKey): n
 // the current contract to its own expiration. A candidate whose
 // IncrementalARR doesn't beat that number is putting the same tied-up
 // capital to WORSE use than doing nothing, regardless of how its
-// ResultingARR or raw net credit look in isolation. It's a plain
+// ResultingARR or raw net credit look in isolation, so viableCandidates
+// (below) excludes it outright rather than showing it. It's a plain
 // fraction (0.206), unlike the roll-analysis API's own ARR fields
-// (already percentage points, e.g. 20.6) -- CandidateRow normalizes
-// before comparing.
+// (already percentage points, e.g. 20.6) -- normalized once in
+// viableCandidates rather than per-row.
 export function RollAnalysisPanel({
   position,
   currentArrLeft,
@@ -132,15 +133,39 @@ export function RollAnalysisPanel({
     }
   }, [mode]);
 
-  const sortedCandidates = useMemo(() => {
+  // A candidate whose IncrementalARR doesn't beat currentArrLeft is
+  // putting the same tied-up capital to WORSE use than just letting the
+  // current contract ride to its own expiration -- true regardless of
+  // mode, so it's excluded outright rather than merely dimmed (an
+  // earlier dimmed-but-still-"recommended" version of this table read as
+  // a flat contradiction on the account holder's own live position).
+  // Units: currentArrLeft is a plain fraction (lib/calc.ts convention),
+  // c.incrementalArr is already a percentage point (this API's own
+  // convention) -- divide by 100 to compare.
+  const viableCandidates = useMemo(() => {
     if (!data?.candidates) return [];
-    return [...data.candidates].sort((a, b) => {
+    if (currentArrLeft == null) return data.candidates;
+    return data.candidates.filter((c) => c.incrementalArr / 100 >= currentArrLeft);
+  }, [data, currentArrLeft]);
+
+  const excludedCount = (data?.candidates?.length ?? 0) - viableCandidates.length;
+
+  // The backend's own recommended pick (BestRollUp, gated on ResultingARR
+  // -- see RULE-021) is computed with no knowledge of currentArrLeft, so
+  // it can itself be one of the excluded rows. Surfaced explicitly rather
+  // than just silently showing no star anywhere, since that's exactly the
+  // scenario that read as a contradiction before this exclusion existed.
+  const recommendedExcluded =
+    data?.recommended != null && !viableCandidates.some((c) => c.symbol === data.recommended!.symbol);
+
+  const sortedCandidates = useMemo(() => {
+    return [...viableCandidates].sort((a, b) => {
       const av = candidateSortValue(a, sortKey);
       const bv = candidateSortValue(b, sortKey);
       const cmp = typeof av === "string" ? av.localeCompare(bv as string) : (av as number) - (bv as number);
       return cmp * sortDir;
     });
-  }, [data, sortKey, sortDir]);
+  }, [viableCandidates, sortKey, sortDir]);
 
   useEffect(() => {
     // A public demo has no daemon; SECURITY.md requires synthetic data and
@@ -241,8 +266,11 @@ export function RollAnalysisPanel({
         </div>
 
         {mode === "target_arr" && (
-          <div className="flex items-center gap-1 text-xs text-muted">
-            Target:
+          <div
+            className="flex items-center gap-1 text-xs text-muted"
+            title="Annualized, not monthly -- a 2.5%/month goal (RULE-010) is ~30% here (monthly x 365/30)."
+          >
+            Target ARR:
             {editingTarget ? (
               <input
                 type="number"
@@ -292,18 +320,27 @@ export function RollAnalysisPanel({
 
       {!loading && !error && data && !data.defensive && sortedCandidates.length === 0 && (
         <p className="text-xs text-muted">
-          {mode === "target_arr"
-            ? "No higher strike found that's both a real credit and clears your target ARR right now."
-            : "No credit roll available above the current strike right now."}
+          {(data.candidates?.length ?? 0) > 0
+            ? `Every credit roll found returns less, annualized, than simply holding this contract to its own expiration (${fmtPct(currentArrLeft ?? 0, 1)} ARR Left) -- none are worth taking over doing nothing.`
+            : mode === "target_arr"
+              ? "No higher strike found that's both a real credit and clears your target ARR right now."
+              : "No credit roll available above the current strike right now."}
         </p>
       )}
 
-      {!loading && !error && data && !data.defensive && sortedCandidates.length > 0 && currentArrLeft != null && (
+      {!loading && !error && data && !data.defensive && sortedCandidates.length > 0 && excludedCount > 0 && (
         <p className="text-[11px] text-muted">
-          Dimmed rows return less, annualized, than simply holding this
-          contract to its own expiration ({fmtPct(currentArrLeft, 1)} ARR
-          Left) — rolling there is putting the same tied-up capital to
-          worse use than doing nothing.
+          {excludedCount} roll{excludedCount === 1 ? "" : "s"} excluded for
+          returning less, annualized, than simply holding this contract to
+          its own expiration ({fmtPct(currentArrLeft ?? 0, 1)} ARR Left).
+        </p>
+      )}
+
+      {!loading && !error && data && !data.defensive && recommendedExcluded && (
+        <p className="text-[11px] text-amber-400">
+          The backend&apos;s own pick ({fmtMoney(data.recommended!.strike)}, {data.recommended!.expirationDate}) was
+          excluded above — it clears your target ARR but its Incremental ARR
+          doesn&apos;t beat just holding this contract.
         </p>
       )}
 
@@ -344,7 +381,6 @@ export function RollAnalysisPanel({
                   candidate={c}
                   mode={mode}
                   recommended={data.recommended?.symbol === c.symbol}
-                  currentArrLeft={currentArrLeft}
                 />
               ))}
             </tbody>
@@ -473,58 +509,32 @@ function CandidateRow({
   candidate: c,
   mode,
   recommended,
-  currentArrLeft,
 }: {
   candidate: RollAnalysisCandidate;
   mode: RollAnalysisMode;
   recommended: boolean;
-  currentArrLeft: number | null;
 }) {
   // Target-ARR mode dims a row that doesn't clear the bar (still visible
   // for context, since "how close is the next best" is useful too); the
   // recommended row is the same one the automatic backend alert would
-  // pick (smallest qualifying strike). Max-cash mode never dims on
-  // meetsTarget -- every row shown there already cleared the credit-only
-  // floor, and "meets target" isn't the point of that mode.
-  //
-  // belowHold dims regardless of mode: a candidate whose IncrementalARR
-  // doesn't beat the position's own ARR Left is putting the same tied-up
-  // capital to WORSE use than just letting the current contract ride to
-  // its own expiration -- true whether the account holder is chasing a
-  // target ARR or just maximizing cash, so it isn't gated on mode the
-  // way meetsTarget is. Units: currentArrLeft is a plain fraction
-  // (lib/calc.ts convention), c.incrementalArr is already a percentage
-  // point (this API's own convention) -- divide by 100 to compare.
-  const belowHold = currentArrLeft != null && c.incrementalArr / 100 < currentArrLeft;
-  const dimmed = (mode === "target_arr" && !c.meetsTarget) || belowHold;
-  // The backend's pick and belowHold are independent checks (BestRollUp
-  // never sees ARR Left -- it's a frontend-only figure) and CAN disagree:
-  // the smallest strike clearing the account holder's target ARR is still
-  // free to return less than just holding the current contract would.
-  // Showing a plain green "★ recommended" on a simultaneously-dimmed row
-  // reads as a contradiction (a live case: recommended AND dimmed at the
-  // same time) -- so a conflicted pick gets its own amber label instead of
-  // silently overlaying two badges that disagree.
-  const recommendedButBelowHold = recommended && belowHold;
+  // pick (smallest qualifying strike). Max-cash mode never dims -- every
+  // row shown there already cleared the credit-only floor, and "meets
+  // target" isn't the point of that mode. A row that returns less than
+  // just holding the position (IncrementalARR < ARR Left) never reaches
+  // here at all -- the parent excludes those outright (see
+  // viableCandidates), so recommended and dimmed can no longer disagree
+  // the way they briefly did when that case was only dimmed.
+  const dimmed = mode === "target_arr" && !c.meetsTarget;
   return (
     <tr
-      className={`border-b border-border/60 ${recommended && !belowHold ? "bg-emerald-500/10" : ""} ${dimmed ? "opacity-50" : ""}`}
+      className={`border-b border-border/60 ${recommended ? "bg-emerald-500/10" : ""} ${dimmed ? "opacity-50" : ""}`}
     >
       <td className="px-2 py-1.5 tabular text-text">
         {fmtMoney(c.strike)}
-        {recommendedButBelowHold ? (
-          <span
-            className="ml-1 text-[10px] text-amber-400"
-            title="This is the smallest strike clearing your target ARR -- what the automatic backend alert would pick -- but its Incremental ARR still doesn't beat just holding the current contract to expiration."
-          >
-            ★ backend pick, but below ARR Left
+        {recommended && (
+          <span className="ml-1 text-[10px] text-emerald-400">
+            ★ recommended
           </span>
-        ) : (
-          recommended && (
-            <span className="ml-1 text-[10px] text-emerald-400">
-              ★ recommended
-            </span>
-          )
         )}
       </td>
       <td className="whitespace-nowrap px-2 py-1.5 text-muted">
