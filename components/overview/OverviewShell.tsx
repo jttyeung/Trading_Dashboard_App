@@ -184,7 +184,7 @@ const HEADINGS: Record<Tab, { title: string; subtitle: string }> = {
     subtitle: "A short-dated CSP band (3–14 DTE, ≤0.27 delta, 40%+ ARR required) — paperbot-only, never a real suggestion.",
   },
   chart: {
-    title: "Lookup a Ticker",
+    title: "Chart a Ticker",
     subtitle: "2 years of daily candles with Bollinger Bands, MACD, RSI, 50/200-day SMA with golden/death cross markers, and today's call/put walls — computed on demand for whichever ticker you search.",
   },
   watchlist: {

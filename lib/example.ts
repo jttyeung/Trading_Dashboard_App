@@ -896,7 +896,7 @@ export const exampleBenchmarkFile: BenchmarkFile = {
 };
 
 // ---------------------------------------------------------------------------
-// Lookup a Ticker (SecurityChart.tsx) demo data. Served by app/api/chart's
+// Chart a Ticker (SecurityChart.tsx) demo data. Served by app/api/chart's
 // example-mode branch so a public demo never reaches the daemon or Yahoo.
 // Indicators come from lib/chart-indicators.ts's buildChartData -- the same
 // math the Yahoo fallback uses live -- so the fake series is internally
