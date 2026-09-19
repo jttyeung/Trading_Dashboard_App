@@ -35,7 +35,7 @@ built-in demo dataset, so you can explore the whole UI immediately.
   matched a suggestion, by strategy and delta bucket — kept separate from the bots. The guideline,
   management and entry-condition sections cover every closed short option trade across Schwab,
   Fidelity and E*TRADE (roll chains and alert response stay Schwab-only). A separate
-  "LEAPs you bought" block grades closed long options (Schwab and Fidelity) against STRAT-005
+  "LEAPs you bought" block grades closed long options (Schwab and Fidelity) against the LEAPs entry window
   only (365+ DTE, 0.70+ delta at entry), with return on cost rather than collateral, so a bought
   call never averages into the premium-selling stats
 - **Bot Scorecard** (desktop `/overview` tab) — the paper bots' resolved picks by strategy, plus a score-factor section

@@ -135,7 +135,7 @@ export const DAYS_PER_YEAR = 365;
  *  across a real five-strike slice, and matched on the backend by
  *  rules.NetCollateral and quant/options_eval.py so all three agree.
  *
- *  Deliberately NOT used for assignment cash needs or RULE-011 sector
+ *  Deliberately NOT used for assignment cash needs or sector
  *  exposure: assignment genuinely requires the full strike in cash, and
  *  sector concentration measures market exposure, not capital efficiency.
  *  Both stay gross on the backend. */
@@ -447,7 +447,7 @@ export function cspInsight(o: OptionPosition): Insight {
   };
 }
 
-// RULE-017 (OptionsEvaluator's internal/rules/leaps_exit.go carries the
+// (OptionsEvaluator's internal/rules/leaps_exit.go carries the
 // authoritative definition/tests): a long LEAP call that's already booked
 // a large gain very fast, per the account holder's own trading history, has
 // been a "take the win" signal more often than a "let it run" one. Two

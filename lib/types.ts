@@ -171,7 +171,7 @@ export interface CSPCandidate {
     earningsBeforeExp: boolean | null; // null = unverified (no earnings feed)
     exDivBeforeExp: boolean | null;
   };
-  washSaleWarning: string | null; // RULE-014 heuristic, not tax advice — see the message itself for the specific prior loss
+  washSaleWarning: string | null; // heuristic, not tax advice — see the message itself for the specific prior loss
   source?: "holding" | "discovered"; // how the name entered the screen
   instrumentId?: string;
 }
@@ -549,9 +549,9 @@ export interface SpreadCandidatesFile {
 }
 
 // ---------------------------------------------------------------------------
-// Portfolio risk (RULE-006 theta ceiling, RULE-011 sector cap) from
+// Portfolio risk (theta ceiling, sector cap) from
 // data/portfolio-risk.json. Thresholds ship alongside the values so the UI
-// never hardcodes RULE-006/011's numbers itself.
+// never hardcodes those numbers itself.
 // ---------------------------------------------------------------------------
 export interface RiskView {
   thetaToday: number;
@@ -564,7 +564,7 @@ export interface RiskView {
   sectorValues: Record<string, number>;
   maxSectorAllocationPct: number;
   portfolioValue: number; // the liquidation value sectorValues/thetaPct were each computed against
-  openPnL: number; // RULE-019 — total unrealized P&L across every open position (Schwab only at this Overall/PerAccount level)
+  openPnL: number; // total unrealized P&L across every open position (Schwab only at this Overall/PerAccount level)
   openPnLPct: number;
   openPnLStatus: "on_target" | "below_target" | "unknown";
   openPnLMinPct: number;
@@ -588,14 +588,14 @@ export interface AccountThetaView {
   portfolioValue: number; // this one account's own value, not the whole portfolio's
 }
 
-// RULE-006 (theta), RULE-018 (beta-weighted-to-QQQ target, 0.6-1.05), and
-// RULE-019 (open-P&L floor, -10%) combined across Schwab + SnapTrade +
+// Theta, beta (weighted-to-QQQ target, 0.6-1.05), and open-P&L floor
+// (-10%) combined across Schwab + SnapTrade +
 // E*TRADE — Schwab alone reads nowhere near the account holder's own
 // real numbers, since SnapTrade (Fidelity) + E*TRADE together hold
 // roughly 2.5x Schwab's own value. All three soft guidance here (never a
-// suggestion-engine gate) even though RULE-006 does gate at the
+// suggestion-engine gate) even though theta does gate at the
 // Schwab-only Overall level (see RiskView above) — this blended theta is
-// informational only. Sector exposure (RULE-011) has no blended
+// informational only. Sector exposure has no blended
 // equivalent: the other accounts' holdings are mostly broad index funds
 // with no one meaningful sector to attribute.
 export interface BlendedRiskView {
@@ -635,7 +635,7 @@ export interface SectorBucket {
   tickers: { symbol: string; value: number }[]; // sorted by value, desc
 }
 
-// RULE-010's own 2%/month floor, 3%/month target — real Schwab options
+// The 2%/month floor, 3%/month target — real Schwab options
 // realized P&L for the current calendar month, paced against
 // portfolioValueBaseline: the blended (Schwab + SnapTrade + E*TRADE)
 // portfolio value FROZEN once at the start of this calendar month, not
@@ -665,7 +665,7 @@ export interface PortfolioRiskFile {
   meta: { generatedAt: string };
   overall: RiskView;
   // Spans every linked account — Schwab, SnapTrade (Fidelity), E*TRADE —
-  // each theta-only. Only the Schwab entries feed RULE-006's real gating
+  // each theta-only. Only the Schwab entries feed the theta ceiling's real gating
   // decision; the rest are informational only, same as blended below.
   perAccount: AccountThetaView[];
   blended: BlendedRiskView;
@@ -690,8 +690,8 @@ export interface Alert {
   underlyingPrice: number;
   // Mirrors internal/agents/tracker/evaluate.go's Action* constants.
   // assignment_likely is an ITM short option with no roll inside
-  // RULE-023's $120/contract debit cap (a heads-up, not an action);
-  // leaps_over_allocated is a held LEAP breaching RULE-007's caps.
+  // the $120/contract debit cap (a heads-up, not an action);
+  // leaps_over_allocated is a held LEAP breaching the allocation caps.
   action:
     | "close"
     | "roll"
@@ -947,7 +947,7 @@ export interface MyTradesFile {
 
 export interface LeapsSection {
   trades: MyLeapTrade[];
-  guidelines: GuidelineStat[]; // STRAT-005: 365+ DTE and 0.70+ delta at entry
+  guidelines: GuidelineStat[]; // LEAPs entry window: 365+ DTE and 0.70+ delta at entry
   regime: BucketStat[];
   ivrBuckets: BucketStat[];
   hold: BucketStat[]; // "<30d" | "30-90d" | "90-365d" | "365d+"

@@ -4,7 +4,7 @@
 // term in the paper bots' own score
 // breakdown, did the trades that EARNED it do better than the ones that
 // didn't — and how has that read moved as the sample grew? Given
-// directly by the account holder when RULE-022 (VRP / IV-rank points)
+// directly by the account holder when the VRP / IV-rank points bonus
 // was added: "I would like for us to be able to see the scorecards and
 // how the bot picks are correlated with the final outcomes ... display
 // the correlation as time passes." All numbers arrive precomputed from

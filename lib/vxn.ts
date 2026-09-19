@@ -1,4 +1,4 @@
-// VXN (Nasdaq-100 Volatility Index) cash-allocation engine — RULE-016 in
+// VXN (Nasdaq-100 Volatility Index) cash-allocation engine in
 // OptionsEvaluator. A second, independent read alongside lib/vix.ts's VIX
 // engine, not a replacement for it: kept in its own file on purpose so the
 // upstream-mirrored VIX code in lib/vix.ts stays untouched.
@@ -95,8 +95,8 @@ export function assessVxn(vxn: number): VxnAssessment {
 // percentile-shifted), so comparing rank position directly tells you whether
 // Nasdaq/tech-specific fear is running hotter or cooler than the broad
 // market. This is informational only — a sector-tilt hint for the account
-// holder to weigh, never a suggestion-engine gate (RULE-016 doesn't touch
-// internal/suggest, same as RULE-002's VIX band today).
+// holder to weigh, never a suggestion-engine gate (VXN doesn't touch
+// internal/suggest, same as the VIX band today).
 // ---------------------------------------------------------------------------
 const VIX_RANK: Record<Regime, number> = {
   "extreme-greed": 0,

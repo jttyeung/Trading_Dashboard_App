@@ -22,7 +22,7 @@ export interface SpreadScore {
   components: ScoreComponent[];
 }
 
-// Credit spreads (BULL_PUT/BEAR_CALL/IRON_CONDOR) want 21-45 DTE (STRAT-004's
+// Credit spreads (BULL_PUT/BEAR_CALL/IRON_CONDOR) want 21-45 DTE (their
 // own entry window); debit spreads and PMCC's near-dated short leg run on a
 // looser band since they're not primarily managed by time decay the same way.
 function scoreDte(c: SpreadCandidate): ScoreComponent {

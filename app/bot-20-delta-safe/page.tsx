@@ -1,4 +1,4 @@
-// 20-delta-safe paper-trading wheel bot: STRAT-003's "20 Delta Safe
+// 20-delta-safe paper-trading wheel bot: "20 Delta Safe
 // Moves" (0.10-0.20 delta CSPs, biased toward strikes far below current
 // price with near-zero assignment odds) — same review-queue idea as
 // /bot, just the conservative delta band. See app/layout.tsx (proxy.ts)
