@@ -863,6 +863,15 @@ export interface FactorGroup {
   factors: FactorStat[];
   vrpBuckets: BucketStat[];
   ivrBuckets: BucketStat[];
+  // bbTracked/bollingerZoneBuckets run over every RESOLVED trade with a
+  // frozen strike_bollinger_zone, independent of `tracked`/`resolved`
+  // (this column started tracking later than IV rank/VRP, and can be
+  // missing even on a breakdown-bearing row if bands were unavailable at
+  // post time). below_lower / lower_to_mid / mid_to_upper / above_upper,
+  // bottom to top -- where the CHOSEN STRIKE sat against the Bollinger
+  // bands, not the underlying's price.
+  bbTracked: number;
+  bollingerZoneBuckets: BucketStat[];
 }
 
 export interface FactorStat {
