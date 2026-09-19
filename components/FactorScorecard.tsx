@@ -209,7 +209,7 @@ export function FactorScorecard({ file }: { file: ScoreFactorsFile }) {
           already gets. */}
       <Card className="divide-y divide-border overflow-x-auto">
         <div className="px-3 py-1.5 text-[10px] text-muted">
-          {`${group.resolved} resolved ${group.bot === "all" ? "" : BOT_LABEL[group.bot].toLowerCase() + " "}pick${group.resolved === 1 ? "" : "s"} with a breakdown · ${group.tracked} with IV rank / VRP frozen at post time · r is the correlation between a factor's points and the trade's return on collateral, shown from n=${file.meta.minSample}`}
+          {`${group.resolved} resolved ${group.bot === "all" ? "" : BOT_LABEL[group.bot].toLowerCase() + " "}pick${group.resolved === 1 ? "" : "s"} with a breakdown · ${group.tracked} with IV rank / VRP frozen at post time · ${group.bbTracked} with strike-vs-Bollinger frozen at post time · r is the correlation between a factor's points and the trade's return on collateral, shown from n=${file.meta.minSample}`}
         </div>
         {shown.length === 0 ? (
           <div className="px-3 py-4 text-xs text-muted">No resolved picks for this bot yet.</div>
@@ -243,6 +243,11 @@ export function FactorScorecard({ file }: { file: ScoreFactorsFile }) {
           title="Win rate by IV rank at post"
           buckets={group.ivrBuckets}
           empty="Fills in as picks logged after IV-rank tracking began resolve."
+        />
+        <BucketBars
+          title="Win rate by strike vs Bollinger bands at post"
+          buckets={group.bollingerZoneBuckets}
+          empty="Fills in as picks logged after strike-vs-Bollinger tracking began resolve."
         />
       </div>
 
