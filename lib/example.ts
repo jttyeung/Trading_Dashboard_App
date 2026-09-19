@@ -1201,10 +1201,31 @@ export const exampleScoreFactorsFile: ScoreFactorsFile = {
         { bucket: "30-49", n: 10, wins: 7, winRate: 70, avgReturnPct: 1.1 },
         { bucket: "<30", n: 6, wins: 4, winRate: 66.7, avgReturnPct: 0.7 },
       ],
+      // A demo shape for the account holder's own "reluctant above mid"
+      // question: below-mid buckets shown winning more than at-or-above.
+      bbTracked: 27,
+      bollingerZoneBuckets: [
+        { bucket: "below_lower", n: 5, wins: 5, winRate: 100, avgReturnPct: 2.6 },
+        { bucket: "lower_to_mid", n: 10, wins: 8, winRate: 80, avgReturnPct: 1.7 },
+        { bucket: "mid_to_upper", n: 9, wins: 5, winRate: 55.6, avgReturnPct: 0.5 },
+        { bucket: "above_upper", n: 3, wins: 1, winRate: 33.3, avgReturnPct: -0.6 },
+      ],
     },
-    { bot: "general", resolved: 18, tracked: 12, factors: [exampleFactor("vrpBonus", "VRP (RULE-022)", "earned", 18, 8, 0.3, 23)], vrpBuckets: [], ivrBuckets: [] },
-    { bot: "20_delta_safe", resolved: 9, tracked: 7, factors: [exampleFactor("vrpBonus", "VRP (RULE-022)", "earned", 9, 4, 0.1, 29)], vrpBuckets: [], ivrBuckets: [] },
-    { bot: "aggressive", resolved: 15, tracked: 12, factors: [exampleFactor("vrpBonus", "VRP (RULE-022)", "earned", 15, 6, 0.4, 31)], vrpBuckets: [], ivrBuckets: [] },
+    {
+      bot: "general", resolved: 18, tracked: 12,
+      factors: [exampleFactor("vrpBonus", "VRP (RULE-022)", "earned", 18, 8, 0.3, 23)],
+      vrpBuckets: [], ivrBuckets: [], bbTracked: 0, bollingerZoneBuckets: [],
+    },
+    {
+      bot: "20_delta_safe", resolved: 9, tracked: 7,
+      factors: [exampleFactor("vrpBonus", "VRP (RULE-022)", "earned", 9, 4, 0.1, 29)],
+      vrpBuckets: [], ivrBuckets: [], bbTracked: 0, bollingerZoneBuckets: [],
+    },
+    {
+      bot: "aggressive", resolved: 15, tracked: 12,
+      factors: [exampleFactor("vrpBonus", "VRP (RULE-022)", "earned", 15, 6, 0.4, 31)],
+      vrpBuckets: [], ivrBuckets: [], bbTracked: 0, bollingerZoneBuckets: [],
+    },
   ],
 };
 
