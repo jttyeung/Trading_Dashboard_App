@@ -181,7 +181,7 @@ const HEADINGS: Record<Tab, { title: string; subtitle: string }> = {
   },
   "bot-aggressive": {
     title: "Aggressive Bot",
-    subtitle: "A short-dated CSP band (3–14 DTE, ≤0.27 delta, 40%+ ARR required) — paperbot-only, never a real suggestion.",
+    subtitle: "A short-dated CSP band (3–14 DTE, ≤0.28 delta, 80%+ ARR required) — also a real suggestion now, not just paperbot.",
   },
   chart: {
     title: "Chart a Ticker",
