@@ -239,7 +239,7 @@ export const exampleCspFile: ClosedCSPFile = {
     { id: "ex-c3", symbol: "NVDA", name: "NVIDIA", strike: 95, expiration: isoDay(-34), openedAt: isoDay(-77), closedAt: isoDay(-34), contracts: 1, creditPerShare: 2.4, creditReceived: 240, costToClose: 0, realizedPnl: 240, outcome: "expired", daysHeld: 43, collateral: 9500, returnOnCollateral: 0.0253, annualized: 0.214, washSaleWarning: null, accountId: IRA },
     { id: "ex-c4", symbol: "SOFI", name: "SoFi Technologies", strike: 26, expiration: isoDay(-61), openedAt: isoDay(-96), closedAt: isoDay(-61), contracts: 3, creditPerShare: 1.15, creditReceived: 345, costToClose: 0, realizedPnl: 345, outcome: "expired", daysHeld: 35, collateral: 7800, returnOnCollateral: 0.0442, annualized: 0.521, washSaleWarning: null, accountId: ACC },
     { id: "ex-c5", symbol: "CLS", name: "Celestica", strike: 120, expiration: isoDay(-89), openedAt: isoDay(-120), closedAt: isoDay(-96), contracts: 1, creditPerShare: 3.5, creditReceived: 350, costToClose: 520, realizedPnl: -170, outcome: "closed_loss", daysHeld: 24, collateral: 12000, returnOnCollateral: -0.0142, annualized: -0.215, washSaleWarning: null, accountId: ACC },
-    // Reopened 30 days after ex-c5's loss closed (the edge of RULE-014's window) and held
+    // Reopened 30 days after ex-c5's loss closed (the edge of the wash-sale window) and held
     // through a longer-than-usual expiration so the close itself lands inside the closed-
     // trades screen's default "last month" filter — otherwise this row is real but invisible
     // without switching to a wider window, since Candidates has no such date filter to hide it.
@@ -289,7 +289,7 @@ export const exampleStockFile: ClosedStockFile = {
   ],
 };
 
-// RULE-006/011 portfolio risk — reuses the same "Individual"/"Roth IRA" labels
+// Portfolio risk — reuses the same "Individual"/"Roth IRA" labels
 // as exampleSnapshot's accounts so the demo stays consistent across screens.
 // Technology intentionally sits above maxSectorAllocationPct so the sector
 // table's "over cap" state has something real to show, not an all-green screen.
@@ -342,8 +342,8 @@ export const examplePortfolioRiskFile: PortfolioRiskFile = {
       thetaGapToTarget: 0,
       portfolioValue: 22900,
     },
-    // SnapTrade/E*TRADE accounts — informational only, not part of RULE-006's
-    // real gating decision (see PortfolioRiskFile's own doc comment).
+    // SnapTrade/E*TRADE accounts — informational only, not part of the theta
+    // ceiling's real gating decision (see PortfolioRiskFile's own doc comment).
     {
       accountLabel: "Fidelity Individual",
       thetaToday: 18.2,
@@ -401,7 +401,7 @@ export const examplePortfolioRiskFile: PortfolioRiskFile = {
   },
 };
 
-// RULE-010's monthly premium-income goal (data/monthly-goal.json) — mid-month,
+// Monthly premium-income goal (data/monthly-goal.json) — mid-month,
 // partway to target, so the progress bar/pacing numbers all have something real
 // to show rather than an all-zero first-of-the-month state.
 export const exampleMonthlyGoalFile: MonthlyGoalFile = {
@@ -1182,8 +1182,8 @@ export const exampleScoreFactorsFile: ScoreFactorsFile = {
     {
       bot: "all", resolved: 42, tracked: 31,
       factors: [
-        exampleFactor("vrpBonus", "VRP (RULE-022)", "earned", 42, 18, 0.34, 7),
-        exampleFactor("ivRankBonus", "IV Rank (RULE-022)", "earned", 42, 15, 0.22, 11),
+        exampleFactor("vrpBonus", "VRP", "earned", 42, 18, 0.34, 7),
+        exampleFactor("ivRankBonus", "IV Rank", "earned", 42, 15, 0.22, 11),
         exampleFactor("signalsScore", "Indicator signals", "median", 42, 20, 0.12, 3),
         exampleFactor("annualizedRorBonus", "Annualized ROR", "median", 42, 21, -0.18, 5),
         exampleFactor("gexProximityBonus", "At the put wall", "earned", 42, 9, 0.08, 13),
@@ -1213,17 +1213,17 @@ export const exampleScoreFactorsFile: ScoreFactorsFile = {
     },
     {
       bot: "general", resolved: 18, tracked: 12,
-      factors: [exampleFactor("vrpBonus", "VRP (RULE-022)", "earned", 18, 8, 0.3, 23)],
+      factors: [exampleFactor("vrpBonus", "VRP", "earned", 18, 8, 0.3, 23)],
       vrpBuckets: [], ivrBuckets: [], bbTracked: 0, bollingerZoneBuckets: [],
     },
     {
       bot: "20_delta_safe", resolved: 9, tracked: 7,
-      factors: [exampleFactor("vrpBonus", "VRP (RULE-022)", "earned", 9, 4, 0.1, 29)],
+      factors: [exampleFactor("vrpBonus", "VRP", "earned", 9, 4, 0.1, 29)],
       vrpBuckets: [], ivrBuckets: [], bbTracked: 0, bollingerZoneBuckets: [],
     },
     {
       bot: "aggressive", resolved: 15, tracked: 12,
-      factors: [exampleFactor("vrpBonus", "VRP (RULE-022)", "earned", 15, 6, 0.4, 31)],
+      factors: [exampleFactor("vrpBonus", "VRP", "earned", 15, 6, 0.4, 31)],
       vrpBuckets: [], ivrBuckets: [], bbTracked: 0, bollingerZoneBuckets: [],
     },
   ],
@@ -1293,21 +1293,21 @@ export const exampleMyTradesFile: MyTradesFile = {
   meta: { generatedAt: NOW_ISO, minSample: 10, tradeCount: exampleMyTrades.length, matchedCount: 4, capturedSince: isoDay(-50).slice(0, 10) },
   trades: exampleMyTrades,
   factors: [
-    exampleFactor("vrpBonus", "VRP (RULE-022)", "earned", 4, 2, 0.3, 41),
+    exampleFactor("vrpBonus", "VRP", "earned", 4, 2, 0.3, 41),
     exampleFactor("signalsScore", "Indicator signals", "median", 4, 2, 0.1, 43),
     exampleFactor("gammaRegimeBonus", "Positive gamma regime", "earned", 4, 3, 0.05, 47),
   ].map((f) => ({ ...f, correlation: null, series: [] })),
   ivrBuckets: exampleBuckets(["70+", "50-69", "30-49", "<30", "building"], (t) => (t.ivRankAtOpen == null ? "building" : t.ivRankAtOpen >= 70 ? "70+" : t.ivRankAtOpen >= 50 ? "50-69" : t.ivRankAtOpen >= 30 ? "30-49" : "<30")),
   vrpBuckets: exampleBuckets(["rich", "fair", "thin", "n/a"], (t) => t.vrpAtOpen),
   guidelines: [
-    exampleGuideline("deltaBand", "Delta inside a strategy band", "STRAT-001/003/011"),
-    exampleGuideline("dteBand", "DTE inside a strategy window", "STRAT-001/003/011"),
-    exampleGuideline("monthlyRoi", "Clears the monthly ROI floor", "RULE-010"),
-    exampleGuideline("positionSize", "Position within single-stock cap", "RULE-007"),
-    exampleGuideline("sectorCap", "Sector within allocation cap", "RULE-011"),
-    exampleGuideline("washSale", "No recent loss on the same name", "RULE-014"),
-    exampleGuideline("earnings", "No earnings before expiry", "RULE-008"),
-    exampleGuideline("liquidity", "Liquid at entry", "RULE-012"),
+    exampleGuideline("deltaBand", "Delta inside a strategy band", "Wheel bot delta bands"),
+    exampleGuideline("dteBand", "DTE inside a strategy window", "Wheel bot DTE windows"),
+    exampleGuideline("monthlyRoi", "Clears the monthly ROI floor", "Monthly ROI floor"),
+    exampleGuideline("positionSize", "Position within single-stock cap", "Single-stock position cap"),
+    exampleGuideline("sectorCap", "Sector within allocation cap", "Sector allocation cap"),
+    exampleGuideline("washSale", "No recent loss on the same name", "Wash-sale check"),
+    exampleGuideline("earnings", "No earnings before expiry", "Earnings calendar check"),
+    exampleGuideline("liquidity", "Liquid at entry", "Liquidity check"),
   ],
   management: {
     closeReason: exampleBuckets(["CLOSED", "EXPIRED", "ASSIGNED", "EXERCISED"], (t) => t.closeReason),
@@ -1344,7 +1344,7 @@ export const exampleMyTradesFile: MyTradesFile = {
   leaps: {
     trades: [
       {
-        // A deep-ITM LEAP flipped inside a week — inside STRAT-005's DTE
+        // A deep-ITM LEAP flipped inside a week — inside the LEAPs entry window's DTE
         // window, delta unknown (a Fidelity position has no entry snapshot).
         ticker: "GOOGL", contractSymbol: "GOOGL 280616C00310000", putCall: "CALL", source: "fidelity", account: "acct-demo02",
         openDate: isoDay(-8), closeDate: isoDay(-2), closeReason: "CLOSED", quantity: 1, openPrice: 87.75, closePrice: 97.55,
@@ -1361,8 +1361,8 @@ export const exampleMyTradesFile: MyTradesFile = {
       },
     ],
     guidelines: [
-      { key: "leapDte", label: "365+ DTE at entry", rule: "STRAT-005", nChecked: 2, nCompliant: 1, winRateCompliant: 100, winRateViolated: 0, avgReturnCompliant: 11.15, avgReturnViolated: -20.07 },
-      { key: "leapDelta", label: "0.70+ delta at entry", rule: "STRAT-005", nChecked: 1, nCompliant: 1, winRateCompliant: 0, winRateViolated: null, avgReturnCompliant: -20.07, avgReturnViolated: null },
+      { key: "leapDte", label: "365+ DTE at entry", rule: "LEAPs entry window", nChecked: 2, nCompliant: 1, winRateCompliant: 100, winRateViolated: 0, avgReturnCompliant: 11.15, avgReturnViolated: -20.07 },
+      { key: "leapDelta", label: "0.70+ delta at entry", rule: "LEAPs entry window", nChecked: 1, nCompliant: 1, winRateCompliant: 0, winRateViolated: null, avgReturnCompliant: -20.07, avgReturnViolated: null },
     ],
     regime: [
       { bucket: "Slight Fear", n: 1, wins: 1, winRate: 100, avgReturnPct: 11.15 },

@@ -7,7 +7,7 @@ import { fmtMoney } from "@/lib/calc";
 import { isExampleClient } from "@/lib/demo";
 import { fetchMonthlyGoalTarget, setMonthlyGoalTarget } from "@/lib/monthly-goal-api";
 
-// MonthlyGoalCard tracks RULE-010's own 2%/month floor, 3%/month target
+// MonthlyGoalCard tracks the 2%/month floor, 3%/month target
 // against real Schwab options realized P&L for the current calendar
 // month, paced against portfolioValue — the account holder's explicit
 // call (over an earlier version paced against just optionsCapital,
@@ -41,7 +41,7 @@ import { fetchMonthlyGoalTarget, setMonthlyGoalTarget } from "@/lib/monthly-goal
 // persistence via internal/rollapi's /monthly-goal-target, the same fix
 // this app already applied to the roll-up target for the identical
 // class of problem. On mount, GET whatever's saved server-side; falls
-// back to the RULE-010 default / the live portfolioValue prop until an
+// back to the default / the live portfolioValue prop until an
 // explicit override has ever been saved. Also collapsed from two
 // separate pencil icons (one per field) into one, opening a single
 // inline form that edits both % and $ together and saves them as one
@@ -93,7 +93,7 @@ export function MonthlyGoalCard({
       })
       .catch(() => {
         // Daemon unreachable (or not configured here) — quietly keep the
-        // RULE-010 default / live portfolioValue prop, same degrade-
+        // default / live portfolioValue prop, same degrade-
         // gracefully convention every other on-demand API in this app uses.
         setHasOverride(false);
       });

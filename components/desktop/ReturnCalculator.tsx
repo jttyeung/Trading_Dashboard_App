@@ -21,7 +21,7 @@ import { fetchMonthlyGoalTarget } from "@/lib/monthly-goal-api";
 const DAYS_PER_MONTH = DAYS_PER_YEAR / 12;
 
 // The DTE ladder the comparison table walks: a weekly, two- and three-week,
-// a monthly, and STRAT-001's own 45-day upper bound.
+// a monthly, and a 45-day upper bound.
 const DTE_LADDER = [7, 14, 21, 30, 45];
 
 // A calculator-local override of the monthly target, seeded from the real
@@ -53,8 +53,8 @@ export function ReturnCalculator() {
   const [dte, setDte] = useState("7");
 
   // Benchmarks against the account holder's OWN saved monthly target rather
-  // than a hardcoded RULE-010 constant, so "is this enough?" means the same
-  // thing here as on the Monthly Goal card. Falls back to RULE-010's 3% if
+  // than a hardcoded constant, so "is this enough?" means the same
+  // thing here as on the Monthly Goal card. Falls back to 3% if
   // the daemon isn't reachable.
   const [targetMonthlyPct, setTargetMonthlyPct] = useState(3);
   const [targetDraft, setTargetDraft] = useState("3");
@@ -79,7 +79,7 @@ export function ReturnCalculator() {
 
   useEffect(() => {
     // A public demo has no daemon to reach, and SECURITY.md requires
-    // synthetic data with no live calls — the RULE-010 default and a
+    // synthetic data with no live calls — the default target and a
     // representative capital base give a complete calculator either way.
     if (isExampleClient()) {
       setSavedCapitalBase(850000);
@@ -96,7 +96,7 @@ export function ReturnCalculator() {
         if (t.capitalBase > 0) setSavedCapitalBase(t.capitalBase);
       })
       .catch(() => {
-        /* daemon unreachable — keep the RULE-010 default */
+        /* daemon unreachable — keep the default */
       });
     return () => {
       cancelled = true;

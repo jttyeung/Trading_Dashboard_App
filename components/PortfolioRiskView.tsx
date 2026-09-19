@@ -11,7 +11,7 @@ const STATUS_STYLE: Record<RiskView["thetaStatus"], { label: string; chip: strin
   unknown: { label: "Unknown", chip: "bg-surface-2 text-muted ring-border" },
 };
 
-// RULE-018 beta and RULE-019 open-P&L are both soft guidance (never a
+// Beta and open-P&L are both soft guidance (never a
 // suggestion-engine gate, unlike theta/sector above) — "below_target"
 // reads as informational (sky), not alarming, since neither direction is
 // actually wrong the way over_ceiling is for theta.
@@ -86,7 +86,7 @@ function ThetaGauge({ risk }: { risk: ThetaGaugeInput }) {
 // Sector bars, ported back from upstream Trading_Dashboard_App's
 // components/PortfolioRiskView.tsx (which itself started from this file's
 // flat version): each bar carries its tickers for the drill-in line, and
-// `over`/the cap both come from the data bridge (RULE-011) — never a
+// `over`/the cap both come from the data bridge — never a
 // literal here. Exported so the Home card can reuse it compact.
 function tickerList(b: SectorBucket): string {
   const names = b.tickers.map((t) => t.symbol);
@@ -152,9 +152,9 @@ function OpenPnLRow({ openPnL, openPnLPct, status, floorPct }: { openPnL: number
   );
 }
 
-// RULE-018: soft guidance, so this reads like ThetaGauge's band visual
+// Beta is soft guidance, so this reads like ThetaGauge's band visual
 // but with a plain two-sided target band (no separate ceiling marker —
-// there's no hard ceiling here the way RULE-006 has one). Renders just
+// there's no hard ceiling here the way theta has one). Renders just
 // the beta figure itself — theta/open P&L/sector are its siblings in the
 // merged "Overall portfolio" card below, not nested inside this gauge.
 function BetaGauge({ blended }: { blended: BlendedRiskView }) {

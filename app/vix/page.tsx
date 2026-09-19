@@ -184,7 +184,7 @@ function VixBody({
         )}
       </Card>
 
-      {/* Next Fed decision and the futures-implied hike/cut read (RULE-024) —
+      {/* Next Fed decision and the futures-implied hike/cut read —
           the one scheduled macro event that moves both indices above. */}
       {fomc && (
         <>

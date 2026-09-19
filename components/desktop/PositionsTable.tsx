@@ -423,7 +423,7 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
   const [sortKey, setSortKey] = useState<SortKey>("dte");
   const [sortDir, setSortDir] = useState<1 | -1>(1);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  // Which CSP rows have their "Roll analysis" panel open (RULE-021) --
+  // Which CSP rows have their "Roll analysis" panel open --
   // keyed by contract symbol (r.o.id). Lazy-mounted: RollAnalysisPanel
   // only fires its live chain fetch once a row is actually expanded, so
   // opening this table never fires N live calls up front.
