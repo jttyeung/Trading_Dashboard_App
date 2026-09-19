@@ -1078,14 +1078,14 @@ export function exampleAggressiveBot(): BotSnapshot {
   const trades = [
     exampleBotTrade({
       id: 9201, ticker: "AMD", strategy: "CSP_AGGRESSIVE", strike: 437.5, expiration: "2026-09-11", dteAtPost: 8,
-      delta: -0.25, ivPercent: 43.8, premium: 4.55, rorPct: 1.04, annualizedRorPct: 47.5, score: 7.7,
-      rationale: "Short-dated 8 DTE, 0.25 delta; near the lower Bollinger band; clears the 40%+ annualized-return floor this bot requires.",
+      delta: -0.25, ivPercent: 43.8, premium: 8.15, rorPct: 1.86, annualizedRorPct: 85.0, score: 9.0,
+      rationale: "Short-dated 8 DTE, 0.25 delta; near the lower Bollinger band; clears the 80%+ annualized-return floor this bot requires.",
       stockPriceAtPost: 455.89, postedAt: "2026-09-03T20:32:55Z",
     }),
     exampleBotTrade({
       id: 9202, ticker: "NVDA", strategy: "CSP_AGGRESSIVE", strike: 225, expiration: "2026-09-12", dteAtPost: 10,
-      delta: -0.22, ivPercent: 48.0, premium: 2.5, rorPct: 1.11, annualizedRorPct: 40.6, score: 6.9,
-      rationale: "Short-dated 10 DTE, 0.22 delta; at the put wall; clears the 40%+ annualized-return floor this bot requires.",
+      delta: -0.22, ivPercent: 48.0, premium: 5.06, rorPct: 2.25, annualizedRorPct: 82.0, score: 8.2,
+      rationale: "Short-dated 10 DTE, 0.22 delta; at the put wall; clears the 80%+ annualized-return floor this bot requires.",
       stockPriceAtPost: 235.4, postedAt: "2026-09-02T18:10:00Z",
     }),
   ];
