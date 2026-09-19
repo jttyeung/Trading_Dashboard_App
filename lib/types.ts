@@ -311,6 +311,7 @@ export interface BotSnapshot {
 // A closed cash-secured-put round-trip (reconstructed from option order history).
 export interface ClosedCSP {
   id: string;
+  accountId?: string; // the Schwab account (same opaque id as the snapshot); absent on records built before the bridge stamped it
   symbol: string;
   name: string;
   strike: number;
@@ -339,6 +340,7 @@ export interface ClosedCSPFile {
 // A closed long-LEAP round-trip (reconstructed from option order history).
 export interface ClosedLeap {
   id: string;
+  accountId?: string; // the Schwab account (same opaque id as the snapshot); absent on records built before the bridge stamped it
   symbol: string;
   name: string;
   optionType: "call" | "put";
@@ -367,6 +369,7 @@ export interface ClosedLeapFile {
 // A closed covered-call round-trip (short call written against stock).
 export interface ClosedCoveredCall {
   id: string;
+  accountId?: string; // the Schwab account (same opaque id as the snapshot); absent on records built before the bridge stamped it
   symbol: string;
   name: string;
   strike: number;
@@ -394,6 +397,7 @@ export interface ClosedCoveredFile {
 // A closed vertical-spread round-trip (short + long leg, same expiration).
 export interface ClosedSpread {
   id: string;
+  accountId?: string; // the Schwab account (same opaque id as the snapshot); absent on records built before the bridge stamped it
   symbol: string;
   name: string;
   optionType: "call" | "put";
@@ -424,6 +428,7 @@ export interface ClosedSpreadFile {
 // A closed stock round-trip (FIFO buys→sells, or short cover).
 export interface ClosedStock {
   id: string;
+  accountId?: string; // the Schwab account (same opaque id as the snapshot); absent on records built before the bridge stamped it
   symbol: string;
   name: string;
   side: "long" | "short";
