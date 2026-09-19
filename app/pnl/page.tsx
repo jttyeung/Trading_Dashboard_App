@@ -13,6 +13,9 @@ import { optionPnl, equityPnl, daysBetween } from "@/lib/calc";
 import { PnlView, type BucketInput } from "@/components/PnlView";
 import { BuildHistory } from "@/components/BuildHistory";
 import { CostBasisAlert } from "@/components/CostBasisAlert";
+import { ReconcileSchwab } from "@/components/ReconcileSchwab";
+import type { AppClosed } from "@/lib/reconcile";
+import { accountLabel } from "@/lib/account-shared";
 import { ManualStockEntry } from "@/components/ManualStockEntry";
 import { readUnresolvedStocks, readManualStockSales } from "@/lib/bridge-files";
 import type { OptionKind } from "@/lib/types";
@@ -99,6 +102,15 @@ export default async function PnlPage() {
   const unresolved = readUnresolvedStocks();
   // Fully user-added sales that predate the data window entirely.
   const manualSales = readManualStockSales();
+  // Every closed round-trip, flattened for the Schwab reconcile (compares by symbol and month).
+  const appClosed: AppClosed[] = [
+    ...cspF.closed.map((r) => ({ kind: "csp" as const, symbol: r.symbol, closedAt: r.closedAt, realizedPnl: r.realizedPnl, outcome: r.outcome, accountId: r.accountId })),
+    ...coveredF.closed.map((r) => ({ kind: "covered" as const, symbol: r.symbol, closedAt: r.closedAt, realizedPnl: r.realizedPnl, outcome: r.outcome, accountId: r.accountId })),
+    ...spreadF.closed.map((r) => ({ kind: "spread" as const, symbol: r.symbol, closedAt: r.closedAt, realizedPnl: r.realizedPnl, outcome: r.outcome, accountId: r.accountId })),
+    ...leapF.closed.map((r) => ({ kind: "leap" as const, symbol: r.symbol, closedAt: r.closedAt, realizedPnl: r.realizedPnl, outcome: r.outcome, accountId: r.accountId })),
+    ...stockF.closed.map((r) => ({ kind: "stock" as const, symbol: r.symbol, closedAt: r.closedAt, realizedPnl: r.realizedPnl, outcome: r.outcome, accountId: r.accountId })),
+  ];
+  const reconcileAccounts = snap.accounts.map((a) => ({ id: a.id, label: `${accountLabel(a)} ${a.mask}` }));
 
   return (
     <main className="px-4">
@@ -113,6 +125,7 @@ export default async function PnlPage() {
           }
           right={
             <div className="flex items-center gap-2">
+              {hasHistory && <ReconcileSchwab records={appClosed} accounts={reconcileAccounts} unresolved={unresolved} />}
               <CostBasisAlert unresolved={unresolved} />
               <BuildHistory hasHistory={hasHistory} />
             </div>
