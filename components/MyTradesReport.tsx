@@ -147,8 +147,8 @@ function LeapRow({ t }: { t: MyLeapTrade }) {
   );
 }
 
-// LeapsBlock — the bought side, on its own terms. STRAT-005 is the only
-// guideline the notes give a LEAP (365+ DTE, 0.70+ delta at entry), and a
+// LeapsBlock — the bought side, on its own terms. The 365+ DTE, 0.70+
+// delta entry window is the only guideline the notes give a LEAP, and a
 // long call's return is on what it cost, so none of these rows feed the
 // short-trade sections above; averaging a +$900 LEAP into "credit kept"
 // would misstate the CSP record.
@@ -159,8 +159,8 @@ function LeapsBlock({ leaps, since }: { leaps: LeapsSection; since: string }) {
       <Card className="divide-y divide-border overflow-x-auto">
         <div className="px-3 py-1.5 text-[10px] text-muted">
           {leaps.trades.length === 0
-            ? "Closed long calls and puts will show here, graded against STRAT-005 — kept apart from the premium-selling stats above since a bought option has no collateral or credit to keep."
-            : `${leaps.trades.length} closed long trade${leaps.trades.length === 1 ? "" : "s"} · graded against STRAT-005 only · return is on cost, not collateral · delta at entry is known only for Schwab positions the tracker saw open`}
+            ? "Closed long calls and puts will show here, graded against the LEAPs entry window — kept apart from the premium-selling stats above since a bought option has no collateral or credit to keep."
+            : `${leaps.trades.length} closed long trade${leaps.trades.length === 1 ? "" : "s"} · graded against the LEAPs entry window only · return is on cost, not collateral · delta at entry is known only for Schwab positions the tracker saw open`}
         </div>
         {leaps.trades.length > 0 && (
           <table className="w-full min-w-[720px] border-collapse text-xs">

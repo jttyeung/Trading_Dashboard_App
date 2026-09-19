@@ -54,8 +54,8 @@ function defensiveSortValue(c: DefensiveRollCandidate, key: DefensiveSortKey): n
 }
 
 // RollAnalysisPanel is the desktop Positions table's on-demand "should I
-// roll this CSP up, close it, or just let it expire" tool (RULE-021,
-// internal/rules/rollup.go) -- a live, full-chain scan of every
+// roll this CSP up, close it, or just let it expire" tool
+// (internal/rules/rollup.go) -- a live, full-chain scan of every
 // higher-strike replacement Schwab has for this ticker, across every
 // expiration including the current one. Two modes:
 //
@@ -75,8 +75,8 @@ function defensiveSortValue(c: DefensiveRollCandidate, key: DefensiveSortKey): n
 // are empty by construction (no strike above spot is allowed, no strike
 // below the current one counts as a roll-up). The backend then sends a
 // `defensive` section instead -- the tracker's own "roll out and down for
-// a credit or a small debit, aiming back toward Δ0.25" search, capped by
-// RULE-023 -- and this panel swaps the roll-up table for that block
+// a credit or a small debit, aiming back toward Δ0.25" search, capped
+// per contract -- and this panel swaps the roll-up table for that block
 // (DefensiveRollBlock) rather than reporting "nothing found".
 //
 // Lazy: the parent only mounts this once a row is actually expanded, so
@@ -150,8 +150,8 @@ export function RollAnalysisPanel({
 
   const excludedCount = (data?.candidates?.length ?? 0) - viableCandidates.length;
 
-  // The backend's own recommended pick (BestRollUp, gated on ResultingARR
-  // -- see RULE-021) is computed with no knowledge of currentArrLeft, so
+  // The backend's own recommended pick (BestRollUp, gated on ResultingARR)
+  // is computed with no knowledge of currentArrLeft, so
   // it can itself be one of the excluded rows. Surfaced explicitly rather
   // than just silently showing no star anywhere, since that's exactly the
   // scenario that read as a contradiction before this exclusion existed.
@@ -268,7 +268,7 @@ export function RollAnalysisPanel({
         {mode === "target_arr" && (
           <div
             className="flex items-center gap-1 text-xs text-muted"
-            title="Annualized, not monthly -- a 2.5%/month goal (RULE-010) is ~30% here (monthly x 365/30)."
+            title="Annualized, not monthly -- a 2.5%/month goal is ~30% here (monthly x 365/30)."
           >
             Target ARR:
             {editingTarget ? (
@@ -425,7 +425,7 @@ function DefensiveRollBlock({ defensive, strike }: { defensive: DefensiveRollAna
       <p className="text-[11px] text-amber-300/90">
         🛡️ In the money — a roll up (any strike above {fmtMoney(strike)}) isn&apos;t
         on the table. These are defensive rolls instead: same strike or lower,
-        later expiration, for a credit or a debit within the RULE-023 cap
+        later expiration, for a credit or a debit within the cap
         ({fmtMoney(capPerContract)}/contract). Recommended is the closest to
         Δ0.25 among the credit-or-breakeven rows — the tracker&apos;s own pick.
         A bigger credit further down the list is time value at a strike that

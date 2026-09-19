@@ -1,8 +1,8 @@
-// Aggressive paper-trading wheel bot: STRAT-011's short-dated CSP band
+// Aggressive paper-trading wheel bot: a short-dated CSP band
 // (3-14 DTE, ideally 7-10, capped at 0.27 delta, 40%+ annualized return
 // required just to be considered). Deliberately paperbot-only — unlike
 // the general/20-delta-safe bots (whose strategies are also real live
-// suggestions), STRAT-011 never appears in the real Discord digest or
+// suggestions), this aggressive band never appears in the real Discord digest or
 // suggested_moves; this is purely a review queue for building trust in
 // a more aggressive band before it's ever a real suggestion. Same
 // review-queue workflow as /bot and /bot-20-delta-safe. See

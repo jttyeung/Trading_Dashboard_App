@@ -1,4 +1,4 @@
-// General paper-trading wheel bot: STRAT-001 CSP candidates from the real
+// General paper-trading wheel bot: general CSP candidates from the real
 // Trade Suggestion Engine, logged into a review queue for approval
 // feedback before ever going live. See app/layout.tsx (proxy.ts) for why
 // /bot renders full-width instead of the phone-frame shell.

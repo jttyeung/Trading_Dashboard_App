@@ -33,7 +33,7 @@ export interface RollAnalysisCandidate {
   meetsTarget: boolean;
 }
 
-// One contract within RULE-023's debit cap for an in-the-money put. No
+// One contract within the debit cap for an in-the-money put. No
 // resultingArr/meetsTarget on purpose — see internal/rollapi's
 // DefensiveRollCandidate. netCreditPerShare is signed: negative is a debit.
 export interface DefensiveRollCandidate {

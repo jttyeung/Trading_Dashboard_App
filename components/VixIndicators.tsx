@@ -147,7 +147,7 @@ function buildRows(a: VixAssessment, mes?: MesQuote | null, vxn?: number | null)
     ),
   });
 
-  // 1b — VXN (Nasdaq-100 vol, a second read alongside VIX — RULE-016)
+  // 1b — VXN (Nasdaq-100 vol, a second read alongside VIX)
   const vxnA = vxn != null ? assessVxn(vxn) : null;
   const divergence = vxnA != null ? compareVixVxn(a.regime, vxnA.regime) : null;
   const divergenceColor =

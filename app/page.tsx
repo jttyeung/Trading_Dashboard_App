@@ -341,7 +341,7 @@ export default async function HomePage() {
                 <span className="shrink-0 text-muted">›</span>
               </div>
             </Link>
-            {/* Next Fed decision + what futures price into it (RULE-024) — macro
+            {/* Next Fed decision + what futures price into it — macro
                 context that belongs with the regime read, not a card of its own. */}
             {fomc && <FomcCard file={fomc} compact />}
             {/* Outside the Link so the reserve-base toggle and breakdown don't navigate. */}

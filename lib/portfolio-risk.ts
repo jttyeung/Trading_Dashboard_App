@@ -1,4 +1,4 @@
-// Server-side loader for RULE-006/011 portfolio risk (data/portfolio-risk.json),
+// Server-side loader for portfolio risk (data/portfolio-risk.json),
 // written by the data bridge.
 import fs from "node:fs";
 import path from "node:path";

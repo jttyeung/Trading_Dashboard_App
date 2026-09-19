@@ -1,4 +1,4 @@
-// FOMC awareness (OptionsEvaluator RULE-024) — the upcoming Fed meeting
+// FOMC awareness (OptionsEvaluator) — the upcoming Fed meeting
 // calendar and what CME 30-Day Fed Funds futures price into each one. The
 // backend derives the per-meeting read (pre/post rate, expected change);
 // this file only shapes it for display. Pure functions, no I/O — the loader

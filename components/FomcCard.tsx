@@ -1,4 +1,4 @@
-// FOMC card (OptionsEvaluator RULE-024): the next Fed decision, how far off
+// FOMC card (OptionsEvaluator): the next Fed decision, how far off
 // it is, and what fed funds futures price into it. Two shapes — `compact`
 // for the Home "Volatility & Positioning" stack (one row, taps through to
 // /vix), full for the /vix page (every upcoming meeting, plus the strip the

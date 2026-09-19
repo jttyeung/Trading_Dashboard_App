@@ -22,12 +22,12 @@ const ACTION_STYLE: Record<Alert["action"], { label: string; chip: string }> = {
   // ("chase more credit"), not a risk warning, so it gets its own green
   // treatment distinct from ActionRoll's amber "at risk" framing.
   roll_up: { label: "Roll up", chip: "bg-green-500/15 text-green-300 ring-green-500/30" },
-  // An ITM short option with no roll inside RULE-023's $120/contract
-  // debit cap — assignment (or a manual close) is the realistic outcome.
+  // An ITM short option with no roll inside the debit cap
+  // — assignment (or a manual close) is the realistic outcome.
   // Rose like Close (it IS an assignment-risk signal) but a heads-up,
   // not an action: there's deliberately no "roll to" line under it.
   assignment_likely: { label: "Assignment likely", chip: "bg-rose-500/15 text-rose-300 ring-rose-500/30" },
-  // A held LEAP that's grown past RULE-007's allocation caps — usually
+  // A held LEAP that's grown past the allocation caps — usually
   // from appreciation after a compliant entry, not a mistake.
   leaps_over_allocated: { label: "Over-allocated", chip: "bg-amber-500/15 text-amber-300 ring-amber-500/30" },
 };
