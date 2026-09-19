@@ -444,6 +444,8 @@ export interface ClosedStock {
   returnPct: number; // realizedPnl ÷ costBasis (decimal)
   annualized: number; // decimal
   accountId?: string; // matches Account.id — absent for Schwab's manual-entry stock sales, which aren't attributed to one account
+  manualBasis?: boolean; // the cost came from the user (manual_cost_basis.json), not from Schwab's feeds
+  manualEntry?: boolean; // the whole sale was added by hand (manual_stock_sales.json)
 }
 
 export interface ClosedStockFile {
