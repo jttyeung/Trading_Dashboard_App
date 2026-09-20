@@ -12,7 +12,8 @@ import { WatchlistBoard } from "@/components/desktop/WatchlistBoard";
 import { SchwabReconnect } from "@/components/desktop/SchwabReconnect";
 import { ETradeReconnect } from "@/components/desktop/ETradeReconnect";
 import { MyTradesScorecard, BotScorecard } from "@/components/desktop/ScorecardDesktop";
-import type { MyTradesFile, PerformanceRow, ScoreFactorsFile } from "@/lib/types";
+import type { CSPCandidate, MyTradesFile, PerformanceRow, PortfolioRiskFile, ScoreFactorsFile } from "@/lib/types";
+import { ThetaTurnoverPanel } from "@/components/desktop/ThetaTurnoverPanel";
 
 type Tab = "desktop" | "trades" | "bot-safe" | "bot" | "bot-aggressive" | "scorecard" | "calculator" | "chart" | "watchlist" | "connections";
 
@@ -189,7 +190,7 @@ const HEADINGS: Record<Tab, { title: string; subtitle: string }> = {
   },
   watchlist: {
     title: "Watchlist Board",
-    subtitle: "Every active watchlist ticker with a lever showing where its mark sits on Bollinger Bands, RSI, and IV Rank, plus VRP (IV over a 20/60/120-day blended realized vol — rich ≥1.20×, thin ≤0.90×) and the Brief's S/A/B wheel tier tallied from that VRP, the 20-day SMA, and the gamma walls; a row lights up green when IVR ≥ 50 and VRP is rich, the starting filter for a CSP — add or remove tickers by hand; a manual addition is marked ᴹ and survives the sheet sync.",
+    subtitle: "Theta turnover first — short premium expiring in the next 10 days with the daily theta it takes with it, beside the best CSP candidate per underlying (21–45 DTE, 0.15–0.30 Δ, no earnings before expiry) ranked by the CSP tab's score — then every active watchlist ticker with a lever showing where its mark sits on Bollinger Bands, RSI, and IV Rank, plus VRP (IV over a 20/60/120-day blended realized vol — rich ≥1.20×, thin ≤0.90×) and the Brief's S/A/B wheel tier tallied from that VRP, the 20-day SMA, and the gamma walls; a row lights up green when IVR ≥ 50 and VRP is rich, the starting filter for a CSP — add or remove tickers by hand; a manual addition is marked ᴹ and survives the sheet sync.",
   },
   connections: {
     title: "Connections",
@@ -213,6 +214,8 @@ export function OverviewShell({
   totalSuggestions,
   scoreFactors,
   myTrades,
+  cspCandidates,
+  risk,
   exampleMode,
 }: {
   options: SourcedOption[];
@@ -224,6 +227,8 @@ export function OverviewShell({
   totalSuggestions: number;
   scoreFactors: ScoreFactorsFile;
   myTrades: MyTradesFile;
+  cspCandidates: CSPCandidate[];
+  risk: PortfolioRiskFile;
   exampleMode: boolean;
 }) {
   const anyConnectionDown = useAnyConnectionDown();
@@ -355,6 +360,7 @@ export function OverviewShell({
           <ReturnCalculator />
         </div>
         <div className={tab === "watchlist" ? "" : "hidden"}>
+          <ThetaTurnoverPanel options={options} candidates={cspCandidates} risk={risk} />
           <WatchlistBoard exampleMode={exampleMode} />
         </div>
         {/* Same always-mounted-but-hidden treatment as Watchlist above --

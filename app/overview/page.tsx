@@ -12,6 +12,8 @@ import { getSuggestionPerformance } from "@/lib/suggestion-performance";
 import { getStrategyPerformance } from "@/lib/strategy-performance";
 import { getScoreFactors } from "@/lib/score-factors";
 import { getMyTrades } from "@/lib/my-trades";
+import { getCspCandidates } from "@/lib/csp-candidates";
+import { getPortfolioRisk } from "@/lib/portfolio-risk";
 import { accountLabel } from "@/lib/account-shared";
 import { isExampleMode } from "@/lib/example-mode";
 import { OverviewShell } from "@/components/overview/OverviewShell";
@@ -21,16 +23,19 @@ export const dynamic = "force-dynamic";
 export default async function OverviewPage() {
   const snap = await getSnapshot();
   const alerts = (await getAlerts()).alerts;
-  const [generalBot, safeBot, aggressiveBot, suggestionPerf, strategyPerf, scoreFactors, myTrades, exampleMode] = await Promise.all([
-    getGeneralBot(),
-    get20DeltaSafeBot(),
-    getAggressiveBot(),
-    getSuggestionPerformance(),
-    getStrategyPerformance(),
-    getScoreFactors(),
-    getMyTrades(),
-    isExampleMode(),
-  ]);
+  const [generalBot, safeBot, aggressiveBot, suggestionPerf, strategyPerf, scoreFactors, myTrades, cspCandidates, risk, exampleMode] =
+    await Promise.all([
+      getGeneralBot(),
+      get20DeltaSafeBot(),
+      getAggressiveBot(),
+      getSuggestionPerformance(),
+      getStrategyPerformance(),
+      getScoreFactors(),
+      getMyTrades(),
+      getCspCandidates(),
+      getPortfolioRisk(),
+      isExampleMode(),
+    ]);
 
   // Same per-account flatten app/desktop/page.tsx uses — see its own
   // comment for why this can't just read the pre-merged "combined" bucket.
@@ -50,6 +55,8 @@ export default async function OverviewPage() {
       totalSuggestions={suggestionPerf.meta.totalSuggestions}
       scoreFactors={scoreFactors}
       myTrades={myTrades}
+      cspCandidates={cspCandidates.candidates}
+      risk={risk}
       exampleMode={exampleMode}
     />
   );
