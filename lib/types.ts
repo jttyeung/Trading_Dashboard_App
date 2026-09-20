@@ -187,6 +187,40 @@ export interface CSPCandidatesFile {
   candidates: CSPCandidate[];
 }
 
+// ---------------------------------------------------------------------------
+// The suggest engine's CURRENT short-put picks (data/csp-picks.json) — the
+// Theta turnover panel's "on offer" side. Unlike CSPCandidate above (the
+// screener's raw 20–45 DTE universe, scored client-side by lib/csp-model),
+// these are the engine's own ranked rows across CSP / CSP_SAFE /
+// CSP_AGGRESSIVE (so the 3–14 DTE band is included), each with the
+// contract's theta and its ticker's Watchlist Board VRP / IVR / tier.
+// ---------------------------------------------------------------------------
+export interface CspPick {
+  ticker: string;
+  strategy: "CSP" | "CSP_SAFE" | "CSP_AGGRESSIVE";
+  contractSymbol: string;
+  strike: number;
+  expiration: string; // ISO yyyy-mm-dd — recompute DTE from this, `dte` is as of suggestedAt
+  dte: number;
+  delta: number; // magnitude
+  premium: number; // per share
+  annualizedRorPct: number;
+  rank: number; // the engine's rank within its strategy
+  rationale: string;
+  thetaPerDay: number | null; // $/day per contract a short seller earns (positive)
+  vrp: "rich" | "fair" | "thin" | "n/a";
+  vrpRatio: number | null;
+  vrp20: "rich" | "fair" | "thin" | "n/a";
+  vrpRatio20: number | null;
+  ivRank: number | null;
+  tier: "S" | "A" | "B" | "";
+}
+
+export interface CspPicksFile {
+  meta: { generatedAt: string; suggestedAt: string };
+  picks: CspPick[];
+}
+
 export type BotStatus = "pending_approval" | "approved" | "rejected";
 export type BotOutcome = "WIN" | "ASSIGNED";
 // Grade compares a DECIDED trade (approved/rejected) against its

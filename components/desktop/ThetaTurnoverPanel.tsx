@@ -7,30 +7,51 @@
 // next ~10 days, and what's the best available to backfill it." Left:
 // every short premium position expiring inside the window with the
 // daily theta it currently earns (positionDailyTheta -- the same number
-// the positions table sums, never a second derivation). Right: the CSP
-// screener's raw candidate universe, gated to a balanced-wheel band
-// (21-45 DTE, 0.15-0.30 delta, no earnings inside the window), ranked by
-// the same lib/csp-model score the CSP tab shows, with each contract's
-// theta so the two columns are in the same unit. Reads only files the
-// Overview already loads plus csp-candidates.json and portfolio-risk.json
-// -- nothing new on the daemon side.
+// the positions table sums, never a second derivation). Right: the
+// suggest engine's own current short-put picks (data/csp-picks.json --
+// CSP / CSP_SAFE / CSP_AGGRESSIVE, so the 3-14 DTE band is in), each
+// with its contract theta so the two columns share a unit.
+//
+// The first version ranked data/csp-candidates.json by lib/csp-model's
+// score instead. The account holder asked what the picks were based on;
+// that model has no VRP term and the screener file never contains
+// anything under 20 DTE, so it was replaced with the engine's picks and
+// an explicit VRP-first ordering: RULE-022's own 2/1/0 points for the
+// blend read plus the same for the 20-day read (0-4), then ARR. That
+// ordering is the panel's, not the engine's -- the engine's rank is
+// within one strategy and its score already carries VRP as a bonus; this
+// puts VRP in front because the account holder asked for it "baked in".
 import { useMemo } from "react";
 import { Card } from "@/components/ui";
-import type { CSPCandidate, PortfolioRiskFile } from "@/lib/types";
+import type { CspPick, CspPicksFile, PortfolioRiskFile } from "@/lib/types";
 import type { SourcedOption } from "@/components/desktop/PositionsTable";
 import { positionDailyTheta } from "@/lib/theta";
-import { annualizedReturn, scoreCandidate } from "@/lib/csp-model";
 import { fmtMoney } from "@/lib/calc";
+import { VRP_STYLE } from "@/lib/am-report-types";
 
 const ROLL_OFF_DAYS = 10;
-const TOP_N = 8;
-// Balanced Wheel band from csp-model's DEFAULT_SCREENERS, minus its IVR
-// gate (ivRank is still null in this feed) -- the band the account
-// holder's own CSPs actually sit in.
-const DTE_MIN = 21;
-const DTE_MAX = 45;
-const DELTA_MIN = 0.15;
-const DELTA_MAX = 0.3;
+const TOP_N = 10;
+
+// RULE-022's VRP points (rich 2 / fair 1 / thin 0), applied to both the
+// blend and the 20-day read so "fair on the blend, rich on 20d" outranks
+// "fair on both" -- the old-vol-vs-genuinely-cheap distinction the
+// Watchlist Board's third VRP line exists for.
+const VRP_PTS: Record<CspPick["vrp"], number> = { rich: 2, fair: 1, thin: 0, "n/a": 0 };
+function vrpPoints(p: CspPick): number {
+  return VRP_PTS[p.vrp] + VRP_PTS[p.vrp20];
+}
+
+const STRATEGY_CHIP: Record<CspPick["strategy"], { label: string; className: string }> = {
+  CSP: { label: "CSP", className: "bg-surface-2 text-muted ring-border" },
+  CSP_SAFE: { label: "safe", className: "bg-info/15 text-info ring-info/40" },
+  CSP_AGGRESSIVE: { label: "aggr", className: "bg-warn/15 text-warn ring-warn/40" },
+};
+
+const TIER_CHIP: Record<"S" | "A" | "B", string> = {
+  S: "bg-pos/15 text-pos ring-pos/40",
+  A: "bg-info/15 text-info ring-info/40",
+  B: "bg-surface-2 text-muted ring-border",
+};
 
 function daysUntil(iso: string, today: Date): number {
   const [y, m, d] = iso.split("-").map(Number);
@@ -39,19 +60,13 @@ function daysUntil(iso: string, today: Date): number {
   return Math.round((exp - now) / 86_400_000);
 }
 
-// Per-contract daily theta for a candidate, as the credit the seller
-// would earn -- the feed stores the raw (negative) per-share theta.
-function candidateDailyTheta(c: CSPCandidate): number {
-  return Math.abs(c.theta) * 100;
-}
-
 export function ThetaTurnoverPanel({
   options,
-  candidates,
+  picks,
   risk,
 }: {
   options: SourcedOption[];
-  candidates: CSPCandidate[];
+  picks: CspPicksFile;
   risk: PortfolioRiskFile;
 }) {
   const today = useMemo(() => new Date(), []);
@@ -72,24 +87,20 @@ export function ThetaTurnoverPanel({
 
   const onOffer = useMemo(() => {
     const seen = new Set<string>();
-    return candidates
-      .filter(
-        (c) =>
-          c.dte >= DTE_MIN &&
-          c.dte <= DTE_MAX &&
-          c.delta >= DELTA_MIN &&
-          c.delta <= DELTA_MAX &&
-          c.flags.earningsBeforeExp !== true,
-      )
-      .map((c) => ({ c, score: scoreCandidate(c).total, arr: annualizedReturn(c), theta: candidateDailyTheta(c) }))
-      .sort((a, b) => b.score - a.score || b.arr - a.arr)
-      // One contract per underlying: the screener lists every qualifying
-      // strike/expiry, and a list of eight AMD puts is not eight ideas.
-      .filter(({ c }) => (seen.has(c.symbol) ? false : (seen.add(c.symbol), true)))
+    return picks.picks
+      // DTE from the expiration, not the stored dte: on a weekend the
+      // file is Friday's last cycle and a 3-DTE aggressive pick may
+      // already be gone.
+      .map((p) => ({ p, dte: daysUntil(p.expiration, today), pts: vrpPoints(p) }))
+      .filter((r) => r.dte >= 1)
+      .sort((a, b) => b.pts - a.pts || b.p.annualizedRorPct - a.p.annualizedRorPct)
+      // One contract per underlying: the engine lists the same name under
+      // up to three strategies, and three AXTI puts is not three ideas.
+      .filter(({ p }) => (seen.has(p.ticker) ? false : (seen.add(p.ticker), true)))
       .slice(0, TOP_N);
-  }, [candidates]);
+  }, [picks, today]);
 
-  const thetaOnOffer = onOffer.reduce((s, r) => s + r.theta, 0);
+  const thetaOnOffer = onOffer.reduce((s, r) => s + (r.p.thetaPerDay ?? 0), 0);
   // "now" is the blended theta the theta-floor rule actually judges
   // (portfolio-risk.json), not a re-sum of the positions list -- the
   // floor is defined against that number, so "after" has to be too.
@@ -154,31 +165,49 @@ export function ThetaTurnoverPanel({
         </div>
 
         <div className="px-4 py-2">
-          <div className="mb-1 text-[10px] uppercase tracking-wide text-muted" title={`${DTE_MIN}–${DTE_MAX} DTE, ${DELTA_MIN}–${DELTA_MAX} Δ, no earnings before expiry, one contract per underlying, ranked by the CSP tab's score`}>
-            On offer · best per underlying
+          <div
+            className="mb-1 flex items-baseline justify-between text-[10px] uppercase tracking-wide text-muted"
+            title="The suggest engine's current CSP / safe / aggressive picks, one per underlying, ordered by VRP (blend + 20-day, rich 2 / fair 1 / thin 0) then ARR"
+          >
+            <span>On offer · engine picks, VRP first</span>
+            {picks.meta.suggestedAt && <span className="normal-case tracking-normal">as of {picks.meta.suggestedAt.slice(0, 16)}</span>}
           </div>
           {onOffer.length === 0 ? (
-            <div className="py-2 text-xs text-muted">No candidates in the {DTE_MIN}–{DTE_MAX} DTE / {DELTA_MIN}–{DELTA_MAX} Δ band.</div>
+            <div className="py-2 text-xs text-muted">No unexpired engine picks in the last cycle.</div>
           ) : (
             <table className="w-full text-xs">
               <tbody>
-                {onOffer.map(({ c, score, arr, theta }) => (
-                  <tr key={c.id} className="border-b border-border/40 last:border-0">
+                {onOffer.map(({ p, dte }) => (
+                  <tr key={p.contractSymbol + p.strategy} className="border-b border-border/40 last:border-0" title={p.rationale}>
                     <td className="py-1 pr-2 font-medium text-text">
-                      {c.symbol}
-                      {heldShortPuts.has(c.symbol) && (
+                      {p.tier !== "" && (
+                        <span className={`mr-1.5 inline-block w-4 rounded px-0.5 text-center text-[9px] font-bold ring-1 ring-inset ${TIER_CHIP[p.tier]}`}>
+                          {p.tier}
+                        </span>
+                      )}
+                      {p.ticker}
+                      {heldShortPuts.has(p.ticker) && (
                         <span className="ml-1 text-[9px] font-normal text-muted" title="You already hold a short put on this name">
                           held
                         </span>
                       )}
                     </td>
-                    <td className="py-1 pr-2 tabular text-muted">
-                      ${c.strike} P · {c.dte}d
+                    <td className="py-1 pr-2">
+                      <span className={`rounded px-1 py-px text-[9px] font-semibold ring-1 ring-inset ${STRATEGY_CHIP[p.strategy].className}`}>
+                        {STRATEGY_CHIP[p.strategy].label}
+                      </span>
                     </td>
-                    <td className="py-1 pr-2 tabular text-muted">Δ{c.delta.toFixed(2)}</td>
-                    <td className="py-1 pr-2 tabular text-muted">{(arr * 100).toFixed(0)}% ARR</td>
-                    <td className="py-1 pr-2 tabular text-muted" title="CSP tab composite score">{score}</td>
-                    <td className="py-1 text-right tabular text-pos">+{fmtMoney(theta)}/d</td>
+                    <td className="py-1 pr-2 tabular text-muted">
+                      ${p.strike} P · {dte}d
+                    </td>
+                    <td className="py-1 pr-2 tabular text-muted">Δ{p.delta.toFixed(2)}</td>
+                    <td className="py-1 pr-2 tabular text-muted">{p.annualizedRorPct.toFixed(0)}% ARR</td>
+                    <td className="py-1 pr-2 tabular" title={`6mo ${p.vrpRatio?.toFixed(2) ?? "n/a"}× · 20d ${p.vrpRatio20?.toFixed(2) ?? "n/a"}×`}>
+                      <span className={VRP_STYLE[p.vrp]}>{p.vrp}</span>
+                      <span className="text-muted"> / </span>
+                      <span className={VRP_STYLE[p.vrp20]}>{p.vrp20}</span>
+                    </td>
+                    <td className="py-1 text-right tabular text-pos">{p.thetaPerDay != null ? `+${fmtMoney(p.thetaPerDay)}/d` : "—"}</td>
                   </tr>
                 ))}
               </tbody>
