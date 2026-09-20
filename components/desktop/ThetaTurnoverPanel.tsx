@@ -233,12 +233,6 @@ export function ThetaTurnoverPanel({
                     <td className="py-1 pr-2 tabular text-muted">Δ{p.delta.toFixed(2)}</td>
                     <td
                       className="py-1 pr-2 tabular text-muted"
-                      title={p.iv != null ? `This contract's implied vol; ticker ATM IV ${p.atmIV != null ? (p.atmIV * 100).toFixed(0) + "%" : "n/a"}` : "Ticker ATM IV (the contract's own evaluation row is gone)"}
-                    >
-                      IV {(p.iv ?? p.atmIV) != null ? `${(((p.iv ?? p.atmIV) as number) * 100).toFixed(0)}%` : "—"}
-                    </td>
-                    <td
-                      className="py-1 pr-2 tabular text-muted"
                       title={p.ivRank == null ? "IV Rank still building — needs ~20 logged samples; not excluded until then" : "IV Rank: where today's IV sits in the last year's range (OTU: over 50 is high)"}
                     >
                       {p.ivRank != null ? `IVR ${p.ivRank.toFixed(0)}` : <span className="text-[9px]">IVR building</span>}
