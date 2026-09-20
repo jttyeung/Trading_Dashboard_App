@@ -208,6 +208,8 @@ export interface CspPick {
   rank: number; // the engine's rank within its strategy
   rationale: string;
   thetaPerDay: number | null; // $/day per contract a short seller earns (positive)
+  iv: number | null; // the contract's own implied vol (decimal); null with thetaPerDay
+  atmIV: number | null; // the ticker's Brief-logged ATM IV — the board's "IV" line
   vrp: "rich" | "fair" | "thin" | "n/a";
   vrpRatio: number | null;
   vrp20: "rich" | "fair" | "thin" | "n/a";
