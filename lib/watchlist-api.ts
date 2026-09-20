@@ -44,6 +44,15 @@ export interface WatchlistRow {
   atmIV: number | null;
   ivAsOf: string;
   realizedVolBlend: number | null;
+  // The same IV over the plain 20-session realized vol (the Brief
+  // board's own window), as a secondary read: a "thin" on the blend that
+  // is "fair" here is the blend remembering a volatile stretch months
+  // back -- premium is average for how the stock moves NOW -- while a
+  // thin on both is genuinely cheap. Can be present while the blend is
+  // still null on a ticker with only ~a month of history.
+  realizedVol20: number | null;
+  vrp20: Vrp;
+  vrpRatio20: number | null;
   macdLine: number | null;
   macdSignal: number | null;
   macdHistogram: number | null;

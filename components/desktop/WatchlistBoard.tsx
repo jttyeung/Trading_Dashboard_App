@@ -191,6 +191,27 @@ const PREMIUM_SETUP_TIP = `IV Rank ≥ ${PREMIUM_SETUP_IVR_MIN} and VRP rich —
 // contract has stopped qualifying. Deliberately a number + word rather
 // than a Lever: a ratio has no natural 0-100 bound, and "1.31 rich" is
 // what the account holder actually reads off the Brief already.
+//
+// The third line is the same IV over the plain 20-day realized vol (the
+// Brief's own window). It's there for one decision: a thin-on-the-blend
+// name that reads fair here is the blend remembering a volatile stretch
+// months back -- premium is average for how the stock moves NOW, a fine
+// replacement entry for a theta book -- while thin on both is genuinely
+// cheap. Shown even when the blend is n/a, since a month-old ticker has
+// a 20-day RV long before it has a 120-day one.
+function Vrp20Line({ row }: { row: WatchlistRow }) {
+  if (row.vrpRatio20 == null) return null;
+  const pct = (v: number) => `${(v * 100).toFixed(0)}%`;
+  return (
+    <span
+      className="tabular text-[9px] text-muted"
+      title={`Same IV over the 20-day realized vol (${pct(row.realizedVol20 ?? 0)}) — the Brief's own window. Thin on the blend but fair here = the blend is remembering older vol; thin on both = genuinely cheap.`}
+    >
+      20d: <span className={VRP_STYLE[row.vrp20]}>{row.vrpRatio20.toFixed(2)}× {row.vrp20}</span>
+    </span>
+  );
+}
+
 function VrpCell({ row }: { row: WatchlistRow }) {
   if (row.vrpRatio == null) {
     const why =
@@ -203,19 +224,21 @@ function VrpCell({ row }: { row: WatchlistRow }) {
       <div className="flex flex-col gap-0.5" title={why}>
         <span className={`text-xs ${VRP_STYLE["n/a"]}`}>n/a</span>
         <span className="text-[9px] text-muted">{why}</span>
+        <Vrp20Line row={row} />
       </div>
     );
   }
   const pct = (v: number) => `${(v * 100).toFixed(0)}%`;
   const tip = `IV ${pct(row.atmIV ?? 0)} (as of ${row.ivAsOf || "?"}) ÷ realized ${pct(row.realizedVolBlend ?? 0)} (20/60/120-day blend)`;
   return (
-    <div className="flex flex-col gap-0.5" title={tip}>
-      <span className={`tabular text-xs font-medium ${VRP_STYLE[row.vrp]}`}>
+    <div className="flex flex-col gap-0.5">
+      <span className={`tabular text-xs font-medium ${VRP_STYLE[row.vrp]}`} title={tip}>
         {row.vrpRatio.toFixed(2)}× {row.vrp}
       </span>
-      <span className="tabular text-[9px] text-muted">
+      <span className="tabular text-[9px] text-muted" title={tip}>
         {pct(row.atmIV ?? 0)} / {pct(row.realizedVolBlend ?? 0)}
       </span>
+      <Vrp20Line row={row} />
     </div>
   );
 }
@@ -482,7 +505,7 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
               <th className="px-3 py-2 font-medium">
                 <SortHeader label="IVR" sortKeyName="ivr" active={sortKey} dir={sortDir} onClick={toggleSort} />
               </th>
-              <th className="px-3 py-2 font-medium" title="IV ÷ blended 20/60/120-day realized vol — rich ≥1.20, thin ≤0.90">
+              <th className="px-3 py-2 font-medium" title="IV ÷ blended 20/60/120-day realized vol — rich ≥1.20, thin ≤0.90. Third line: the same IV over the plain 20-day RV, the Brief's window.">
                 <SortHeader label="VRP" sortKeyName="vrp" active={sortKey} dir={sortDir} onClick={toggleSort} />
               </th>
               <th className="px-3 py-2" />
