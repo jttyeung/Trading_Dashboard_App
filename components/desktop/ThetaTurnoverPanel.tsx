@@ -40,6 +40,16 @@ const MIN_ARR_PCT = 50;
 // Same reasoning for delta: past 0.30 the premium is being paid for
 // assignment odds, not theta, so it's out regardless of ARR.
 const MAX_DELTA = 0.3;
+// OTU RULE-005: IV Rank over 50 is "high" for the name -- the notes' own
+// definition of high IV (a 52-week percentile, not an absolute vol
+// level). A null IVR means the Brief hasn't logged ~20 samples for the
+// ticker yet (see brief.CurrentIVRank); it's shown as "building" and NOT
+// excluded, so the gate takes over automatically as samples fill in
+// rather than emptying the list in the meantime.
+const MIN_IVR = 50;
+function ivrPasses(p: CspPick): boolean {
+  return p.ivRank == null || p.ivRank >= MIN_IVR;
+}
 
 // VRP ordering, the account holder's own: the four combos where neither
 // read is thin come first in this explicit order, then anything with one
@@ -110,7 +120,7 @@ export function ThetaTurnoverPanel({
       // file is Friday's last cycle and a 3-DTE aggressive pick may
       // already be gone.
       .map((p) => ({ p, dte: daysUntil(p.expiration, today), pts: vrpRank(p) }))
-      .filter((r) => r.dte >= 1 && r.p.annualizedRorPct >= MIN_ARR_PCT && r.p.delta <= MAX_DELTA && !thinOnBoth(r.p))
+      .filter((r) => r.dte >= 1 && r.p.annualizedRorPct >= MIN_ARR_PCT && r.p.delta <= MAX_DELTA && !thinOnBoth(r.p) && ivrPasses(r.p))
       .sort((a, b) => b.pts - a.pts || b.p.annualizedRorPct - a.p.annualizedRorPct)
       // One contract per underlying: the engine lists the same name under
       // up to three strategies, and three AXTI puts is not three ideas.
@@ -187,13 +197,13 @@ export function ThetaTurnoverPanel({
         <div className="px-4 py-2">
           <div
             className="mb-1 flex items-baseline justify-between text-[10px] uppercase tracking-wide text-muted"
-            title={`The suggest engine's current CSP / safe / aggressive picks at ${MIN_ARR_PCT}%+ ARR and Δ ≤ ${MAX_DELTA}, one per underlying, thin-on-both dropped, ordered rich/rich → rich/fair → fair/rich → fair/fair, then one-thin combos, then ARR`}
+            title={`The suggest engine's current CSP / safe / aggressive picks at ${MIN_ARR_PCT}%+ ARR, Δ ≤ ${MAX_DELTA} and IV Rank ≥ ${MIN_IVR} (OTU RULE-005; a still-building IVR is not excluded), one per underlying, thin-on-both dropped, ordered rich/rich → rich/fair → fair/rich → fair/fair, then one-thin combos, then ARR`}
           >
-            <span>On offer · engine picks ≥ {MIN_ARR_PCT}% ARR · Δ ≤ {MAX_DELTA}, VRP first</span>
+            <span>On offer · engine picks ≥ {MIN_ARR_PCT}% ARR · Δ ≤ {MAX_DELTA} · IVR ≥ {MIN_IVR}, VRP first</span>
             {picks.meta.suggestedAt && <span className="normal-case tracking-normal">as of {picks.meta.suggestedAt.slice(0, 16)}</span>}
           </div>
           {onOffer.length === 0 ? (
-            <div className="py-2 text-xs text-muted">No unexpired engine picks at {MIN_ARR_PCT}%+ ARR and Δ ≤ {MAX_DELTA} in the last cycle.</div>
+            <div className="py-2 text-xs text-muted">No unexpired engine picks at {MIN_ARR_PCT}%+ ARR, Δ ≤ {MAX_DELTA}, IVR ≥ {MIN_IVR} in the last cycle.</div>
           ) : (
             <table className="w-full text-xs">
               <tbody>
@@ -226,6 +236,12 @@ export function ThetaTurnoverPanel({
                       title={p.iv != null ? `This contract's implied vol; ticker ATM IV ${p.atmIV != null ? (p.atmIV * 100).toFixed(0) + "%" : "n/a"}` : "Ticker ATM IV (the contract's own evaluation row is gone)"}
                     >
                       IV {(p.iv ?? p.atmIV) != null ? `${(((p.iv ?? p.atmIV) as number) * 100).toFixed(0)}%` : "—"}
+                    </td>
+                    <td
+                      className="py-1 pr-2 tabular text-muted"
+                      title={p.ivRank == null ? "IV Rank still building — needs ~20 logged samples; not excluded until then" : "IV Rank: where today's IV sits in the last year's range (OTU: over 50 is high)"}
+                    >
+                      {p.ivRank != null ? `IVR ${p.ivRank.toFixed(0)}` : <span className="text-[9px]">IVR building</span>}
                     </td>
                     <td className="py-1 pr-2 tabular text-muted">{p.annualizedRorPct.toFixed(0)}% ARR</td>
                     <td className="py-1 pr-2 tabular" title={`6mo ${p.vrpRatio?.toFixed(2) ?? "n/a"}× · 20d ${p.vrpRatio20?.toFixed(2) ?? "n/a"}×`}>
