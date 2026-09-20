@@ -212,8 +212,9 @@ export function ThetaTurnoverPanel({
                     <td className="py-1 pr-2 tabular text-muted">Δ{p.delta.toFixed(2)}</td>
                     <td className="py-1 pr-2 tabular text-muted">{p.annualizedRorPct.toFixed(0)}% ARR</td>
                     <td className="py-1 pr-2 tabular" title={`6mo ${p.vrpRatio?.toFixed(2) ?? "n/a"}× · 20d ${p.vrpRatio20?.toFixed(2) ?? "n/a"}×`}>
+                      <span className="text-[9px] text-muted">6mo </span>
                       <span className={VRP_STYLE[p.vrp]}>{p.vrp}</span>
-                      <span className="text-muted"> / </span>
+                      <span className="text-[9px] text-muted"> · 20d </span>
                       <span className={VRP_STYLE[p.vrp20]}>{p.vrp20}</span>
                     </td>
                     <td className="py-1 text-right tabular text-pos">{p.thetaPerDay != null ? `+${fmtMoney(p.thetaPerDay)}/d` : "—"}</td>
