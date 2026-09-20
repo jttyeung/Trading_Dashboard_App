@@ -31,6 +31,12 @@ import { VRP_STYLE } from "@/lib/am-report-types";
 
 const ROLL_OFF_DAYS = 10;
 const TOP_N = 10;
+// The account holder's own floor for a replacement entry: anything under
+// 50% ARR isn't worth a slot in a theta book regardless of its VRP read
+// (the engine's safe picks at 3-14% ARR were filling half the list).
+// Applied before the one-per-underlying pass so a low-ARR safe pick
+// never takes a ticker's slot from its higher-ARR sibling.
+const MIN_ARR_PCT = 50;
 
 // RULE-022's VRP points (rich 2 / fair 1 / thin 0), applied to both the
 // blend and the 20-day read so "fair on the blend, rich on 20d" outranks
@@ -92,7 +98,7 @@ export function ThetaTurnoverPanel({
       // file is Friday's last cycle and a 3-DTE aggressive pick may
       // already be gone.
       .map((p) => ({ p, dte: daysUntil(p.expiration, today), pts: vrpPoints(p) }))
-      .filter((r) => r.dte >= 1)
+      .filter((r) => r.dte >= 1 && r.p.annualizedRorPct >= MIN_ARR_PCT)
       .sort((a, b) => b.pts - a.pts || b.p.annualizedRorPct - a.p.annualizedRorPct)
       // One contract per underlying: the engine lists the same name under
       // up to three strategies, and three AXTI puts is not three ideas.
@@ -167,13 +173,13 @@ export function ThetaTurnoverPanel({
         <div className="px-4 py-2">
           <div
             className="mb-1 flex items-baseline justify-between text-[10px] uppercase tracking-wide text-muted"
-            title="The suggest engine's current CSP / safe / aggressive picks, one per underlying, ordered by VRP (blend + 20-day, rich 2 / fair 1 / thin 0) then ARR"
+            title={`The suggest engine's current CSP / safe / aggressive picks at ${MIN_ARR_PCT}%+ ARR, one per underlying, ordered by VRP (blend + 20-day, rich 2 / fair 1 / thin 0) then ARR`}
           >
-            <span>On offer · engine picks, VRP first</span>
+            <span>On offer · engine picks ≥ {MIN_ARR_PCT}% ARR, VRP first</span>
             {picks.meta.suggestedAt && <span className="normal-case tracking-normal">as of {picks.meta.suggestedAt.slice(0, 16)}</span>}
           </div>
           {onOffer.length === 0 ? (
-            <div className="py-2 text-xs text-muted">No unexpired engine picks in the last cycle.</div>
+            <div className="py-2 text-xs text-muted">No unexpired engine picks at {MIN_ARR_PCT}%+ ARR in the last cycle.</div>
           ) : (
             <table className="w-full text-xs">
               <tbody>
