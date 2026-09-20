@@ -158,7 +158,9 @@ export function ThetaTurnoverPanel({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-0 md:grid-cols-2 md:divide-x md:divide-border">
+      {/* 2:3 split -- the roll-off side is five short columns, the picks
+          side is nine and was the one wrapping. */}
+      <div className="grid grid-cols-1 gap-0 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:divide-x md:divide-border">
         <div className="px-4 py-2">
           <div className="mb-1 text-[10px] uppercase tracking-wide text-muted">Rolling off</div>
           {rollingOff.length === 0 ? (
@@ -219,6 +221,12 @@ export function ThetaTurnoverPanel({
                       ${p.strike} P · {dte}d
                     </td>
                     <td className="py-1 pr-2 tabular text-muted">Δ{p.delta.toFixed(2)}</td>
+                    <td
+                      className="py-1 pr-2 tabular text-muted"
+                      title={p.iv != null ? `This contract's implied vol; ticker ATM IV ${p.atmIV != null ? (p.atmIV * 100).toFixed(0) + "%" : "n/a"}` : "Ticker ATM IV (the contract's own evaluation row is gone)"}
+                    >
+                      IV {(p.iv ?? p.atmIV) != null ? `${(((p.iv ?? p.atmIV) as number) * 100).toFixed(0)}%` : "—"}
+                    </td>
                     <td className="py-1 pr-2 tabular text-muted">{p.annualizedRorPct.toFixed(0)}% ARR</td>
                     <td className="py-1 pr-2 tabular" title={`6mo ${p.vrpRatio?.toFixed(2) ?? "n/a"}× · 20d ${p.vrpRatio20?.toFixed(2) ?? "n/a"}×`}>
                       <span className="text-[9px] text-muted">6mo </span>
