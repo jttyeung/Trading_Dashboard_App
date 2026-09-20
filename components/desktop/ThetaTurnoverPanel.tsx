@@ -41,13 +41,22 @@ const MIN_ARR_PCT = 50;
 // assignment odds, not theta, so it's out regardless of ARR.
 const MAX_DELTA = 0.3;
 
-// RULE-022's VRP points (rich 2 / fair 1 / thin 0), applied to both the
-// blend and the 20-day read so "fair on the blend, rich on 20d" outranks
-// "fair on both" -- the old-vol-vs-genuinely-cheap distinction the
-// Watchlist Board's third VRP line exists for.
+// VRP ordering, the account holder's own: the four combos where neither
+// read is thin come first in this explicit order, then anything with one
+// thin read (by RULE-022's rich 2 / fair 1 / thin 0 points across both
+// reads), and thin on both is dropped -- premium that's cheap against
+// six months AND against the last month isn't a replacement entry at any
+// ARR. fair/fair deliberately outranks thin/rich: a name both windows
+// agree is fairly priced beats one where only the last month looks good.
+const VRP_COMBO_ORDER = ["rich/rich", "rich/fair", "fair/rich", "fair/fair"];
 const VRP_PTS: Record<CspPick["vrp"], number> = { rich: 2, fair: 1, thin: 0, "n/a": 0 };
-function vrpPoints(p: CspPick): number {
+function vrpRank(p: CspPick): number {
+  const i = VRP_COMBO_ORDER.indexOf(`${p.vrp}/${p.vrp20}`);
+  if (i >= 0) return 100 - i;
   return VRP_PTS[p.vrp] + VRP_PTS[p.vrp20];
+}
+function thinOnBoth(p: CspPick): boolean {
+  return p.vrp === "thin" && p.vrp20 === "thin";
 }
 
 const STRATEGY_CHIP: Record<CspPick["strategy"], { label: string; className: string }> = {
@@ -100,8 +109,8 @@ export function ThetaTurnoverPanel({
       // DTE from the expiration, not the stored dte: on a weekend the
       // file is Friday's last cycle and a 3-DTE aggressive pick may
       // already be gone.
-      .map((p) => ({ p, dte: daysUntil(p.expiration, today), pts: vrpPoints(p) }))
-      .filter((r) => r.dte >= 1 && r.p.annualizedRorPct >= MIN_ARR_PCT && r.p.delta <= MAX_DELTA)
+      .map((p) => ({ p, dte: daysUntil(p.expiration, today), pts: vrpRank(p) }))
+      .filter((r) => r.dte >= 1 && r.p.annualizedRorPct >= MIN_ARR_PCT && r.p.delta <= MAX_DELTA && !thinOnBoth(r.p))
       .sort((a, b) => b.pts - a.pts || b.p.annualizedRorPct - a.p.annualizedRorPct)
       // One contract per underlying: the engine lists the same name under
       // up to three strategies, and three AXTI puts is not three ideas.
@@ -176,7 +185,7 @@ export function ThetaTurnoverPanel({
         <div className="px-4 py-2">
           <div
             className="mb-1 flex items-baseline justify-between text-[10px] uppercase tracking-wide text-muted"
-            title={`The suggest engine's current CSP / safe / aggressive picks at ${MIN_ARR_PCT}%+ ARR and Δ ≤ ${MAX_DELTA}, one per underlying, ordered by VRP (blend + 20-day, rich 2 / fair 1 / thin 0) then ARR`}
+            title={`The suggest engine's current CSP / safe / aggressive picks at ${MIN_ARR_PCT}%+ ARR and Δ ≤ ${MAX_DELTA}, one per underlying, thin-on-both dropped, ordered rich/rich → rich/fair → fair/rich → fair/fair, then one-thin combos, then ARR`}
           >
             <span>On offer · engine picks ≥ {MIN_ARR_PCT}% ARR · Δ ≤ {MAX_DELTA}, VRP first</span>
             {picks.meta.suggestedAt && <span className="normal-case tracking-normal">as of {picks.meta.suggestedAt.slice(0, 16)}</span>}
