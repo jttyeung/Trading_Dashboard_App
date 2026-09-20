@@ -12,7 +12,7 @@ import { getSuggestionPerformance } from "@/lib/suggestion-performance";
 import { getStrategyPerformance } from "@/lib/strategy-performance";
 import { getScoreFactors } from "@/lib/score-factors";
 import { getMyTrades } from "@/lib/my-trades";
-import { getCspCandidates } from "@/lib/csp-candidates";
+import { getCspPicks } from "@/lib/csp-picks";
 import { getPortfolioRisk } from "@/lib/portfolio-risk";
 import { accountLabel } from "@/lib/account-shared";
 import { isExampleMode } from "@/lib/example-mode";
@@ -23,7 +23,7 @@ export const dynamic = "force-dynamic";
 export default async function OverviewPage() {
   const snap = await getSnapshot();
   const alerts = (await getAlerts()).alerts;
-  const [generalBot, safeBot, aggressiveBot, suggestionPerf, strategyPerf, scoreFactors, myTrades, cspCandidates, risk, exampleMode] =
+  const [generalBot, safeBot, aggressiveBot, suggestionPerf, strategyPerf, scoreFactors, myTrades, cspPicks, risk, exampleMode] =
     await Promise.all([
       getGeneralBot(),
       get20DeltaSafeBot(),
@@ -32,7 +32,7 @@ export default async function OverviewPage() {
       getStrategyPerformance(),
       getScoreFactors(),
       getMyTrades(),
-      getCspCandidates(),
+      getCspPicks(),
       getPortfolioRisk(),
       isExampleMode(),
     ]);
@@ -55,7 +55,7 @@ export default async function OverviewPage() {
       totalSuggestions={suggestionPerf.meta.totalSuggestions}
       scoreFactors={scoreFactors}
       myTrades={myTrades}
-      cspCandidates={cspCandidates.candidates}
+      cspPicks={cspPicks}
       risk={risk}
       exampleMode={exampleMode}
     />

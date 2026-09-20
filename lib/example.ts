@@ -30,6 +30,7 @@ import type {
   BucketStat,
   BotSnapshot,
   BotTrade,
+  CspPicksFile,
 } from "./types";
 import type { WatchlistRow } from "./watchlist-api";
 import type { RollAnalysisCandidate, RollAnalysisMode, RollAnalysisResponse } from "./roll-api";
@@ -527,6 +528,21 @@ const CANDIDATE_META = {
 // Screened CSP candidates (data/csp-candidates.json) — CLS carries the same
 // wash-sale warning text as exampleCspFile's ex-c5/ex-c9 pair, so the live
 // Candidates tab and the closed-trade history tell the same consistent story.
+// exampleCspPicksFile -- demo-mode engine picks for the Theta turnover
+// panel: same tickers as exampleWatchlistBoard so the VRP/tier reads line
+// up, one short-dated CSP_AGGRESSIVE row so that band is visibly present.
+export const exampleCspPicksFile: CspPicksFile = {
+  meta: { generatedAt: "2026-09-12T14:30:00Z", suggestedAt: "2026-09-12 08:30:00" },
+  picks: [
+    { ticker: "NVDA", strategy: "CSP", contractSymbol: "NVDA  261016P00200000", strike: 200, expiration: isoDay(28), dte: 28, delta: 0.24, premium: 4.1, annualizedRorPct: 27, rank: 1, rationale: "VRP rich; positive net gamma; put wall 200", thetaPerDay: 14.2, vrp: "rich", vrpRatio: 1.42, vrp20: "rich", vrpRatio20: 1.36, ivRank: 81, tier: "S" },
+    { ticker: "AMD", strategy: "CSP", contractSymbol: "AMD   261016P00175000", strike: 175, expiration: isoDay(28), dte: 28, delta: 0.22, premium: 3.6, annualizedRorPct: 27, rank: 2, rationale: "VRP rich; above 20-day SMA", thetaPerDay: 12.1, vrp: "rich", vrpRatio: 1.31, vrp20: "rich", vrpRatio20: 1.25, ivRank: 58, tier: "S" },
+    { ticker: "COHR", strategy: "CSP_AGGRESSIVE", contractSymbol: "COHR  260925P00285000", strike: 285, expiration: isoDay(7), dte: 7, delta: 0.26, premium: 3.9, annualizedRorPct: 71, rank: 1, rationale: "short-dated; clears the aggressive ARR floor", thetaPerDay: 38.4, vrp: "fair", vrpRatio: 1.08, vrp20: "rich", vrpRatio20: 1.21, ivRank: null, tier: "A" },
+    { ticker: "GLW", strategy: "CSP", contractSymbol: "GLW   261016P00140000", strike: 140, expiration: isoDay(28), dte: 28, delta: 0.21, premium: 2.2, annualizedRorPct: 20, rank: 3, rationale: "VRP fair; RSI 48", thetaPerDay: 7.6, vrp: "fair", vrpRatio: 1.04, vrp20: "rich", vrpRatio20: 1.2, ivRank: 34, tier: "A" },
+    { ticker: "MU", strategy: "CSP_SAFE", contractSymbol: "MU    261016P00800000", strike: 800, expiration: isoDay(28), dte: 28, delta: 0.14, premium: 9.8, annualizedRorPct: 16, rank: 1, rationale: "20-delta safe band", thetaPerDay: 31.0, vrp: "fair", vrpRatio: 0.97, vrp20: "fair", vrpRatio20: 1.12, ivRank: 47, tier: "A" },
+    { ticker: "SOFI", strategy: "CSP", contractSymbol: "SOFI  261016P00016000", strike: 16, expiration: isoDay(28), dte: 28, delta: 0.25, premium: 0.42, annualizedRorPct: 34, rank: 4, rationale: "VRP thin; RSI 30 oversold", thetaPerDay: 1.5, vrp: "thin", vrpRatio: 0.82, vrp20: "thin", vrpRatio20: 0.77, ivRank: 22, tier: "B" },
+  ],
+};
+
 export const exampleCspCandidatesFile: CSPCandidatesFile = {
   meta: CANDIDATE_META,
   candidates: [
