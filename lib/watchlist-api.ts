@@ -6,7 +6,7 @@
 // (not a hardcoded "localhost") is load-bearing here for the same reason
 // documented in lib/chart-api.ts -- a phone reaching this over Tailscale needs
 // the request to target the SAME host the page itself was loaded from.
-import type { Vrp } from "@/lib/am-report-types";
+import type { Tier, Vrp } from "@/lib/am-report-types";
 
 function watchlistAPIBase(): string {
   if (typeof window === "undefined") return "http://localhost:8093";
@@ -36,6 +36,11 @@ export interface WatchlistRow {
   // Brief agent logs one.
   vrp: Vrp;
   vrpRatio: number | null;
+  // tier is the Brief's S/A/B wheel tier, re-tallied from this board's
+  // own inputs (the blended-RV vrp above, close vs 20-day SMA, net gamma,
+  // put wall) so it always agrees with the VRP shown next to it. "" when
+  // vrp is "n/a" -- not enough data to tier, which is not the same as B.
+  tier: Tier | "";
   atmIV: number | null;
   ivAsOf: string;
   realizedVolBlend: number | null;
