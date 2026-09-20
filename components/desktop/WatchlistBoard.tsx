@@ -184,13 +184,21 @@ const PREMIUM_SETUP_TIP = `IV Rank ≥ ${PREMIUM_SETUP_IVR_MIN} and VRP rich —
 
 // VrpCell -- the IV/RV ratio with its rich/fair/thin read, styled with
 // the same tokens the Brief board uses for its own VRP column so the two
-// never disagree on what "rich" looks like. The two inputs (ATM IV and
-// the blended realized vol, both shown as vol %) live in the tooltip
-// along with the IV sample's date, since that side only moves when the
-// Brief agent logs one -- a stale date is the tell when a ticker's gate
-// contract has stopped qualifying. Deliberately a number + word rather
-// than a Lever: a ratio has no natural 0-100 bound, and "1.31 rich" is
-// what the account holder actually reads off the Brief already.
+// never disagree on what "rich" looks like. Deliberately a number + word
+// rather than a Lever: a ratio has no natural 0-100 bound, and "1.31
+// rich" is what the account holder actually reads off the Brief already.
+//
+// The second line is the absolute ATM IV alone. It used to be both
+// inputs ("50% / 48%"); the account holder asked what the realized side
+// was for and the honest answer was nothing -- the ratio already IS the
+// two divided. Absolute IV does matter on its own: it sets how much
+// premium a contract actually pays, which the ratio can't say (1.04x on
+// a 50%-IV name collects several times what 1.04x on a 22%-IV name
+// does). Both realized vols and the IV sample's date stay in the
+// tooltip -- a stale date is the tell when a ticker's gate contract has
+// stopped qualifying. The "6mo:" label is the account holder's own ask,
+// so the two ratio lines read as a matched pair with the 20d line below
+// -- the blend's longest window is 120 sessions, about six months.
 //
 // The third line is the same IV over the plain 20-day realized vol (the
 // Brief's own window). It's there for one decision: a thin-on-the-blend
@@ -229,14 +237,18 @@ function VrpCell({ row }: { row: WatchlistRow }) {
     );
   }
   const pct = (v: number) => `${(v * 100).toFixed(0)}%`;
-  const tip = `IV ${pct(row.atmIV ?? 0)} (as of ${row.ivAsOf || "?"}) ÷ realized ${pct(row.realizedVolBlend ?? 0)} (20/60/120-day blend)`;
+  const rv20 = row.realizedVol20 != null ? `, 20-day ${pct(row.realizedVol20)}` : "";
+  const tip = `IV ${pct(row.atmIV ?? 0)} (as of ${row.ivAsOf || "?"}) ÷ realized ${pct(row.realizedVolBlend ?? 0)} (20/60/120-day blend${rv20})`;
   return (
     <div className="flex flex-col gap-0.5">
-      <span className={`tabular text-xs font-medium ${VRP_STYLE[row.vrp]}`} title={tip}>
-        {row.vrpRatio.toFixed(2)}× {row.vrp}
+      <span className="tabular text-xs" title={tip}>
+        <span className="text-muted">6mo: </span>
+        <span className={`font-medium ${VRP_STYLE[row.vrp]}`}>
+          {row.vrpRatio.toFixed(2)}× {row.vrp}
+        </span>
       </span>
       <span className="tabular text-[9px] text-muted" title={tip}>
-        {pct(row.atmIV ?? 0)} / {pct(row.realizedVolBlend ?? 0)}
+        IV {pct(row.atmIV ?? 0)}
       </span>
       <Vrp20Line row={row} />
     </div>
