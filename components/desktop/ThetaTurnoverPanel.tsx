@@ -37,6 +37,9 @@ const TOP_N = 10;
 // Applied before the one-per-underlying pass so a low-ARR safe pick
 // never takes a ticker's slot from its higher-ARR sibling.
 const MIN_ARR_PCT = 50;
+// Same reasoning for delta: past 0.30 the premium is being paid for
+// assignment odds, not theta, so it's out regardless of ARR.
+const MAX_DELTA = 0.3;
 
 // RULE-022's VRP points (rich 2 / fair 1 / thin 0), applied to both the
 // blend and the 20-day read so "fair on the blend, rich on 20d" outranks
@@ -98,7 +101,7 @@ export function ThetaTurnoverPanel({
       // file is Friday's last cycle and a 3-DTE aggressive pick may
       // already be gone.
       .map((p) => ({ p, dte: daysUntil(p.expiration, today), pts: vrpPoints(p) }))
-      .filter((r) => r.dte >= 1 && r.p.annualizedRorPct >= MIN_ARR_PCT)
+      .filter((r) => r.dte >= 1 && r.p.annualizedRorPct >= MIN_ARR_PCT && r.p.delta <= MAX_DELTA)
       .sort((a, b) => b.pts - a.pts || b.p.annualizedRorPct - a.p.annualizedRorPct)
       // One contract per underlying: the engine lists the same name under
       // up to three strategies, and three AXTI puts is not three ideas.
@@ -173,13 +176,13 @@ export function ThetaTurnoverPanel({
         <div className="px-4 py-2">
           <div
             className="mb-1 flex items-baseline justify-between text-[10px] uppercase tracking-wide text-muted"
-            title={`The suggest engine's current CSP / safe / aggressive picks at ${MIN_ARR_PCT}%+ ARR, one per underlying, ordered by VRP (blend + 20-day, rich 2 / fair 1 / thin 0) then ARR`}
+            title={`The suggest engine's current CSP / safe / aggressive picks at ${MIN_ARR_PCT}%+ ARR and Δ ≤ ${MAX_DELTA}, one per underlying, ordered by VRP (blend + 20-day, rich 2 / fair 1 / thin 0) then ARR`}
           >
-            <span>On offer · engine picks ≥ {MIN_ARR_PCT}% ARR, VRP first</span>
+            <span>On offer · engine picks ≥ {MIN_ARR_PCT}% ARR · Δ ≤ {MAX_DELTA}, VRP first</span>
             {picks.meta.suggestedAt && <span className="normal-case tracking-normal">as of {picks.meta.suggestedAt.slice(0, 16)}</span>}
           </div>
           {onOffer.length === 0 ? (
-            <div className="py-2 text-xs text-muted">No unexpired engine picks at {MIN_ARR_PCT}%+ ARR in the last cycle.</div>
+            <div className="py-2 text-xs text-muted">No unexpired engine picks at {MIN_ARR_PCT}%+ ARR and Δ ≤ {MAX_DELTA} in the last cycle.</div>
           ) : (
             <table className="w-full text-xs">
               <tbody>
