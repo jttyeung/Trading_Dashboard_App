@@ -3,7 +3,8 @@
 // Every active watchlist ticker (sheet-synced + manually added) with a
 // small visual "lever" per ticker showing where its current mark sits on
 // Bollinger Bands and RSI(14), IV Rank, a MACD momentum badge, a VRP
-// (IV vs blended realized vol) read, and price read against today's
+// (IV vs blended realized vol) read, the Brief's S/A/B tier re-tallied
+// from those same inputs, and price read against today's
 // put/call gamma walls (replacing a plain Price column -- see
 // PriceWallsCell) -- plus the ability to add/remove tickers by hand.
 // Talks to internal/watchlistapi's localhost-only API (see
@@ -219,6 +220,46 @@ function VrpCell({ row }: { row: WatchlistRow }) {
   );
 }
 
+// TierBadge -- the Brief's S/A/B wheel tier as the same small chip the
+// Brief board renders, but on this page's theme tokens rather than the
+// Brief's TIER_STYLE: that palette (emerald-100 / sky-200 text) is built
+// for the phone frame's fixed dark theme and disappears on the wide-
+// surface light theme, which this board is one of. The server re-tallies
+// the tier from this board's own inputs (see watchlist-api.ts's tier
+// comment), so it can differ from the Brief's letter for the same name
+// on the same morning purely because of the VRP's realized-vol window;
+// the tooltip spells out what went into the tally.
+const TIER_BADGE: Record<"S" | "A" | "B", string> = {
+  S: "bg-pos/15 text-pos ring-pos/40",
+  A: "bg-info/15 text-info ring-info/40",
+  B: "bg-surface-2 text-muted ring-border",
+};
+
+const TIER_TIP =
+  "Wheel-setup tier: VRP rich +2 / thin −1, close above 20-day SMA +1, dealers net long gamma +1, put wall at or below price +1 — S ≥ 4, A ≥ 2, else B. Premium-and-structure only: no trend strength, liquidity, or earnings check.";
+
+function TierBadge({ tier }: { tier: WatchlistRow["tier"] }) {
+  if (tier === "") {
+    return (
+      <span className="text-xs text-muted" title="No IV sample yet, so nothing to tier">
+        —
+      </span>
+    );
+  }
+  return (
+    <span
+      title={TIER_TIP}
+      className={`tabular inline-block w-5 rounded px-1 py-0.5 text-center text-[11px] font-bold ring-1 ring-inset ${TIER_BADGE[tier]}`}
+    >
+      {tier}
+    </span>
+  );
+}
+
+// tierRank orders S above A above B for sorting; untiered rows go last
+// via compareNullable's null handling, same as every other column.
+const TIER_RANK: Record<WatchlistRow["tier"], number | null> = { S: 3, A: 2, B: 1, "": null };
+
 // bbPosition is where currentPrice sits within [bollingerLower,
 // bollingerUpper] as a 0-1 fraction (same math the BB Lever itself uses
 // to place its marker) -- null when any of the three inputs is missing,
@@ -250,7 +291,7 @@ function compareNullable(av: number | null, bv: number | null, dir: 1 | -1): num
   return (av - bv) * dir;
 }
 
-type SortKey = "ticker" | "bb" | "walls" | "chg" | "rsi" | "ivr" | "vrp";
+type SortKey = "tier" | "ticker" | "bb" | "walls" | "chg" | "rsi" | "ivr" | "vrp";
 
 function SortHeader({
   label,
@@ -300,6 +341,11 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
     const list = [...rows];
     list.sort((a, b) => {
       switch (sortKey) {
+        case "tier":
+          // First click reads S→A→B (the direction anyone sorting by tier
+          // actually wants), so the rank comparison runs inverted; untiered
+          // rows still land last either way via compareNullable.
+          return compareNullable(TIER_RANK[a.tier], TIER_RANK[b.tier], sortDir === 1 ? -1 : 1);
         case "ticker":
           return a.ticker.localeCompare(b.ticker) * sortDir;
         case "bb":
@@ -413,6 +459,9 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
         <table className="w-full min-w-[1080px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted">
+              <th className="w-px whitespace-nowrap px-3 py-2 font-medium" title={TIER_TIP}>
+                <SortHeader label="Tier" sortKeyName="tier" active={sortKey} dir={sortDir} onClick={toggleSort} />
+              </th>
               <th className="px-3 py-2 font-medium">
                 <SortHeader label="Ticker" sortKeyName="ticker" active={sortKey} dir={sortDir} onClick={toggleSort} />
               </th>
@@ -449,6 +498,9 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
                     : "hover:bg-surface-2/40"
                 }`}
               >
+                <td className="w-px whitespace-nowrap px-3 py-2">
+                  <TierBadge tier={r.tier} />
+                </td>
                 <td className="whitespace-nowrap px-3 py-2 font-medium text-text">
                   {r.ticker}
                   {isPremiumSetup(r) && (
@@ -508,7 +560,7 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
             ))}
             {!loading && rows.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-3 py-8 text-center text-sm text-muted">
+                <td colSpan={10} className="px-3 py-8 text-center text-sm text-muted">
                   No active watchlist tickers.
                 </td>
               </tr>
