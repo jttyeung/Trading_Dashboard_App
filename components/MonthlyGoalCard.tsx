@@ -28,10 +28,13 @@ import { fetchMonthlyGoalTarget, setMonthlyGoalTarget } from "@/lib/monthly-goal
 // summary.totalValue, or this card's whole "static for the month"
 // framing breaks.
 //
-// realizedThisMonth is still Schwab-only, though — internal/pnl's own
-// FIFO reconstruction has no SnapTrade/E*TRADE equivalent (those two
-// only reconstruct realized STOCK P&L, not options), a real, known gap
-// this card doesn't paper over but hasn't closed yet either.
+// realizedThisMonth used to be Schwab-options-only, back when that was
+// the only realized P&L this app reconstructed. It is now blended across
+// all six FIFO tables — Schwab, Fidelity and E*TRADE, options and shares
+// alike (see internal/export/monthly_goal.go's monthlyRealizedTables).
+// The gap this comment used to describe was real; it closed when a
+// closed Fidelity LEAP showed up in the P&L page's totals while this
+// card quietly ignored it.
 //
 // Update — target %/capital base are now backend-persisted, not
 // localStorage: a localStorage-only override turned out not to actually
