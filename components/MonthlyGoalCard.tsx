@@ -64,7 +64,6 @@ function fmtMonthLabel(yearMonth: string): string {
 export function MonthlyGoalCard({
   portfolioValue,
   realizedThisMonth,
-  collateralAtWork,
   history,
   defaultTargetPercent,
   asOfDate,
@@ -75,8 +74,6 @@ export function MonthlyGoalCard({
   defaultTargetPercent: number;
   asOfDate: string; // YYYY-MM-DD
   daysInMonth: number;
-  /** Short-put collateral currently committed — a floor, see below. */
-  collateralAtWork: number;
   /** Every month on record, oldest first, including the one in progress. */
   history: MonthlyGoalRecord[];
 }) {
@@ -189,11 +186,6 @@ export function MonthlyGoalCard({
   const hitCount = settled.filter((m) => m.met).length;
 
   const goal = capitalBase * (targetPercent / 100);
-  // One-directional check: collateral already committed to open short puts
-  // is money demonstrably being traded, so a base below it is provably
-  // stale. It can never confirm the base is RIGHT -- the account holder's
-  // own excluded long-held stock is invisible to every data source here.
-  const baseIsStale = hasOverride === true && collateralAtWork > 0 && capitalBase < collateralAtWork;
   const progressPct = goal > 0 ? (realizedThisMonth / goal) * 100 : 0;
   const dayOfMonth = parseInt(asOfDate.slice(8, 10), 10) || 1;
   const daysLeft = Math.max(0, daysInMonth - dayOfMonth);
@@ -287,19 +279,6 @@ export function MonthlyGoalCard({
           style={{ width: `${Math.min(100, Math.max(0, progressPct))}%` }}
         />
       </div>
-
-      {hasOverride === true && (
-        <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
-          <span>
-            Base <Amt>{fmtMoney(capitalBase)}</Amt> @ {targetPercent}%
-          </span>
-          {baseIsStale && (
-            <span className="text-amber-400">
-              · below the <Amt>{fmtMoney(collateralAtWork)}</Amt> already committed to open puts
-            </span>
-          )}
-        </div>
-      )}
 
       <div className="mt-3 grid grid-cols-4 gap-2 rounded-xl border border-border px-3 py-2 text-center">
         <div>

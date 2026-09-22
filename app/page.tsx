@@ -263,7 +263,6 @@ export default async function HomePage() {
         defaultTargetPercent={monthlyGoal.targetPercent}
         asOfDate={monthlyGoal.asOfDate}
         daysInMonth={monthlyGoal.daysInMonth}
-        collateralAtWork={monthlyGoal.collateralAtWork}
         history={monthlyGoal.history}
       />
 
