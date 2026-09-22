@@ -695,14 +695,6 @@ export interface MonthlyGoalFile {
   asOfDate: string; // YYYY-MM-DD, America/New_York
   daysInMonth: number;
   portfolioValueBaseline: number;
-  // Collateral committed to open short puts across all three brokerages.
-  // A staleness FLOOR for the hand-set capital base, not a candidate for
-  // it: the base deliberately excludes long-held taxable stock the account
-  // holder isn't ready to sell, which nothing here can derive (open equity
-  // positions carry no acquisition date). Money already tied up in
-  // collateral is money demonstrably being traded, so a base below this is
-  // definitely stale -- it can say "too low" and never "correct."
-  collateralAtWork: number;
   /** Every month on record, oldest first, including the one in progress. */
   history: MonthlyGoalRecord[];
 }

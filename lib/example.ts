@@ -415,7 +415,6 @@ export const exampleMonthlyGoalFile: MonthlyGoalFile = {
   portfolioValueBaseline: 657160, // matches the combined account's own totalValue above
   // Invented to sit BELOW the baseline, so the demo shows the ordinary
   // "base looks current" state rather than the stale-base warning.
-  collateralAtWork: 214500,
   // A short run of invented months so the history strip has a mix of met
   // and missed to render, rather than a single in-progress chip.
   history: [
