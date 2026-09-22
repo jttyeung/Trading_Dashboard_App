@@ -657,12 +657,17 @@ export function PnlView({
             account, or a 401(k) rollover changes the account&apos;s overall size later on.
           </p>
           <p className="mt-1 px-1 text-[10px] leading-relaxed text-muted">
-            <span className="font-medium text-text">TWR</span> is the month&apos;s time-weighted return: how the
-            portfolio itself did once every deposit and withdrawal is backed out day by day.{" "}
+            {/* Every run of text here starts with an explicit {" "}: JSX drops the
+                leading space of a text child that wraps onto a second line, which
+                silently glued "TWR" to "is" the first time around. */}
+            <span className="font-medium text-text">TWR</span>{" "}
+            is the month&apos;s time-weighted return: how the portfolio itself did once every deposit and
+            withdrawal is backed out day by day.{" "}
             <span className="font-medium text-text">NAV</span> is the raw change in total value (flows included),{" "}
             <span className="font-medium text-text">Flows</span> the money that moved in or out, and{" "}
-            <span className="font-medium text-text">Ex-flows</span> what&apos;s left — the dollar twin of TWR.
-            Realized profit can hit its target in a month TWR is negative; that gap is the point of showing both.
+            <span className="font-medium text-text">Ex-flows</span>{" "}
+            what&apos;s left — the dollar twin of TWR. Realized profit can hit its target in a month TWR is
+            negative; that gap is the point of showing both.
             {navHistoryFrom && (
               <> NAV history begins {fmtDate(navHistoryFrom)}, so earlier months show realized dollars only.</>
             )}
