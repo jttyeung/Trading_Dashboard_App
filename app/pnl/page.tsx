@@ -61,6 +61,9 @@ export default async function PnlPage() {
   // starting capital base for a monthly ROI% -- see PnlView's own
   // capitalBaseForMonth for why this specific series over anything else.
   const capitalHistory = benchmark.actual;
+  // Same series, already flow-adjusted per day, for the By-month table's
+  // TWR/NAV strip -- the Benchmark page links these exact numbers too.
+  const dailyReturns = benchmark.actualDailyReturns ?? [];
   const realized: BucketInput[] = [
     { key: "csp", label: "CSPs", items: cspF.closed.filter((r) => showAll || r.accountId === id).map((r) => ({ pnl: r.realizedPnl, date: r.closedAt, sym: r.symbol, strikeLabel: `$${r.strike}`, openedAt: r.openedAt, daysHeld: r.daysHeld })) },
     { key: "covered", label: "Covered calls", items: coveredF.closed.filter((r) => showAll || r.accountId === id).map((r) => ({ pnl: r.realizedPnl, date: r.closedAt, sym: r.symbol, strikeLabel: `$${r.strike}`, openedAt: r.openedAt, daysHeld: r.daysHeld })) },
@@ -122,7 +125,7 @@ export default async function PnlPage() {
           </p>
         )}
         <ManualStockEntry sales={manualSales} />
-        <PnlView realized={realized} open={open} capitalHistory={capitalHistory} />
+        <PnlView realized={realized} open={open} capitalHistory={capitalHistory} dailyReturns={dailyReturns} />
 
         {/* The suggestion scorecard (real vs paper by strategy, and which
             score factors correlated with a better outcome) lives on the
