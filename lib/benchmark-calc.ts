@@ -47,3 +47,79 @@ export function actualTWRSeries(dailyReturns: BenchmarkFile["actualDailyReturns"
   }
   return points;
 }
+
+// One calendar month's time-weighted return next to the three raw dollar
+// figures that explain it. TWR is the only one of the four a deposit can't
+// flatter -- navChange happily counts a $33,000 transfer in as a gain --
+// which is exactly why they're shown together: netFlows names the money
+// that moved, navGrowthExFlows is what's left once it's backed out, and
+// twr is that same story as a percentage the month's starting size can't
+// distort.
+export interface MonthPerformance {
+  key: string; // YYYY-MM
+  twr: number;
+  navStart: number; // the prior month's closing value -- see monthlyPerformance
+  navEnd: number;
+  navChange: number; // navEnd - navStart, deposits/withdrawals included
+  netFlows: number; // real deposits (+) and withdrawals (-) detected that month
+  navGrowthExFlows: number; // navChange - netFlows, the dollar twin of twr
+}
+
+// monthlyPerformance slices the same already flow-adjusted daily return
+// series twrForRange consumes into one entry per calendar month, so a
+// month-by-month track record reads off the identical numbers the
+// Benchmark page's range tabs show -- geometrically linking a month's
+// entries here and selecting that month there are the same arithmetic on
+// the same inputs, not a second definition that can drift.
+//
+// actual supplies the NAV dollars (it's the very series the returns were
+// derived from), matched by date rather than by index so a gap in either
+// series can't silently shift a month's start value by a day.
+//
+// A month's navStart is deliberately the LAST value before it -- the prior
+// month's close -- so navChange spans exactly what twr does. The series'
+// first month has no prior close, but its first day's return is 0 by
+// construction (the Go side's DailyReturns has no earlier value to compare
+// against either), so anchoring that month on its own opening value leaves
+// the two consistent rather than double-counting a day.
+export function monthlyPerformance(
+  dailyReturns: BenchmarkFile["actualDailyReturns"],
+  actual: ValuePoint[],
+): MonthPerformance[] {
+  const valueByDate = new Map(actual.map((p) => [p.label, p.value]));
+  const out: MonthPerformance[] = [];
+  let prevValue: number | null = null;
+  let key = "";
+  let product = 1;
+  let navStart = 0;
+  let navEnd = 0;
+  let netFlows = 0;
+
+  const closeMonth = () => {
+    if (!key) return;
+    const navChange = navEnd - navStart;
+    out.push({ key, twr: product - 1, navStart, navEnd, navChange, netFlows, navGrowthExFlows: navChange - netFlows });
+  };
+
+  for (const r of dailyReturns) {
+    // Carry the last known value forward rather than dropping the day: a
+    // missing NAV point costs that day's dollar precision, but its return
+    // is still a real return and belongs in the link.
+    const value: number | null = valueByDate.get(r.date) ?? prevValue;
+    if (value == null) continue; // nothing to anchor on yet
+    const monthKey = r.date.slice(0, 7);
+    if (monthKey !== key) {
+      closeMonth();
+      key = monthKey;
+      product = 1;
+      netFlows = 0;
+      navStart = prevValue ?? value;
+    }
+    product *= 1 + r.return;
+    netFlows += r.externalFlow;
+    navEnd = value;
+    prevValue = value;
+  }
+  closeMonth();
+  return out;
+}
