@@ -859,7 +859,8 @@ export interface BenchmarkMeta {
 // ActualDailyReturn is Actual's own day-over-day return with any real
 // deposit/withdrawal detected that day already backed out (see the Go
 // side's benchmark.DailyExternalFlow) -- geometrically link a date-sliced
-// window of these (see lib/benchmark.ts's twrSince) for a real time-
+// window of these (see lib/benchmark-calc.ts's twrForRange, or its
+// monthlyPerformance for one entry per calendar month) for a real time-
 // weighted return, rather than a raw start/end comparison on actual[]'s
 // dollar values, which still include deposits/withdrawals.
 export interface ActualDailyReturn {
