@@ -50,9 +50,21 @@ import { fetchMonthlyGoalTarget, setMonthlyGoalTarget } from "@/lib/monthly-goal
 // inline form that edits both % and $ together and saves them as one
 // call — the account holder's own ask, since editing one without the
 // other never made sense as a separate action anyway.
+// "2026-09-12 03:50:01" (SQLite datetime) or an RFC3339 string -> "Sep 12".
+// Parsed by hand rather than via the Date API, which would shift the day
+// across a timezone for a value that is only ever meant to read as "when
+// did I last touch this."
+const SET_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function fmtSetAt(raw: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
+  if (!m) return raw;
+  return `${SET_MONTHS[Number(m[2]) - 1]} ${Number(m[3])}`;
+}
+
 export function MonthlyGoalCard({
   portfolioValue,
   realizedThisMonth,
+  collateralAtWork,
   defaultTargetPercent,
   asOfDate,
   daysInMonth,
@@ -62,6 +74,8 @@ export function MonthlyGoalCard({
   defaultTargetPercent: number;
   asOfDate: string; // YYYY-MM-DD
   daysInMonth: number;
+  /** Short-put collateral currently committed — a floor, see below. */
+  collateralAtWork: number;
 }) {
   const [targetPercent, setTargetPercent] = useState(defaultTargetPercent);
   const [capitalBase, setCapitalBase] = useState(portfolioValue);
@@ -76,6 +90,11 @@ export function MonthlyGoalCard({
   // localStorage; once true, an override is authoritative and prop changes
   // (a fresh calendar-month baseline) no longer overwrite it.
   const [hasOverride, setHasOverride] = useState<boolean | null>(null);
+  // When the base was last saved. The whole point of the number is that
+  // it gets raised by hand as long-held stock is sold and capital frees
+  // up, so a base that quietly went stale has to look different from a
+  // current one.
+  const [baseSetAt, setBaseSetAt] = useState<string>("");
 
   useEffect(() => {
     // Demo builds serve the bundled fixture and make no live call; the
@@ -92,6 +111,7 @@ export function MonthlyGoalCard({
         if (t.hasOverride) {
           setTargetPercent(t.targetPercent);
           setCapitalBase(t.capitalBase);
+          setBaseSetAt(t.updatedAt ?? "");
         }
       })
       .catch(() => {
@@ -153,8 +173,9 @@ export function MonthlyGoalCard({
     setCapitalBase(parsedCapital);
     setSaveError(null);
     try {
-      await setMonthlyGoalTarget(parsedTarget, parsedCapital);
+      const saved = await setMonthlyGoalTarget(parsedTarget, parsedCapital);
       setHasOverride(true);
+      setBaseSetAt(saved.updatedAt ?? "");
     } catch {
       // Never leave the card showing a number that isn't actually stored.
       setTargetPercent(previous.target);
@@ -164,6 +185,11 @@ export function MonthlyGoalCard({
   }
 
   const goal = capitalBase * (targetPercent / 100);
+  // One-directional check: collateral already committed to open short puts
+  // is money demonstrably being traded, so a base below it is provably
+  // stale. It can never confirm the base is RIGHT -- the account holder's
+  // own excluded long-held stock is invisible to every data source here.
+  const baseIsStale = hasOverride === true && collateralAtWork > 0 && capitalBase < collateralAtWork;
   const progressPct = goal > 0 ? (realizedThisMonth / goal) * 100 : 0;
   const dayOfMonth = parseInt(asOfDate.slice(8, 10), 10) || 1;
   const daysLeft = Math.max(0, daysInMonth - dayOfMonth);
@@ -257,6 +283,20 @@ export function MonthlyGoalCard({
           style={{ width: `${Math.min(100, Math.max(0, progressPct))}%` }}
         />
       </div>
+
+      {hasOverride === true && (
+        <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
+          <span>
+            Base <Amt>{fmtMoney(capitalBase)}</Amt> @ {targetPercent}%
+          </span>
+          {baseSetAt && <span>· set {fmtSetAt(baseSetAt)}</span>}
+          {baseIsStale && (
+            <span className="text-amber-400">
+              · below the <Amt>{fmtMoney(collateralAtWork)}</Amt> already committed to open puts
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="mt-3 grid grid-cols-4 gap-2 rounded-xl border border-border px-3 py-2 text-center">
         <div>

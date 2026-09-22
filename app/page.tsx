@@ -263,6 +263,7 @@ export default async function HomePage() {
         defaultTargetPercent={monthlyGoal.targetPercent}
         asOfDate={monthlyGoal.asOfDate}
         daysInMonth={monthlyGoal.daysInMonth}
+        collateralAtWork={monthlyGoal.collateralAtWork}
       />
 
       {/* Active tracker alerts — what needs attention right now, ahead of the
