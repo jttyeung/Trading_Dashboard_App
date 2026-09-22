@@ -14,8 +14,6 @@ export interface MonthlyGoalTarget {
   targetPercent: number;
   capitalBase: number;
   hasOverride: boolean;
-  /** When the base was last saved. Empty until one has ever been stored. */
-  updatedAt?: string;
 }
 
 export async function fetchMonthlyGoalTarget(): Promise<MonthlyGoalTarget> {
