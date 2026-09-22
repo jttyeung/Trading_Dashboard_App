@@ -16,6 +16,13 @@ built-in demo dataset, so you can explore the whole UI immediately.
 - **Options** — positions grouped by strategy (CSP, covered call, LEAP, spread), with
   Greeks, breakevens, and chance-of-profit
 - **Closed trades** — realized round-trips per strategy bucket
+- **P&L by month** — each month's realized dollars next to its time-weighted return (TWR),
+  the raw NAV change, the deposits/withdrawals detected that month, and what's left once
+  they're backed out. Realized premium can hit its monthly target in a month the portfolio
+  itself shrank, so both sit in one row. TWR comes from the daemon's already flow-adjusted
+  `actualDailyReturns` (`data/benchmark.json`) — the same series the Benchmark page's range
+  tabs link, so the two pages can't disagree. Months older than that series show realized
+  dollars only, and the year row names the span it actually covers
 - **Research & screeners** — approved-stock research signals and a CSP candidate screener
 - **Market context** — VIX regime guide and morning briefing, plus the Fed calendar: the next
   FOMC decision with a countdown and what CME fed funds futures price into it (hike / cut /

@@ -8,7 +8,8 @@ import { Amt } from "@/components/privacy";
 import { TimeFilter, useTimeFilter } from "@/components/TimeFilter";
 import { fmtMoney, fmtPct } from "@/lib/calc";
 import { inRange, rangeSubLabel } from "@/lib/date-range";
-import type { ValuePoint } from "@/lib/types";
+import { monthlyPerformance, type MonthPerformance } from "@/lib/benchmark-calc";
+import type { ActualDailyReturn, ValuePoint } from "@/lib/types";
 
 export interface BucketInput {
   key: string;
@@ -97,6 +98,61 @@ function capitalBaseForMonth(history: ValuePoint[], monthStartISO: string): numb
   return best ?? history[0].value;
 }
 
+// One row of the By-month table: realized dollars on the left, the NAV
+// side of the same month on the right. perf is null for a month older than
+// the benchmark series itself (its NAV history simply doesn't reach back
+// that far), which reads as a dash rather than a zero.
+interface MonthRow {
+  key: string; // YYYY-MM
+  label: string;
+  pnl: number;
+  count: number;
+  pct: number | null;
+  perf: MonthPerformance | null;
+}
+
+// The year's months linked into one figure. partial says the span starts
+// somewhere after January — true today, since NAV history begins at the
+// benchmark cutoff — so the row can say "since Jul" instead of implying a
+// full year that isn't there.
+interface YearPerf {
+  twr: number;
+  navChange: number;
+  netFlows: number;
+  navGrowthExFlows: number;
+  fromLabel: string; // YYYY-MM of the first covered month
+  partial: boolean;
+}
+
+// One compact figure in the NAV strip. Cash flows are deliberately never
+// colored: a deposit isn't a gain and a withdrawal isn't a loss, and
+// tinting them green/red is exactly the misreading this whole strip exists
+// to prevent.
+function NavStat({ label, value, tone }: { label: string; value: React.ReactNode; tone?: number }) {
+  const color = tone == null ? "text-text" : tone > 0 ? "text-emerald-400" : tone < 0 ? "text-rose-400" : "text-text";
+  return (
+    <div className="min-w-0">
+      <div className="text-[9px] uppercase tracking-wide text-muted">{label}</div>
+      <div className={`tabular truncate text-[11px] font-medium ${color}`}>{value}</div>
+    </div>
+  );
+}
+
+// TWR leads the strip because it's the only one of the four a deposit
+// can't flatter; the three dollar figures behind it show the work
+// (NAV moved this much, this much of it was money moving in or out, the
+// rest is what the trading actually did).
+function NavStrip({ perf }: { perf: MonthPerformance | YearPerf }) {
+  return (
+    <div className="mt-2 grid grid-cols-4 gap-x-2 border-t border-border pt-2">
+      <NavStat label="TWR" value={fmtPct(perf.twr)} tone={perf.twr} />
+      <NavStat label="NAV" value={<Amt>{signed(perf.navChange)}</Amt>} tone={perf.navChange} />
+      <NavStat label="Flows" value={<Amt>{perf.netFlows === 0 ? "—" : signed(perf.netFlows)}</Amt>} />
+      <NavStat label="Ex-flows" value={<Amt>{signed(perf.navGrowthExFlows)}</Amt>} tone={perf.navGrowthExFlows} />
+    </div>
+  );
+}
+
 interface BucketAgg {
   key: string;
   label: string;
@@ -112,10 +168,14 @@ export function PnlView({
   realized,
   open,
   capitalHistory = [],
+  dailyReturns = [],
 }: {
   realized: BucketInput[];
   open: BucketInput[];
   capitalHistory?: ValuePoint[];
+  /** benchmark.json's actualDailyReturns — pairs with capitalHistory (its actual[]) to
+   *  give each month a TWR next to its realized dollars. Empty just hides those stats. */
+  dailyReturns?: ActualDailyReturn[];
 }) {
   const tf = useTimeFilter("months", 1); // default to the last 1 month
   const [mode, setMode] = usePersistentState<"realized" | "open">("pnl-mode", "realized");
@@ -212,8 +272,21 @@ export function PnlView({
   // respects the short/long term lens for consistency with every other
   // section. Years newest-first (what you care about right now); months
   // within a year chronological (Jan→Dec) so it reads as a progression.
+  // Each month's TWR and NAV facts, keyed YYYY-MM. Derived from the same
+  // flow-adjusted daily series the Benchmark page's range tabs link, so the
+  // two pages can't disagree about a month (see monthlyPerformance).
+  const perfByMonth = useMemo(
+    () => new Map(monthlyPerformance(dailyReturns, capitalHistory).map((m) => [m.key, m])),
+    [dailyReturns, capitalHistory],
+  );
+
+  // First date the NAV series covers at all — the benchmark cutoff in
+  // practice. Named in the footnote so a month with no TWR reads as "we
+  // don't have NAV back that far" rather than as a missing number.
+  const navHistoryFrom = capitalHistory[0]?.label ?? null;
+
   const monthlyByYear = useMemo(() => {
-    if (!isRealized) return [] as { year: string; yearPct: number | null; months: { key: string; label: string; pnl: number; count: number; pct: number | null }[] }[];
+    if (!isRealized) return [] as { year: string; yearPct: number | null; yearPerf: YearPerf | null; months: MonthRow[] }[];
     const byMonth = new Map<string, { pnl: number; count: number }>();
     for (const b of realized) {
       for (const it of b.items) {
@@ -225,24 +298,45 @@ export function PnlView({
         byMonth.set(key, agg);
       }
     }
-    const byYear = new Map<string, { key: string; label: string; pnl: number; count: number; pct: number | null }[]>();
+    // A month with NAV history but no closed round-trip still gets a row:
+    // it really did have a time-weighted return, and leaving it out would
+    // quietly drop it from the year's linked TWR below — the one number
+    // here that a missing month silently corrupts rather than just shortens.
+    for (const key of perfByMonth.keys()) {
+      if (!byMonth.has(key)) byMonth.set(key, { pnl: 0, count: 0 });
+    }
+    const byYear = new Map<string, MonthRow[]>();
     for (const [key, v] of byMonth) {
       const [year, month] = key.split("-");
       const label = MONTHS[Number(month) - 1];
       const base = capitalBaseForMonth(capitalHistory, `${key}-01`);
       const pct = base ? v.pnl / base : null;
       if (!byYear.has(year)) byYear.set(year, []);
-      byYear.get(year)!.push({ key, label, pct, ...v });
+      byYear.get(year)!.push({ key, label, pct, perf: perfByMonth.get(key) ?? null, ...v });
     }
     return [...byYear.entries()]
       .map(([year, months]) => {
         const sorted = months.sort((a, b) => a.key.localeCompare(b.key));
         const yearBase = capitalBaseForMonth(capitalHistory, `${year}-01-01`);
         const yearPnl = sorted.reduce((s, mo) => s + mo.pnl, 0);
-        return { year, yearPct: yearBase ? yearPnl / yearBase : null, months: sorted };
+        // Linked across whatever months of this year NAV history actually
+        // covers — which is not necessarily January (see the footnote), so
+        // the row labels its own span rather than claiming to be the year.
+        const covered = sorted.map((mo) => mo.perf).filter((p): p is MonthPerformance => p != null);
+        const yearPerf: YearPerf | null = covered.length
+          ? {
+              twr: covered.reduce((prod, p) => prod * (1 + p.twr), 1) - 1,
+              navChange: covered.reduce((s, p) => s + p.navChange, 0),
+              netFlows: covered.reduce((s, p) => s + p.netFlows, 0),
+              navGrowthExFlows: covered.reduce((s, p) => s + p.navGrowthExFlows, 0),
+              fromLabel: covered[0].key,
+              partial: covered.length < sorted.length || covered[0].key !== `${year}-01`,
+            }
+          : null;
+        return { year, yearPct: yearBase ? yearPnl / yearBase : null, yearPerf, months: sorted };
       })
       .sort((a, b) => b.year.localeCompare(a.year));
-  }, [realized, isRealized, term, capitalHistory]);
+  }, [realized, isRealized, term, capitalHistory, perfByMonth]);
   const monthlyMaxAbs = useMemo(
     () => monthlyByYear.reduce((m, y) => y.months.reduce((mm, mo) => Math.max(mm, Math.abs(mo.pnl)), m), 0),
     [monthlyByYear],
@@ -526,7 +620,9 @@ export function PnlView({
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex min-w-0 items-center gap-2">
                               <span className="text-sm font-medium">{mo.label}</span>
-                              <span className="tabular rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] text-muted">{mo.count}</span>
+                              {mo.count > 0 && (
+                                <span className="tabular rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] text-muted">{mo.count}</span>
+                              )}
                             </div>
                             <span className={`tabular flex shrink-0 items-baseline gap-1 text-sm font-semibold ${mo.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                               <Amt>{signed(mo.pnl)}</Amt>
@@ -536,8 +632,19 @@ export function PnlView({
                           <div className="mt-2">
                             <DivergingBar pnl={mo.pnl} maxAbs={monthlyMaxAbs} />
                           </div>
+                          {mo.perf && <NavStrip perf={mo.perf} />}
                         </div>
                       ))}
+                      {y.yearPerf && (
+                        <div className="bg-surface-2/40 px-4 py-3">
+                          {/* Label only — the strip below carries the numbers, in the
+                              same four columns as every month row above it. */}
+                          <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+                            {y.yearPerf.partial ? `${y.year} since ${MONTHS[Number(y.yearPerf.fromLabel.slice(5, 7)) - 1]}` : `${y.year} total`}
+                          </span>
+                          <NavStrip perf={y.yearPerf} />
+                        </div>
+                      )}
                     </Card>
                   </div>
                 );
@@ -548,6 +655,17 @@ export function PnlView({
             % is that month&apos;s P&amp;L against the portfolio&apos;s own real value at the start of that month
             (not today&apos;s) — so a month&apos;s return stays meaningful even after a big deposit, a new linked
             account, or a 401(k) rollover changes the account&apos;s overall size later on.
+          </p>
+          <p className="mt-1 px-1 text-[10px] leading-relaxed text-muted">
+            <span className="font-medium text-text">TWR</span> is the month&apos;s time-weighted return: how the
+            portfolio itself did once every deposit and withdrawal is backed out day by day.{" "}
+            <span className="font-medium text-text">NAV</span> is the raw change in total value (flows included),{" "}
+            <span className="font-medium text-text">Flows</span> the money that moved in or out, and{" "}
+            <span className="font-medium text-text">Ex-flows</span> what&apos;s left — the dollar twin of TWR.
+            Realized profit can hit its target in a month TWR is negative; that gap is the point of showing both.
+            {navHistoryFrom && (
+              <> NAV history begins {fmtDate(navHistoryFrom)}, so earlier months show realized dollars only.</>
+            )}
           </p>
         </>
       )}
