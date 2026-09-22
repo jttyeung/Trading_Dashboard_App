@@ -1,7 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  // Standalone output ONLY for the Pi build, which runs `node server.js`
+  // out of the rsynced .next/standalone tree (OptionsEvaluator's
+  // `just deploy-pi-dashboard` sets this; deploy/optionsdashboard.service
+  // is the unit). Next refuses to run `next start` against a standalone
+  // build, and the Mac's LaunchAgent starts the dashboard exactly that
+  // way -- with it set unconditionally, _global-error couldn't resolve
+  // its chunk, so any SSR crash rendered a bare 500 instead of the error
+  // UI. One config, two hosts, two run modes: the Pi opts in.
+  output: process.env.BUILD_STANDALONE === "1" ? "standalone" : undefined,
   // DEV-SERVER ONLY: origins allowed to load the dev runtime (HMR/RSC/assets).
   // Has no effect on the production server (`next start`), which serves any origin.
   // Add the addresses you use to reach the dev server from other devices (e.g.
