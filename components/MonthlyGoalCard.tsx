@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePersistentState } from "@/lib/view-state";
 import { Card } from "@/components/ui";
 import { Amt } from "@/components/privacy";
 import type { MonthlyGoalRecord } from "@/lib/types";
@@ -51,30 +52,13 @@ import { fetchMonthlyGoalTarget, setMonthlyGoalTarget } from "@/lib/monthly-goal
 // inline form that edits both % and $ together and saves them as one
 // call — the account holder's own ask, since editing one without the
 // other never made sense as a separate action anyway.
-// "2026-09-12 03:50:01" (SQLite datetime) or an RFC3339 string -> "Sep 12".
-// Parsed by hand rather than via the Date API, which would shift the day
-// across a timezone for a value that is only ever meant to read as "when
-// did I last touch this."
 const SET_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-// "2026-09" -> "Sep". The year is dropped: the strip is capped at 12
-// months, so a month name is unambiguous within it.
+// "2026-09" -> "Sep". The year is dropped: the list is short enough
+// that a month name reads unambiguously within it.
 function fmtMonthLabel(yearMonth: string): string {
   const m = /^\d{4}-(\d{2})$/.exec(yearMonth);
   return m ? SET_MONTHS[Number(m[1]) - 1] : yearMonth;
-}
-
-// $12.2k / $10k — the chips sit four-or-more to a row on a phone, so full
-// dollar amounts would wrap every one of them onto its own line.
-function fmtCompactMoney(n: number): string {
-  const a = Math.abs(n);
-  if (a >= 1000) return `$${(n / 1000).toFixed(a >= 10000 ? 0 : 1)}k`;
-  return `$${Math.round(n)}`;
-}
-function fmtSetAt(raw: string): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
-  if (!m) return raw;
-  return `${SET_MONTHS[Number(m[2]) - 1]} ${Number(m[3])}`;
 }
 
 export function MonthlyGoalCard({
@@ -109,11 +93,6 @@ export function MonthlyGoalCard({
   // localStorage; once true, an override is authoritative and prop changes
   // (a fresh calendar-month baseline) no longer overwrite it.
   const [hasOverride, setHasOverride] = useState<boolean | null>(null);
-  // When the base was last saved. The whole point of the number is that
-  // it gets raised by hand as long-held stock is sold and capital frees
-  // up, so a base that quietly went stale has to look different from a
-  // current one.
-  const [baseSetAt, setBaseSetAt] = useState<string>("");
 
   useEffect(() => {
     // Demo builds serve the bundled fixture and make no live call; the
@@ -130,7 +109,6 @@ export function MonthlyGoalCard({
         if (t.hasOverride) {
           setTargetPercent(t.targetPercent);
           setCapitalBase(t.capitalBase);
-          setBaseSetAt(t.updatedAt ?? "");
         }
       })
       .catch(() => {
@@ -192,9 +170,8 @@ export function MonthlyGoalCard({
     setCapitalBase(parsedCapital);
     setSaveError(null);
     try {
-      const saved = await setMonthlyGoalTarget(parsedTarget, parsedCapital);
+      await setMonthlyGoalTarget(parsedTarget, parsedCapital);
       setHasOverride(true);
-      setBaseSetAt(saved.updatedAt ?? "");
     } catch {
       // Never leave the card showing a number that isn't actually stored.
       setTargetPercent(previous.target);
@@ -202,6 +179,14 @@ export function MonthlyGoalCard({
       setSaveError("Couldn't save — daemon unreachable.");
     }
   }
+
+  const [historyOpen, setHistoryOpen] = usePersistentState("goal-history-open", false);
+  // The month in progress is excluded from the tally — it hasn't had its
+  // chance yet, and counting it as a miss would make every month look
+  // like a failure until its last day.
+  const settled = history.filter((m) => !m.inProgress);
+  const settledCount = settled.length;
+  const hitCount = settled.filter((m) => m.met).length;
 
   const goal = capitalBase * (targetPercent / 100);
   // One-directional check: collateral already committed to open short puts
@@ -308,43 +293,11 @@ export function MonthlyGoalCard({
           <span>
             Base <Amt>{fmtMoney(capitalBase)}</Amt> @ {targetPercent}%
           </span>
-          {baseSetAt && <span>· set {fmtSetAt(baseSetAt)}</span>}
           {baseIsStale && (
             <span className="text-amber-400">
               · below the <Amt>{fmtMoney(collateralAtWork)}</Amt> already committed to open puts
             </span>
           )}
-        </div>
-      )}
-
-      {history.length > 0 && (
-        <div className="mt-3">
-          <div className="mb-1 text-[9px] uppercase tracking-wide text-muted">Goal history</div>
-          <div className="flex flex-wrap gap-1.5">
-            {/* Last 12 months, newest last so it reads left-to-right as a
-                run. Each chip carries the goal it was ACTUALLY judged
-                against, which is not today's — see MonthlyGoalRecord. */}
-            {history.slice(-12).map((m) => (
-              <div
-                key={m.yearMonth}
-                className={`rounded-lg border px-2 py-1 text-[10px] ${
-                  m.inProgress
-                    ? "border-sky-400/40 text-sky-300"
-                    : m.met
-                      ? "border-emerald-400/40 text-emerald-400"
-                      : "border-rose-400/40 text-rose-400"
-                }`}
-              >
-                <span className="font-semibold">{fmtMonthLabel(m.yearMonth)}</span>{" "}
-                <span>{m.inProgress ? "…" : m.met ? "✓" : "✗"}</span>{" "}
-                <span className="tabular opacity-80">
-                  <Amt>
-                    {fmtCompactMoney(m.realized)}/{fmtCompactMoney(m.goal)}
-                  </Amt>
-                </span>
-              </div>
-            ))}
-          </div>
         </div>
       )}
 
@@ -374,6 +327,57 @@ export function MonthlyGoalCard({
           </div>
         </div>
       </div>
+
+      {history.length > 0 && (
+        <div className="mt-3 border-t border-border pt-2">
+          <button
+            type="button"
+            onClick={() => setHistoryOpen(!historyOpen)}
+            className="flex w-full items-center gap-1.5 text-left active:opacity-70"
+          >
+            <span className="w-3 shrink-0 text-[10px] text-muted">{historyOpen ? "▾" : "▸"}</span>
+            <span className="text-[9px] uppercase tracking-wide text-muted">Goal history</span>
+            <span className="text-[10px] text-muted">
+              {hitCount}/{settledCount} hit
+            </span>
+          </button>
+          {historyOpen && (
+            <div className="mt-1.5 space-y-1">
+              {/* Newest first: the recent months are the ones being judged.
+                  Each row carries the goal that month was ACTUALLY measured
+                  against, which is not necessarily today's — see
+                  MonthlyGoalRecord. */}
+              {[...history].reverse().map((m) => {
+                const pct = m.goal > 0 ? (m.realized / m.goal) * 100 : 0;
+                return (
+                  <div key={m.yearMonth} className="flex items-baseline justify-between gap-2 text-[11px]">
+                    <span className="flex shrink-0 items-center gap-1.5">
+                      <span className="font-medium text-text">{fmtMonthLabel(m.yearMonth)}</span>
+                      <span className={m.inProgress ? "text-sky-300" : m.met ? "text-emerald-400" : "text-rose-400"}>
+                        {m.inProgress ? "…" : m.met ? "✓" : "✗"}
+                      </span>
+                    </span>
+                    <span className="tabular flex items-baseline gap-2 text-right">
+                      <span className="text-muted">
+                        <Amt>
+                          {fmtMoney(m.realized)} / {fmtMoney(m.goal)}
+                        </Amt>
+                      </span>
+                      <span
+                        className={`w-12 font-semibold ${
+                          m.inProgress ? "text-sky-300" : m.met ? "text-emerald-400" : "text-rose-400"
+                        }`}
+                      >
+                        {Math.round(pct)}%
+                      </span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </Card>
   );
 }
