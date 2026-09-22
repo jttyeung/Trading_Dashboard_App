@@ -703,6 +703,24 @@ export interface MonthlyGoalFile {
   // collateral is money demonstrably being traded, so a base below this is
   // definitely stale -- it can say "too low" and never "correct."
   collateralAtWork: number;
+  /** Every month on record, oldest first, including the one in progress. */
+  history: MonthlyGoalRecord[];
+}
+
+// One month's goal and how it turned out. targetPercent/capitalBase are
+// frozen at what they were THAT month -- the capital base is hand-raised
+// over time as long-held stock is sold, and re-scoring an old month
+// against today's larger base would judge it by a goal that never applied
+// to it. realized is recomputed live from the FIFO tables, so a
+// late-settling trade still corrects an old month.
+export interface MonthlyGoalRecord {
+  yearMonth: string; // YYYY-MM
+  targetPercent: number;
+  capitalBase: number;
+  goal: number;
+  realized: number;
+  met: boolean;
+  inProgress: boolean;
 }
 
 export interface PortfolioRiskFile {

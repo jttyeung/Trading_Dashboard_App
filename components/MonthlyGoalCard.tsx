@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui";
 import { Amt } from "@/components/privacy";
+import type { MonthlyGoalRecord } from "@/lib/types";
 import { fmtMoney } from "@/lib/calc";
 import { isExampleClient } from "@/lib/demo";
 import { fetchMonthlyGoalTarget, setMonthlyGoalTarget } from "@/lib/monthly-goal-api";
@@ -55,6 +56,21 @@ import { fetchMonthlyGoalTarget, setMonthlyGoalTarget } from "@/lib/monthly-goal
 // across a timezone for a value that is only ever meant to read as "when
 // did I last touch this."
 const SET_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// "2026-09" -> "Sep". The year is dropped: the strip is capped at 12
+// months, so a month name is unambiguous within it.
+function fmtMonthLabel(yearMonth: string): string {
+  const m = /^\d{4}-(\d{2})$/.exec(yearMonth);
+  return m ? SET_MONTHS[Number(m[1]) - 1] : yearMonth;
+}
+
+// $12.2k / $10k — the chips sit four-or-more to a row on a phone, so full
+// dollar amounts would wrap every one of them onto its own line.
+function fmtCompactMoney(n: number): string {
+  const a = Math.abs(n);
+  if (a >= 1000) return `$${(n / 1000).toFixed(a >= 10000 ? 0 : 1)}k`;
+  return `$${Math.round(n)}`;
+}
 function fmtSetAt(raw: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
   if (!m) return raw;
@@ -65,6 +81,7 @@ export function MonthlyGoalCard({
   portfolioValue,
   realizedThisMonth,
   collateralAtWork,
+  history,
   defaultTargetPercent,
   asOfDate,
   daysInMonth,
@@ -76,6 +93,8 @@ export function MonthlyGoalCard({
   daysInMonth: number;
   /** Short-put collateral currently committed — a floor, see below. */
   collateralAtWork: number;
+  /** Every month on record, oldest first, including the one in progress. */
+  history: MonthlyGoalRecord[];
 }) {
   const [targetPercent, setTargetPercent] = useState(defaultTargetPercent);
   const [capitalBase, setCapitalBase] = useState(portfolioValue);
@@ -295,6 +314,37 @@ export function MonthlyGoalCard({
               · below the <Amt>{fmtMoney(collateralAtWork)}</Amt> already committed to open puts
             </span>
           )}
+        </div>
+      )}
+
+      {history.length > 0 && (
+        <div className="mt-3">
+          <div className="mb-1 text-[9px] uppercase tracking-wide text-muted">Goal history</div>
+          <div className="flex flex-wrap gap-1.5">
+            {/* Last 12 months, newest last so it reads left-to-right as a
+                run. Each chip carries the goal it was ACTUALLY judged
+                against, which is not today's — see MonthlyGoalRecord. */}
+            {history.slice(-12).map((m) => (
+              <div
+                key={m.yearMonth}
+                className={`rounded-lg border px-2 py-1 text-[10px] ${
+                  m.inProgress
+                    ? "border-sky-400/40 text-sky-300"
+                    : m.met
+                      ? "border-emerald-400/40 text-emerald-400"
+                      : "border-rose-400/40 text-rose-400"
+                }`}
+              >
+                <span className="font-semibold">{fmtMonthLabel(m.yearMonth)}</span>{" "}
+                <span>{m.inProgress ? "…" : m.met ? "✓" : "✗"}</span>{" "}
+                <span className="tabular opacity-80">
+                  <Amt>
+                    {fmtCompactMoney(m.realized)}/{fmtCompactMoney(m.goal)}
+                  </Amt>
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
