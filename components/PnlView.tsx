@@ -385,11 +385,14 @@ export function PnlView({
     return out;
   }, [source, isRealized, range, term]);
   const { has: stratOpen, toggle: toggleStrat } = usePersistentSet("pnl-openstrats");
-  // Months store COLLAPSED keys, not open ones (the inverse of the ticker
-  // and strategy sets above): the NAV strip is the reason this table shows
-  // a month's TWR beside its realized dollars at all, so it stays out by
-  // default and collapses only where the account holder says so.
-  const { has: monthCollapsed, toggle: toggleMonth } = usePersistentSet("pnl-collapsedmonths");
+  // Same open-keys convention as the ticker and strategy sets above:
+  // months start collapsed so the table stays scannable, and each one's
+  // TWR still shows in its header while closed, so nothing is hidden --
+  // only the three dollar figures behind it. (A previous version stored
+  // COLLAPSED keys for a default-open table; the key name changed with
+  // the convention so an old saved set can't come back meaning its
+  // opposite.)
+  const { has: monthOpen, toggle: toggleMonth } = usePersistentSet("pnl-openmonths");
 
   return (
     <div className="pb-24 pt-3 sm:pb-6">
@@ -625,7 +628,7 @@ export function PnlView({
                         // one without stays a plain row, with a spacer where the
                         // chevron would be so the month names still line up.
                         const canCollapse = mo.perf != null;
-                        const isOpen = canCollapse && !monthCollapsed(mo.key);
+                        const isOpen = canCollapse && monthOpen(mo.key);
                         return (
                           <div key={mo.key}>
                             <button
