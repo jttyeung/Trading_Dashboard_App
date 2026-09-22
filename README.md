@@ -33,7 +33,7 @@ built-in demo dataset, so you can explore the whole UI immediately.
   the gamma flip. Served by the app's own `/api/chart` route, which asks the OptionsEvaluator
   daemon's chart API first (Schwab bars, live walls for any ticker; `CHART_API_URL`, default
   `http://localhost:8092`) and falls back to Yahoo Finance with walls for held names only when
-  the daemon is unreachable. Hold any ticker anywhere in the app for 2.5 seconds to open it there
+  the daemon is unreachable. Hold any ticker anywhere in the app for 1.8 seconds to open it there
 - **Portfolio risk** — theta ceiling, sector concentration against a per-sector cap, beta vs
   QQQ, and an open-P&L floor, all across every account. Sector buckets (with the tickers behind
   each) come from the daemon's `data/portfolio-risk.json`; sectors are the wheel watchlist
