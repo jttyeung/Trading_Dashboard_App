@@ -385,6 +385,11 @@ export function PnlView({
     return out;
   }, [source, isRealized, range, term]);
   const { has: stratOpen, toggle: toggleStrat } = usePersistentSet("pnl-openstrats");
+  // Months store COLLAPSED keys, not open ones (the inverse of the ticker
+  // and strategy sets above): the NAV strip is the reason this table shows
+  // a month's TWR beside its realized dollars at all, so it stays out by
+  // default and collapses only where the account holder says so.
+  const { has: monthCollapsed, toggle: toggleMonth } = usePersistentSet("pnl-collapsedmonths");
 
   return (
     <div className="pb-24 pt-3 sm:pb-6">
@@ -615,26 +620,53 @@ export function PnlView({
                       </span>
                     </div>
                     <Card className="divide-y divide-border">
-                      {y.months.map((mo) => (
-                        <div key={mo.key} className="px-4 py-3">
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex min-w-0 items-center gap-2">
-                              <span className="text-sm font-medium">{mo.label}</span>
-                              {mo.count > 0 && (
-                                <span className="tabular rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] text-muted">{mo.count}</span>
-                              )}
-                            </div>
-                            <span className={`tabular flex shrink-0 items-baseline gap-1 text-sm font-semibold ${mo.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                              <Amt>{signed(mo.pnl)}</Amt>
-                              {mo.pct != null && <span className="text-[11px] font-normal opacity-80">({fmtPct(mo.pct)})</span>}
-                            </span>
+                      {y.months.map((mo) => {
+                        // Only a month with NAV history has anything to collapse;
+                        // one without stays a plain row, with a spacer where the
+                        // chevron would be so the month names still line up.
+                        const canCollapse = mo.perf != null;
+                        const isOpen = canCollapse && !monthCollapsed(mo.key);
+                        return (
+                          <div key={mo.key}>
+                            <button
+                              type="button"
+                              onClick={() => canCollapse && toggleMonth(mo.key)}
+                              disabled={!canCollapse}
+                              className="block w-full px-4 pb-3 pt-3 text-left active:bg-surface-2 disabled:active:bg-transparent"
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="flex min-w-0 items-center gap-2">
+                                  <span className="w-3 shrink-0 text-[10px] text-muted">{canCollapse ? (isOpen ? "▾" : "▸") : ""}</span>
+                                  <span className="text-sm font-medium">{mo.label}</span>
+                                  {mo.count > 0 && (
+                                    <span className="tabular rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] text-muted">{mo.count}</span>
+                                  )}
+                                  {/* Collapsed, the month still says whether the portfolio
+                                      itself grew -- the one figure realized dollars can't
+                                      stand in for. */}
+                                  {canCollapse && !isOpen && mo.perf && (
+                                    <span className={`tabular text-[10px] ${mo.perf.twr >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                                      {fmtPct(mo.perf.twr)} TWR
+                                    </span>
+                                  )}
+                                </div>
+                                <span className={`tabular flex shrink-0 items-baseline gap-1 text-sm font-semibold ${mo.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                                  <Amt>{signed(mo.pnl)}</Amt>
+                                  {mo.pct != null && <span className="text-[11px] font-normal opacity-80">({fmtPct(mo.pct)})</span>}
+                                </span>
+                              </div>
+                              <div className="mt-2">
+                                <DivergingBar pnl={mo.pnl} maxAbs={monthlyMaxAbs} />
+                              </div>
+                            </button>
+                            {isOpen && mo.perf && (
+                              <div className="-mt-2 px-4 pb-3">
+                                <NavStrip perf={mo.perf} />
+                              </div>
+                            )}
                           </div>
-                          <div className="mt-2">
-                            <DivergingBar pnl={mo.pnl} maxAbs={monthlyMaxAbs} />
-                          </div>
-                          {mo.perf && <NavStrip perf={mo.perf} />}
-                        </div>
-                      ))}
+                        );
+                      })}
                       {y.yearPerf && (
                         <div className="bg-surface-2/40 px-4 py-3">
                           {/* Label only — the strip below carries the numbers, in the
