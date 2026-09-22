@@ -113,6 +113,19 @@ It runs anywhere Node runs, including a Raspberry Pi. A simple pattern is to run
 `npm run start` under a process manager (e.g. a `systemd` service) so it auto-starts on
 boot, with the bridge running alongside it writing fresh data on an interval.
 
+Two run modes, and they are mutually exclusive:
+
+- **`npm run start`** (i.e. `next start`) serves an ordinary `npm run build`. This is the
+  default.
+- **`BUILD_STANDALONE=1 npm run build`** emits a self-contained `.next/standalone` tree you
+  run with `node server.js` (copy `.next/static` and `public` in beside it, as the
+  `Dockerfile` does). Useful when you want to ship build output to a host without
+  installing dependencies there.
+
+Pick one per host. Next refuses to run `next start` against a standalone build, and the
+failure is easy to misread: pages still serve, but the global error page can't resolve its
+chunk, so any server-side crash renders a bare HTTP 500 instead of the error UI.
+
 ## Tech stack
 
 - [Next.js 16](https://nextjs.org) (App Router) · React 19 · TypeScript
