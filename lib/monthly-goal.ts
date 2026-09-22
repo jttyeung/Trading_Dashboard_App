@@ -16,6 +16,7 @@ const EMPTY: MonthlyGoalFile = {
   asOfDate: "",
   daysInMonth: 30,
   portfolioValueBaseline: 0,
+  collateralAtWork: 0,
 };
 
 export async function getMonthlyGoal(): Promise<MonthlyGoalFile> {
