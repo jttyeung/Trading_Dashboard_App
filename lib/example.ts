@@ -413,6 +413,9 @@ export const exampleMonthlyGoalFile: MonthlyGoalFile = {
   asOfDate: isoDay(0),
   daysInMonth: 30,
   portfolioValueBaseline: 657160, // matches the combined account's own totalValue above
+  // Invented to sit BELOW the baseline, so the demo shows the ordinary
+  // "base looks current" state rather than the stale-base warning.
+  collateralAtWork: 214500,
 };
 
 // Active tracker alerts (data/alerts.json) — one of each action type so the
