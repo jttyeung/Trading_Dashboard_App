@@ -25,7 +25,11 @@ export async function getMonthlyGoal(): Promise<MonthlyGoalFile> {
   try {
     const raw = fs.readFileSync(MONTHLY_GOAL_PATH, "utf8");
     const parsed = JSON.parse(raw) as MonthlyGoalFile;
-    if (parsed?.asOfDate) return parsed;
+    // history arrived after the rest of this file's fields, so a daemon
+    // that predates it writes no key at all -- and an account with no
+    // recorded month writes null. MonthlyGoalCard reads history.length,
+    // so either one 500s the whole page from one missing array.
+    if (parsed?.asOfDate) return { ...parsed, history: parsed.history ?? [] };
   } catch {
     // file missing or malformed — return empty
   }
