@@ -264,6 +264,7 @@ export default async function HomePage() {
         asOfDate={monthlyGoal.asOfDate}
         daysInMonth={monthlyGoal.daysInMonth}
         collateralAtWork={monthlyGoal.collateralAtWork}
+        history={monthlyGoal.history}
       />
 
       {/* Active tracker alerts — what needs attention right now, ahead of the

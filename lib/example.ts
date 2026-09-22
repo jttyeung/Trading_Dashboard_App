@@ -416,6 +416,14 @@ export const exampleMonthlyGoalFile: MonthlyGoalFile = {
   // Invented to sit BELOW the baseline, so the demo shows the ordinary
   // "base looks current" state rather than the stale-base warning.
   collateralAtWork: 214500,
+  // A short run of invented months so the history strip has a mix of met
+  // and missed to render, rather than a single in-progress chip.
+  history: [
+    { yearMonth: "2026-06", targetPercent: 3, capitalBase: 600000, goal: 18000, realized: 19420, met: true, inProgress: false },
+    { yearMonth: "2026-07", targetPercent: 3, capitalBase: 620000, goal: 18600, realized: 14880, met: false, inProgress: false },
+    { yearMonth: "2026-08", targetPercent: 3, capitalBase: 640000, goal: 19200, realized: 21340, met: true, inProgress: false },
+    { yearMonth: "2026-09", targetPercent: 3, capitalBase: 657160, goal: 19715, realized: 890, met: false, inProgress: true },
+  ],
 };
 
 // Active tracker alerts (data/alerts.json) — one of each action type so the
