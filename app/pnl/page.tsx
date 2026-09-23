@@ -1,4 +1,4 @@
-import { Card, PageHeader } from "@/components/ui";
+import { PageHeader } from "@/components/ui";
 import { ShowAmounts } from "@/components/privacy";
 import { AccountSwitcher } from "@/components/AccountSwitcher";
 import { getSnapshot } from "@/lib/snapshot";
@@ -152,17 +152,6 @@ export default async function PnlPage() {
         <ManualStockEntry sales={manualSales} />
         <EnteredCostBases entries={enteredBases} />
         <PnlView realized={realized} open={open} capitalHistory={capitalHistory} dailyReturns={dailyReturns} />
-
-        {/* The suggestion scorecard (real vs paper by strategy, and which
-            score factors correlated with a better outcome) lives on the
-            desktop /overview Scorecard tab only — the phone page it used
-            to link to was a strict subset of that tab, removed so there's
-            one place for that read. A pointer rather than nothing, so the
-            path to it isn't lost from where it used to start. */}
-        <Card className="mt-3 px-4 py-3 text-[11px] text-muted">
-          <span className="font-medium text-text">Suggestion scorecard</span> — win rate &amp; P&amp;L by strategy, and
-          which score factors are earning their place — is on the desktop Scorecard tab.
-        </Card>
       </ShowAmounts>
     </main>
   );
