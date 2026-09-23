@@ -129,7 +129,6 @@ export function BenchmarkView({ benchmark }: { benchmark: BenchmarkFile }) {
           </span>
         </div>
       </Card>
-      <p className="mt-1.5 px-1 text-[10px] leading-relaxed text-muted">{meta.note}</p>
     </div>
   );
 }
