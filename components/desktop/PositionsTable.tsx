@@ -231,7 +231,7 @@ function summaryCells(sum: Summary): Partial<Record<SortKey, React.ReactNode>> {
             ({fmtPct(sum.unrealizedPct)})
           </span>
         </div>
-        <span className="whitespace-nowrap text-[10px] text-muted">
+        <span className="self-start whitespace-nowrap text-[10px] text-muted">
           {fmtMoney(sum.remainingDollar)} {sum.remainingLabel}
         </span>
       </div>
@@ -692,7 +692,7 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                               ({fmtPct(r.unrealizedPct)})
                             </span>
                           </div>
-                          <span className="whitespace-nowrap text-[10px] text-muted">
+                          <span className="self-start whitespace-nowrap text-[10px] text-muted">
                             {fmtMoney(r.remainingDollar)} {r.remainingLabel}
                           </span>
                         </div>
