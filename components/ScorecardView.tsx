@@ -161,7 +161,7 @@ export function ScorecardView({
             This fills in when a contract the app suggested shows up in your realized trades.
           </>
         ) : (
-          <>No paper-bot pick has resolved yet. This fills in as picks reach expiration.</>
+          <>No bot pick has resolved yet. This fills in as picks reach expiration.</>
         )}
       </Card>
     );
@@ -193,7 +193,7 @@ export function ScorecardView({
       <p className="mt-3 px-1 text-[11px] leading-relaxed text-muted">
         {origin === "real"
           ? "Broker-confirmed trades that matched a contract the app suggested — one row per traded contract, under the single-leg strategy that suggested it most. A mirror for spotting your own patterns; nothing here changes what the app suggests."
-          : "The paper bots' own simulated outcomes — a much bigger sample than your real trades, but a simplified P&L (no rolls or partial closes). Win means the pick expired worthless or closed profitable."}
+          : "The bots' own simulated outcomes — a much bigger sample than your real trades, but a simplified P&L (no rolls or partial closes). Win means the pick expired worthless or closed profitable."}
       </p>
     </div>
   );
