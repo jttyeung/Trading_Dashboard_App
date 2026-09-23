@@ -21,8 +21,8 @@ export default async function AggressiveBotPage() {
       <div className="mb-4 rounded-xl bg-header-box px-4 py-3">
         <h1 className="text-lg font-semibold text-header-box-text">Aggressive Bot</h1>
         <p className="text-sm text-header-box-text/70">
-          A short-dated CSP band (3–14 DTE, capped at 0.28 delta, 80%+ annualized return required) —
-          also a real suggestion now, not just paperbot. Same review-queue workflow as the other bots.
+          A short-dated CSP band (3–14 DTE, capped at 0.28 delta, 80%+ annualized return required).
+          Same review-queue workflow as the other bots.
         </p>
       </div>
       <BotTable trades={snap.trades} myGrade={snap.myGrade} storageKey="aggressive" exampleMode={exampleMode} />
