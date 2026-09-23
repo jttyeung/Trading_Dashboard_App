@@ -174,7 +174,7 @@ const HEADINGS: Record<Tab, { title: string; subtitle: string }> = {
   scorecard: {
     title: "Bot Scorecard",
     subtitle:
-      "The paper bots' resolved picks by strategy, and — for every factor in their score — whether picks that earned it did better, with the correlation replayed as the sample grew. A mirror; nothing here re-weights the bots.",
+      "The bots' resolved picks by strategy, and — for every factor in their score — whether picks that earned it did better, with the correlation replayed as the sample grew. A mirror; nothing here re-weights the bots.",
   },
   calculator: {
     title: "Return Calculator",
