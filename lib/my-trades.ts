@@ -21,7 +21,10 @@ export const EMPTY_MY_TRADES: MyTradesFile = {
   concurrency: [],
   sizing: [],
   rollChains: [],
-  leaps: { trades: [], guidelines: [], regime: [], ivrBuckets: [], hold: [] },
+  leaps: {
+    trades: [], guidelines: [], regime: [], ivrBuckets: [], hold: [],
+    pccAtOpenBuckets: [], pccAtCloseBuckets: [], pccAtOpenCorrelation: null, pccAtCloseCorrelation: null,
+  },
 };
 
 export async function getMyTrades(): Promise<MyTradesFile> {

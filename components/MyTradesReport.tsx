@@ -207,9 +207,37 @@ function LeapsBlock({ leaps, since }: { leaps: LeapsSection; since: string }) {
           <Card className="px-3 py-2 text-[11px] leading-relaxed text-muted">
             {`The delta grade needs the tracker's entry snapshot. ${fillsIn(since, "delta")} A Fidelity LEAP never gets one — the tracker only sees Schwab positions.`}
           </Card>
+          <BucketBars
+            title="Win rate by CBOE PCC at open (RULE-026)"
+            buckets={leaps.pccAtOpenBuckets}
+            empty="Fills in for LEAPs opened after PCC tracking began."
+          />
+          <BucketBars
+            title="Win rate by CBOE PCC at close"
+            buckets={leaps.pccAtCloseBuckets}
+            empty="Fills in for LEAPs closed after PCC tracking began."
+          />
+          <PccCorrelationNote openR={leaps.pccAtOpenCorrelation} closeR={leaps.pccAtCloseCorrelation} />
         </BucketGrid>
       )}
     </>
+  );
+}
+
+// PccCorrelationNote — a plain r, deliberately not colored "helps/hurts"
+// the way FactorScorecard's rTone judges a score bonus: there, positive
+// always means the bonus earned its keep, but a contrarian sentiment
+// read has no such fixed "good" sign here — a negative r is the one that
+// would actually agree with the close-below-0.75 rule, not disagree with
+// it. Read the number yourself rather than trust a color for this one.
+function PccCorrelationNote({ openR, closeR }: { openR: number | null; closeR: number | null }) {
+  const line = (label: string, r: number | null) => `${label}: ${r == null ? "building — needs more closed LEAPs with a PCC reading" : `r = ${r.toFixed(2)}`}`;
+  return (
+    <Card className="px-3 py-2 text-[11px] leading-relaxed text-muted">
+      <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">PCC vs. return correlation</div>
+      <div>{line("At open", openR)}</div>
+      <div>{line("At close", closeR)}</div>
+    </Card>
   );
 }
 
@@ -219,7 +247,10 @@ function BucketGrid({ children }: { children: React.ReactNode }) {
 
 export function MyTradesReport({ file }: { file: MyTradesFile }) {
   const { meta } = file;
-  const leaps = file.leaps ?? { trades: [], guidelines: [], regime: [], ivrBuckets: [], hold: [] };
+  const leaps = file.leaps ?? {
+    trades: [], guidelines: [], regime: [], ivrBuckets: [], hold: [],
+    pccAtOpenBuckets: [], pccAtCloseBuckets: [], pccAtOpenCorrelation: null, pccAtCloseCorrelation: null,
+  };
   if (meta.tradeCount === 0) {
     return (
       <>

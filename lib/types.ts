@@ -1012,6 +1012,21 @@ export interface LeapsSection {
   regime: BucketStat[];
   ivrBuckets: BucketStat[];
   hold: BucketStat[]; // "<30d" | "30-90d" | "90-365d" | "365d+"
+  // CBOE Total Put/Call ratio (RULE-026) split by RULE-026's own
+  // overheated ("<=0.75")/normal (">0.75") threshold — "overheated
+  // (<=0.75)" | "normal (>0.75)" — at open and at close respectively.
+  // Looked up retroactively from pcc_snapshots (same treatment as
+  // ivrBuckets/ivRankAtOpen), so a trade that closed before the PCC
+  // agent existed simply has no reading and isn't counted in either.
+  pccAtOpenBuckets: BucketStat[];
+  pccAtCloseBuckets: BucketStat[];
+  // Pearson r between the raw PCC reading and returnPct, null below
+  // minSample resolved trades carrying that reading — real closed LEAP
+  // round-trips are a far smaller, slower-growing sample than the Bot
+  // Scorecard's paper CSP trades, so this reads null for a good while.
+  // Not a bug — same "building" honesty as every other null here.
+  pccAtOpenCorrelation: number | null;
+  pccAtCloseCorrelation: number | null;
 }
 
 export interface MyLeapTrade {
@@ -1035,6 +1050,12 @@ export interface MyLeapTrade {
   vixAtOpen: number | null;
   vixRegime: string;
   ivRankAtOpen: number | null;
+  // CBOE Total Put/Call ratio (RULE-026) as of the open/close date,
+  // read retroactively from pcc_snapshots — null for a trade outside
+  // that table's coverage (before the PCC agent existed, or a gap
+  // wider than the lookup's own staleness allowance).
+  pccAtOpen: number | null;
+  pccAtClose: number | null;
   guidelines: Record<string, boolean>; // absent key = input unknown, not a pass
 }
 
