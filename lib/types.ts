@@ -1065,9 +1065,10 @@ export interface MyLeapTrade {
   pccAtClose: number | null;
   // The earliest ActionPCCCaution the tracker raised on this contract,
   // and how long it took to close after it (null hoursToClose = ran to
-  // expiry/exercise rather than an active close). Null (not a "not
-  // acted" bucket entry) for a Fidelity LEAP — the tracker only alerts
-  // on Schwab positions.
+  // expiry/exercise rather than an active close). Populated for
+  // Fidelity too, not just Schwab — the tracker evaluates Fidelity/
+  // E*TRADE LEAPs through the same checks. Null only when no
+  // ActionPCCCaution ever fired on this contract.
   pccAlertResponse: { action: string; firedAt: string; hoursToClose: number | null } | null;
   guidelines: Record<string, boolean>; // absent key = input unknown, not a pass
 }
