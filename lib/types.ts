@@ -1027,6 +1027,13 @@ export interface LeapsSection {
   // Not a bug — same "building" honesty as every other null here.
   pccAtOpenCorrelation: number | null;
   pccAtCloseCorrelation: number | null;
+  // Win rate split by how long it took to close after the tracker's own
+  // ActionPCCCaution first fired on the position — same alertResponseOrder
+  // vocabulary ("<1 day" | "1-3 days" | ">3 days" | "not acted") the
+  // short-trade sections' own alertResponse bucket uses. A sharper read
+  // than the static open/close snapshot above: it asks whether acting
+  // promptly on the alert mattered, not just what the ratio read.
+  pccAlertResponseBuckets: BucketStat[];
 }
 
 export interface MyLeapTrade {
@@ -1056,6 +1063,12 @@ export interface MyLeapTrade {
   // wider than the lookup's own staleness allowance).
   pccAtOpen: number | null;
   pccAtClose: number | null;
+  // The earliest ActionPCCCaution the tracker raised on this contract,
+  // and how long it took to close after it (null hoursToClose = ran to
+  // expiry/exercise rather than an active close). Null (not a "not
+  // acted" bucket entry) for a Fidelity LEAP — the tracker only alerts
+  // on Schwab positions.
+  pccAlertResponse: { action: string; firedAt: string; hoursToClose: number | null } | null;
   guidelines: Record<string, boolean>; // absent key = input unknown, not a pass
 }
 

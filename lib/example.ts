@@ -1375,7 +1375,9 @@ export const exampleMyTradesFile: MyTradesFile = {
         ticker: "GOOGL", contractSymbol: "GOOGL 280616C00310000", putCall: "CALL", source: "fidelity", account: "acct-demo02",
         openDate: isoDay(-8), closeDate: isoDay(-2), closeReason: "CLOSED", quantity: 1, openPrice: 87.75, closePrice: 97.55,
         realizedPnl: 978.47, returnPct: 11.15, win: true, dit: 6, dteAtOpen: 647, deltaAtOpen: null, vixAtOpen: 15.7,
-        vixRegime: "Slight Fear", ivRankAtOpen: null, pccAtOpen: 0.82, pccAtClose: 0.72, guidelines: { leapDte: true },
+        vixRegime: "Slight Fear", ivRankAtOpen: null, pccAtOpen: 0.82, pccAtClose: 0.72,
+        pccAlertResponse: null, // Fidelity -- the tracker never alerts on it
+        guidelines: { leapDte: true },
       },
       {
         // A ~90 DTE call bought as if it were a LEAP: DTE grade broken,
@@ -1383,7 +1385,11 @@ export const exampleMyTradesFile: MyTradesFile = {
         ticker: "AMD", contractSymbol: "AMD   261218C00150000", putCall: "CALL", source: "schwab", account: "acct-demo01",
         openDate: isoDay(-40), closeDate: isoDay(-12), closeReason: "CLOSED", quantity: 2, openPrice: 10.0, closePrice: 8.0,
         realizedPnl: -401.32, returnPct: -20.07, win: false, dit: 28, dteAtOpen: 99, deltaAtOpen: 0.75, vixAtOpen: 21.4,
-        vixRegime: "Fear", ivRankAtOpen: 62, pccAtOpen: 0.85, pccAtClose: 0.80, guidelines: { leapDte: false, leapDelta: true },
+        vixRegime: "Fear", ivRankAtOpen: 62, pccAtOpen: 0.85, pccAtClose: 0.80,
+        // Acted the same day the alert fired -- still a loss, illustrating
+        // that a fast response doesn't guarantee a win.
+        pccAlertResponse: { action: "pcc_caution", firedAt: isoDay(-13), hoursToClose: 18 },
+        guidelines: { leapDte: false, leapDelta: true },
       },
     ],
     guidelines: [
@@ -1412,5 +1418,8 @@ export const exampleMyTradesFile: MyTradesFile = {
     // show this early.
     pccAtOpenCorrelation: null,
     pccAtCloseCorrelation: null,
+    // Only AMD (Schwab) got a real alert response; GOOGL's Fidelity
+    // position is never alerted on, so it's absent rather than bucketed.
+    pccAlertResponseBuckets: [{ bucket: "<1 day", n: 1, wins: 0, winRate: 0, avgReturnPct: -20.07 }],
   },
 };

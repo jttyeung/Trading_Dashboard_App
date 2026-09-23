@@ -24,6 +24,7 @@ export const EMPTY_MY_TRADES: MyTradesFile = {
   leaps: {
     trades: [], guidelines: [], regime: [], ivrBuckets: [], hold: [],
     pccAtOpenBuckets: [], pccAtCloseBuckets: [], pccAtOpenCorrelation: null, pccAtCloseCorrelation: null,
+    pccAlertResponseBuckets: [],
   },
 };
 
