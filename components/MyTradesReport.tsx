@@ -217,6 +217,11 @@ function LeapsBlock({ leaps, since }: { leaps: LeapsSection; since: string }) {
             buckets={leaps.pccAtCloseBuckets}
             empty="Fills in for LEAPs closed after PCC tracking began."
           />
+          <BucketBars
+            title="Win rate by how fast a PCC caution alert was acted on"
+            buckets={leaps.pccAlertResponseBuckets}
+            empty="Fills in once the tracker raises a PCC caution on a Schwab LEAP and it closes."
+          />
           <PccCorrelationNote openR={leaps.pccAtOpenCorrelation} closeR={leaps.pccAtCloseCorrelation} />
         </BucketGrid>
       )}
@@ -250,6 +255,7 @@ export function MyTradesReport({ file }: { file: MyTradesFile }) {
   const leaps = file.leaps ?? {
     trades: [], guidelines: [], regime: [], ivrBuckets: [], hold: [],
     pccAtOpenBuckets: [], pccAtCloseBuckets: [], pccAtOpenCorrelation: null, pccAtCloseCorrelation: null,
+    pccAlertResponseBuckets: [],
   };
   if (meta.tradeCount === 0) {
     return (
