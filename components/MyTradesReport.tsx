@@ -160,7 +160,7 @@ function LeapsBlock({ leaps, since }: { leaps: LeapsSection; since: string }) {
         <div className="px-3 py-1.5 text-[10px] text-muted">
           {leaps.trades.length === 0
             ? "Closed long calls and puts will show here, graded against the LEAPs entry window — kept apart from the premium-selling stats above since a bought option has no collateral or credit to keep."
-            : `${leaps.trades.length} closed long trade${leaps.trades.length === 1 ? "" : "s"} · graded against the LEAPs entry window only · return is on cost, not collateral · delta at entry is known only for Schwab positions the tracker saw open`}
+            : `${leaps.trades.length} closed long trade${leaps.trades.length === 1 ? "" : "s"} · graded against the LEAPs entry window only · return is on cost, not collateral · delta at entry is known for Schwab and Fidelity positions the tracker saw open`}
         </div>
         {leaps.trades.length > 0 && (
           <table className="w-full min-w-[720px] border-collapse text-xs">
@@ -205,7 +205,7 @@ function LeapsBlock({ leaps, since }: { leaps: LeapsSection; since: string }) {
           <BucketBars title="Win rate by VIX regime at open" buckets={leaps.regime} empty="Fills in for LEAPs opened after VIX sampling began." />
           <BucketBars title="Win rate by IV rank at open" buckets={leaps.ivrBuckets} empty="No closed LEAP yet." />
           <Card className="px-3 py-2 text-[11px] leading-relaxed text-muted">
-            {`The delta grade needs the tracker's entry snapshot. ${fillsIn(since, "delta")} A Fidelity LEAP never gets one — the tracker only sees Schwab positions.`}
+            {`The delta grade needs the tracker's entry snapshot. ${fillsIn(since, "delta")} Fidelity gets one too, same as Schwab — it's only missing for a trade the tracker never saw open.`}
           </Card>
           <BucketBars
             title="Win rate by CBOE PCC at open (RULE-026)"
@@ -388,8 +388,10 @@ export function MyTradesReport({ file }: { file: MyTradesFile }) {
 
       <p className="mt-3 px-1 text-[11px] leading-relaxed text-muted">
         Every trade a broker confirmed closed counts here — Schwab, Fidelity and E*TRADE alike — whether or not it was ever
-        suggested. Roll chains and alert response are Schwab-only (rolls are linked by Schwab order id; the tracker alerts on
-        Schwab positions), so they read as absent, not broken, elsewhere. Retroactive reads
+        suggested. Roll chains are Schwab-only (rolls are linked by Schwab order id), so they read as absent, not broken,
+        for Fidelity and E*TRADE. Alert response isn&apos;t Schwab-only, though — the tracker evaluates Fidelity and E*TRADE
+        positions through the same checks, so how fast an alert was acted on reads for any broker (E*TRADE&apos;s LEAPs are
+        the one gap, since its matcher never produces a closed long round-trip to grade at all). Retroactive reads
         (DTE, monthly ROI, wash-sale, sizing, regime, IV rank, how it was managed) cover every trade; the ones that need
         the tracker to have frozen the entry (delta band, liquidity, earnings, VRP, alert response) start from{" "}
         {since || "the first captured entry"}. Nothing here changes what gets suggested.
