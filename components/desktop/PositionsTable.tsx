@@ -416,7 +416,7 @@ const COLUMNS: { key: SortKey; label: string; align?: "right" }[] = [
   { key: "theta", label: "Theta $", align: "right" },
   { key: "ror", label: "RoR %", align: "right" },
   { key: "arr", label: "ARR", align: "right" },
-  { key: "unrealized", label: "Unrealized", align: "right" },
+  { key: "unrealized", label: "Unrealized P/L", align: "right" },
   { key: "remArr", label: "ARR Left", align: "right" },
   { key: "todayPl", label: "Today P/L", align: "right" },
   { key: "marketValue", label: "Market Value", align: "right" },
