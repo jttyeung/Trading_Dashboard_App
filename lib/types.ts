@@ -1053,7 +1053,7 @@ export interface MyLeapTrade {
   win: boolean;
   dit: number;
   dteAtOpen: number;
-  deltaAtOpen: number | null; // only Schwab positions get an entry snapshot
+  deltaAtOpen: number | null; // Schwab or Fidelity; null when the tracker never saw the position open
   vixAtOpen: number | null;
   vixRegime: string;
   ivRankAtOpen: number | null;
