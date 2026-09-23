@@ -209,10 +209,9 @@ export function PortfolioRiskView({ perAccount, blended }: { perAccount: Account
           <SectorBars sectors={blended.sectors} maxAllocationPct={blended.maxSectorAllocationPct} />
         </div>
         <p className="mt-3 text-[10px] leading-relaxed text-muted">
-          Everything above is whole-account (Schwab + SnapTrade + E*TRADE combined). Sector concentration is the
-          same blended reading that gates a new suggestion; theta, beta &amp; open P&amp;L here are informational —
-          the theta reading that actually gates is computed Schwab-only (accounts here are mostly tax/custodial
-          wrappers, not independent risk pools).
+          Sector concentration is the same blended reading that gates a new suggestion; theta, beta &amp; open
+          P&amp;L here are informational — the theta reading that actually gates is computed Schwab-only
+          (accounts here are mostly tax/custodial wrappers, not independent risk pools).
         </p>
       </Card>
 
