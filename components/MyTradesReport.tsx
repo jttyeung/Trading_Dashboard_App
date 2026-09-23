@@ -220,7 +220,7 @@ function LeapsBlock({ leaps, since }: { leaps: LeapsSection; since: string }) {
           <BucketBars
             title="Win rate by how fast a PCC caution alert was acted on"
             buckets={leaps.pccAlertResponseBuckets}
-            empty="Fills in once the tracker raises a PCC caution on a Schwab LEAP and it closes."
+            empty="Fills in once the tracker raises a PCC caution on a LEAP and it closes."
           />
           <PccCorrelationNote openR={leaps.pccAtOpenCorrelation} closeR={leaps.pccAtCloseCorrelation} />
         </BucketGrid>

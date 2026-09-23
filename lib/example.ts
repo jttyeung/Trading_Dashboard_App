@@ -1376,7 +1376,9 @@ export const exampleMyTradesFile: MyTradesFile = {
         openDate: isoDay(-8), closeDate: isoDay(-2), closeReason: "CLOSED", quantity: 1, openPrice: 87.75, closePrice: 97.55,
         realizedPnl: 978.47, returnPct: 11.15, win: true, dit: 6, dteAtOpen: 647, deltaAtOpen: null, vixAtOpen: 15.7,
         vixRegime: "Slight Fear", ivRankAtOpen: null, pccAtOpen: 0.82, pccAtClose: 0.72,
-        pccAlertResponse: null, // Fidelity -- the tracker never alerts on it
+        // Fidelity gets a real response too -- the tracker evaluates it
+        // through the same checks as a Schwab LEAP.
+        pccAlertResponse: { action: "pcc_caution", firedAt: isoDay(-3), hoursToClose: 28 },
         guidelines: { leapDte: true },
       },
       {
@@ -1418,8 +1420,11 @@ export const exampleMyTradesFile: MyTradesFile = {
     // show this early.
     pccAtOpenCorrelation: null,
     pccAtCloseCorrelation: null,
-    // Only AMD (Schwab) got a real alert response; GOOGL's Fidelity
-    // position is never alerted on, so it's absent rather than bucketed.
-    pccAlertResponseBuckets: [{ bucket: "<1 day", n: 1, wins: 0, winRate: 0, avgReturnPct: -20.07 }],
+    // AMD (Schwab, 5h) lands in <1 day; GOOGL (Fidelity, 28h) lands in
+    // 1-3 days -- both brokers get a real response.
+    pccAlertResponseBuckets: [
+      { bucket: "<1 day", n: 1, wins: 0, winRate: 0, avgReturnPct: -20.07 },
+      { bucket: "1-3 days", n: 1, wins: 1, winRate: 100, avgReturnPct: 11.15 },
+    ],
   },
 };
