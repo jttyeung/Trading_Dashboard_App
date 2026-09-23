@@ -224,15 +224,15 @@ function summaryCells(sum: Summary): Partial<Record<SortKey, React.ReactNode>> {
   return {
     theta: <span className="font-semibold text-muted">{fmtMoney(sum.theta)}</span>,
     unrealized: (
-      <div className="flex items-start justify-end gap-1">
-        <div className="flex flex-col items-center gap-0.5">
+      <div className="inline-flex flex-col items-center gap-0.5">
+        <div className="flex items-center gap-1">
           <PctBar pct={sum.unrealizedPct} label={fmtMoney(sum.unrealized, { sign: true })} />
-          <span className="whitespace-nowrap text-[10px] text-muted">
-            {fmtMoney(sum.remainingDollar)} {sum.remainingLabel}
+          <span className={`whitespace-nowrap text-[10px] font-semibold ${pnlColor(sum.unrealizedPct)}`}>
+            ({fmtPct(sum.unrealizedPct)})
           </span>
         </div>
-        <span className={`flex h-5 items-center whitespace-nowrap text-[10px] font-semibold ${pnlColor(sum.unrealizedPct)}`}>
-          ({fmtPct(sum.unrealizedPct)})
+        <span className="whitespace-nowrap text-[10px] text-muted">
+          {fmtMoney(sum.remainingDollar)} {sum.remainingLabel}
         </span>
       </div>
     ),
@@ -685,15 +685,15 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                       <td className="px-3 py-2 text-right tabular text-text">{r.ror != null ? fmtPct(r.ror, 1) : "-"}</td>
                       <td className="px-3 py-2 text-right tabular text-text">{r.arr != null ? fmtPct(r.arr, 1) : "-"}</td>
                       <td className="px-3 py-2 text-right tabular">
-                        <div className="flex items-start justify-end gap-1">
-                          <div className="flex flex-col items-center gap-0.5">
+                        <div className="inline-flex flex-col items-center gap-0.5">
+                          <div className="flex items-center gap-1">
                             <PctBar pct={r.unrealizedPct} label={fmtMoney(r.unrealized, { sign: true })} />
-                            <span className="whitespace-nowrap text-[10px] text-muted">
-                              {fmtMoney(r.remainingDollar)} {r.remainingLabel}
+                            <span className={`whitespace-nowrap text-[10px] font-semibold ${pnlColor(r.unrealizedPct)}`}>
+                              ({fmtPct(r.unrealizedPct)})
                             </span>
                           </div>
-                          <span className={`flex h-5 items-center whitespace-nowrap text-[10px] font-semibold ${pnlColor(r.unrealizedPct)}`}>
-                            ({fmtPct(r.unrealizedPct)})
+                          <span className="whitespace-nowrap text-[10px] text-muted">
+                            {fmtMoney(r.remainingDollar)} {r.remainingLabel}
                           </span>
                         </div>
                       </td>
