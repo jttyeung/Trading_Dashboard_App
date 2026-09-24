@@ -1139,3 +1139,27 @@ export interface GuidelineStat {
   avgReturnCompliant: number | null;
   avgReturnViolated: number | null;
 }
+
+// data/ytd-returns.json — plain stock return since the prior year's last
+// close, for every ticker the daemon holds price history for. The desktop
+// scorecard tabs each filter it to their own tickers.
+export interface YtdReturn {
+  ticker: string;
+  returnPct: number; // percent: 76.4 means +76.4%
+  baseDate: string;
+  baseClose: number;
+  lastDate: string;
+  lastClose: number;
+  listedThisYear: boolean; // base is the first close of the year, not 12/31
+}
+
+export interface YtdReturnsFile {
+  meta: {
+    generatedAt: string;
+    year: number;
+    // Newest close across all tickers — a row whose lastDate trails it has
+    // stopped refreshing (off the active watchlist) and is marked stale.
+    latestDate: string;
+  };
+  returns: YtdReturn[];
+}
