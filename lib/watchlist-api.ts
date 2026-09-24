@@ -62,6 +62,11 @@ export interface WatchlistRow {
   // of the ticker, not of any option on it. Written by the Brief agent's
   // hourly screen; null until it has 60+ sessions of history for the name.
   beta: number | null;
+  // Plain stock return this calendar year, as a fraction like
+  // dayChangePct: the current price over last year's final close, or over
+  // the first close for a name listed this year (listedThisYear).
+  ytdPct: number | null;
+  listedThisYear: boolean;
 }
 
 export async function fetchWatchlist(): Promise<WatchlistRow[]> {
