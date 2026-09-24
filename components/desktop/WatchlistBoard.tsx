@@ -326,7 +326,7 @@ function compareNullable(av: number | null, bv: number | null, dir: 1 | -1): num
   return (av - bv) * dir;
 }
 
-type SortKey = "tier" | "ticker" | "bb" | "walls" | "chg" | "beta" | "rsi" | "ivr" | "vrp";
+type SortKey = "tier" | "ticker" | "bb" | "walls" | "chg" | "ytd" | "beta" | "rsi" | "ivr" | "vrp";
 
 function SortHeader({
   label,
@@ -389,6 +389,8 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
           return compareNullable(wallsPosition(a), wallsPosition(b), sortDir);
         case "chg":
           return compareNullable(a.dayChangePct, b.dayChangePct, sortDir);
+        case "ytd":
+          return compareNullable(a.ytdPct, b.ytdPct, sortDir);
         case "beta":
           return compareNullable(a.beta, b.beta, sortDir);
         case "rsi":
@@ -510,6 +512,12 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
                 <SortHeader label="Chg %" sortKeyName="chg" active={sortKey} dir={sortDir} onClick={toggleSort} align="right" />
               </th>
               <th
+                className="w-20 px-2 py-2 text-right font-medium"
+                title="Plain stock return this calendar year: the current price against the last close of last year. * marks a name listed this year, measured from its first close."
+              >
+                <SortHeader label="YTD %" sortKeyName="ytd" active={sortKey} dir={sortDir} onClick={toggleSort} align="right" />
+              </th>
+              <th
                 className="w-16 px-2 py-2 text-right font-medium"
                 title="The stock's beta vs SPY on up to a year of daily returns — 1.0 moves with the market, 2.0 twice as much. A property of the ticker, not of any option on it."
               >
@@ -570,6 +578,19 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
                 <td className="w-20 whitespace-nowrap px-2 py-2 text-right">
                   {r.dayChangePct != null ? <DayPct pct={r.dayChangePct} /> : <span className="text-sm text-muted">—</span>}
                 </td>
+                <td className="w-20 whitespace-nowrap px-2 py-2 text-right text-sm">
+                  {r.ytdPct != null ? (
+                    <span
+                      className={`tabular ${r.ytdPct >= 0 ? "text-pos" : "text-neg"}`}
+                      title={r.listedThisYear ? "Listed this year: return since its first trading day" : undefined}
+                    >
+                      {`${r.ytdPct >= 0 ? "+" : "−"}${Math.abs(r.ytdPct * 100).toFixed(1)}%`}
+                      {r.listedThisYear && <span className="text-muted">*</span>}
+                    </span>
+                  ) : (
+                    <span className="text-muted">—</span>
+                  )}
+                </td>
                 <td className="tabular w-16 whitespace-nowrap px-2 py-2 text-right text-sm text-text">
                   {r.beta != null ? r.beta.toFixed(2) : <span className="text-muted">—</span>}
                 </td>
@@ -606,7 +627,7 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
             ))}
             {!loading && rows.length === 0 && (
               <tr>
-                <td colSpan={12} className="px-3 py-8 text-center text-sm text-muted">
+                <td colSpan={13} className="px-3 py-8 text-center text-sm text-muted">
                   No active watchlist tickers.
                 </td>
               </tr>
