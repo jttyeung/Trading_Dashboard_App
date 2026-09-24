@@ -45,6 +45,9 @@ built-in demo dataset, so you can explore the whole UI immediately.
   "LEAPs you bought" block grades closed long options (Schwab and Fidelity) against the LEAPs entry window
   only (365+ DTE, 0.70+ delta at entry), with return on cost rather than collateral, so a bought
   call never averages into the premium-selling stats
+- **YTD returns on both scorecards** (`data/ytd-returns.json`) — a plain stock-return bar chart
+  (prior year-end close to the latest close) for the tickers each tab covers: every name the
+  account holder closed a trade on, or every name behind the bots' resolved picks
 - **Bot Scorecard** (desktop `/overview` tab) — the paper bots' resolved picks by strategy, plus a score-factor section
   (`data/score-factors.json`): for each term in the paper bots' own score (VRP, IV rank,
   indicator signals, walls, gamma, entry timing) the win rate and mean return with vs without
