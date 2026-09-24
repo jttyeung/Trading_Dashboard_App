@@ -58,6 +58,10 @@ export interface WatchlistRow {
   macdHistogram: number | null;
   callWall: number | null;
   putWall: number | null;
+  // The stock's own beta vs SPY (daily returns, up to ~1y) -- a property
+  // of the ticker, not of any option on it. Written by the Brief agent's
+  // hourly screen; null until it has 60+ sessions of history for the name.
+  beta: number | null;
 }
 
 export async function fetchWatchlist(): Promise<WatchlistRow[]> {
