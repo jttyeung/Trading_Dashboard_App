@@ -326,7 +326,7 @@ function compareNullable(av: number | null, bv: number | null, dir: 1 | -1): num
   return (av - bv) * dir;
 }
 
-type SortKey = "tier" | "ticker" | "bb" | "walls" | "chg" | "rsi" | "ivr" | "vrp";
+type SortKey = "tier" | "ticker" | "bb" | "walls" | "chg" | "beta" | "rsi" | "ivr" | "vrp";
 
 function SortHeader({
   label,
@@ -389,6 +389,8 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
           return compareNullable(wallsPosition(a), wallsPosition(b), sortDir);
         case "chg":
           return compareNullable(a.dayChangePct, b.dayChangePct, sortDir);
+        case "beta":
+          return compareNullable(a.beta, b.beta, sortDir);
         case "rsi":
           return compareNullable(a.rsi14, b.rsi14, sortDir);
         case "ivr":
@@ -507,6 +509,12 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
               <th className="w-20 px-2 py-2 text-right font-medium">
                 <SortHeader label="Chg %" sortKeyName="chg" active={sortKey} dir={sortDir} onClick={toggleSort} align="right" />
               </th>
+              <th
+                className="w-16 px-2 py-2 text-right font-medium"
+                title="The stock's beta vs SPY on up to a year of daily returns — 1.0 moves with the market, 2.0 twice as much. A property of the ticker, not of any option on it."
+              >
+                <SortHeader label="Beta" sortKeyName="beta" active={sortKey} dir={sortDir} onClick={toggleSort} align="right" />
+              </th>
               <th className="px-3 py-2 font-medium">
                 <SortHeader label="BB" sortKeyName="bb" active={sortKey} dir={sortDir} onClick={toggleSort} />
               </th>
@@ -562,6 +570,9 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
                 <td className="w-20 whitespace-nowrap px-2 py-2 text-right">
                   {r.dayChangePct != null ? <DayPct pct={r.dayChangePct} /> : <span className="text-sm text-muted">—</span>}
                 </td>
+                <td className="tabular w-16 whitespace-nowrap px-2 py-2 text-right text-sm text-text">
+                  {r.beta != null ? r.beta.toFixed(2) : <span className="text-muted">—</span>}
+                </td>
                 <td className="px-3 py-2">
                   {r.currentPrice != null && r.bollingerLower != null && r.bollingerUpper != null ? (
                     <Lever value={r.currentPrice} min={r.bollingerLower} max={r.bollingerUpper} label="BB" />
@@ -595,7 +606,7 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
             ))}
             {!loading && rows.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-3 py-8 text-center text-sm text-muted">
+                <td colSpan={12} className="px-3 py-8 text-center text-sm text-muted">
                   No active watchlist tickers.
                 </td>
               </tr>
