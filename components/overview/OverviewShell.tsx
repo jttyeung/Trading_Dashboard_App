@@ -12,7 +12,7 @@ import { WatchlistBoard } from "@/components/desktop/WatchlistBoard";
 import { SchwabReconnect } from "@/components/desktop/SchwabReconnect";
 import { ETradeReconnect } from "@/components/desktop/ETradeReconnect";
 import { MyTradesScorecard, BotScorecard } from "@/components/desktop/ScorecardDesktop";
-import type { CspPicksFile, MyTradesFile, PerformanceRow, PortfolioRiskFile, ScoreFactorsFile } from "@/lib/types";
+import type { CspPicksFile, MyTradesFile, PerformanceRow, PortfolioRiskFile, ScoreFactorsFile, YtdReturnsFile } from "@/lib/types";
 import { ThetaTurnoverPanel } from "@/components/desktop/ThetaTurnoverPanel";
 
 type Tab = "desktop" | "trades" | "bot-safe" | "bot" | "bot-aggressive" | "scorecard" | "calculator" | "chart" | "watchlist" | "connections";
@@ -213,6 +213,7 @@ export function OverviewShell({
   scoreRows,
   totalSuggestions,
   scoreFactors,
+  ytdReturns,
   myTrades,
   cspPicks,
   risk,
@@ -226,6 +227,7 @@ export function OverviewShell({
   scoreRows: PerformanceRow[];
   totalSuggestions: number;
   scoreFactors: ScoreFactorsFile;
+  ytdReturns: YtdReturnsFile;
   myTrades: MyTradesFile;
   cspPicks: CspPicksFile;
   risk: PortfolioRiskFile;
@@ -350,8 +352,8 @@ export function OverviewShell({
         <div className={tab === "bot-aggressive" ? "" : "hidden"}>
           <BotTable trades={aggressiveBot.trades} myGrade={aggressiveBot.myGrade} storageKey="aggressive" exampleMode={exampleMode} />
         </div>
-        {tab === "trades" && <MyTradesScorecard rows={scoreRows} totalSuggestions={totalSuggestions} myTrades={myTrades} />}
-        {tab === "scorecard" && <BotScorecard rows={scoreRows} scoreFactors={scoreFactors} />}
+        {tab === "trades" && <MyTradesScorecard rows={scoreRows} totalSuggestions={totalSuggestions} myTrades={myTrades} ytdReturns={ytdReturns} />}
+        {tab === "scorecard" && <BotScorecard rows={scoreRows} scoreFactors={scoreFactors} ytdReturns={ytdReturns} />}
         {/* Always mounted (just hidden), unlike the desktop/trades/scorecard tabs above --
             this panel does its own live fetch plus in-flight add/remove
             state that a conditional mount/unmount would otherwise discard

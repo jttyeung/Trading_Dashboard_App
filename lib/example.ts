@@ -31,6 +31,7 @@ import type {
   BotSnapshot,
   BotTrade,
   CspPicksFile,
+  YtdReturnsFile,
 } from "./types";
 import type { WatchlistRow } from "./watchlist-api";
 import type { RollAnalysisCandidate, RollAnalysisMode, RollAnalysisResponse } from "./roll-api";
@@ -1427,4 +1428,28 @@ export const exampleMyTradesFile: MyTradesFile = {
       { bucket: "1-3 days", n: 1, wins: 1, winRate: 100, avgReturnPct: 11.15 },
     ],
   },
+};
+
+// exampleYtdReturnsFile — demo data for the scorecard tabs' YTD chart.
+// Invented numbers (not real market data), covering the example files'
+// own tickers plus one 2026 listing and one stale row, so both
+// footnotes render.
+export const exampleYtdReturnsFile: YtdReturnsFile = {
+  meta: { generatedAt: "2026-09-12T20:00:00Z", year: 2026, latestDate: "2026-09-11" },
+  returns: (
+    [
+      ["SOFI", -18.2], ["GLW", 41.5], ["COHR", 28.9], ["CLS", 12.3], ["IREN", 64.0], ["AMD", 55.1],
+      ["NVDA", 9.8], ["MU", 120.4], ["HPE", -6.5, "2026-09-03"], ["AAPL", 4.2], ["SNDK", 210.0],
+      ["PANW", -3.1], ["LRCX", 38.7], ["GOOGL", 6.6], ["DELL", 88.0], ["CRDO", 17.5], ["BE", 95.2],
+      ["SKHY", 22.0, undefined, "2026-07-10"],
+    ] as [string, number, string?, string?][]
+  ).map(([ticker, returnPct, lastDate = "2026-09-11", listedOn]) => ({
+    ticker,
+    returnPct,
+    baseDate: listedOn ?? "2025-12-31",
+    baseClose: 100,
+    lastDate,
+    lastClose: 100 * (1 + returnPct / 100),
+    listedThisYear: listedOn !== undefined,
+  })),
 };
