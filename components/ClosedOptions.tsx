@@ -4,6 +4,7 @@
 // filterable by period and by type (All / CSPs / LEAPs). Reached from the
 // Realized P/L stats on the Options page. Mirrors the CSP/LEAP closed tabs.
 import { useMemo, useState } from "react";
+import { etCalendarDate } from "@/lib/market-hours";
 import { usePersistentState } from "@/lib/view-state";
 import type { ReactNode } from "react";
 import { Stat } from "@/components/ui";
@@ -84,7 +85,7 @@ export function ClosedOptions({
   };
 
   const r = useMemo<Range>(() => {
-    const d = new Date(now);
+    const d = etCalendarDate(now);
     const ymd = (x: Date) =>
       `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
     if (mode === "all") return { start: null, end: null };

@@ -3,6 +3,7 @@
 // Shared time-range filter used across the closed views and the P&L page:
 // All · YTD · a 6→1 calendar-month slider (fills from the right) · Today.
 import { useMemo, useState } from "react";
+import { etCalendarDate } from "@/lib/market-hours";
 import { type Range } from "@/lib/date-range";
 
 export type TimeMode = "all" | "ytd" | "months" | "today";
@@ -13,7 +14,7 @@ export function useTimeFilter(defaultMode: TimeMode = "months", defaultMonths = 
   const [now] = useState(() => Date.now());
 
   const range = useMemo<Range>(() => {
-    const d = new Date(now);
+    const d = etCalendarDate(now);
     const ymd = (x: Date) =>
       `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
     if (mode === "all") return { start: null, end: null };

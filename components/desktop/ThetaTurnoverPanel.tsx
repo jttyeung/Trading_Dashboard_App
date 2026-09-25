@@ -27,6 +27,7 @@ import type { CspPick, CspPicksFile, PortfolioRiskFile } from "@/lib/types";
 import type { SourcedOption } from "@/components/desktop/PositionsTable";
 import { positionDailyTheta } from "@/lib/theta";
 import { fmtMoney } from "@/lib/calc";
+import { etDateString } from "@/lib/market-hours";
 import { VRP_STYLE } from "@/lib/am-report-types";
 
 const ROLL_OFF_DAYS = 10;
@@ -97,7 +98,9 @@ export function ThetaTurnoverPanel({
   picks: CspPicksFile;
   risk: PortfolioRiskFile;
 }) {
-  const today = useMemo(() => new Date(), []);
+  // ET calendar date at UTC midnight, so daysUntil's UTC getters count
+  // from ET's today rather than the browser's.
+  const today = useMemo(() => new Date(`${etDateString(new Date())}T00:00:00Z`), []);
 
   const rollingOff = useMemo(() => {
     return options

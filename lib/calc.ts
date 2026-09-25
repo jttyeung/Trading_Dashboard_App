@@ -1,15 +1,18 @@
 // Derived metrics, formatting, and the rule-based insight engine.
 // All "what should I do" logic lives here so it can be tested and grown.
+import { etDateString } from "@/lib/market-hours";
 import type { CryptoHolding, Equity, OptionPosition, PortfolioSummary } from "./types";
 
 const MULT = 100; // standard options contract multiplier
 
-// Current local calendar date (YYYY-MM-DD), evaluated per call so "days to
-// expiry" / "days held" track the real clock instead of a value frozen at server
-// start. Date-only, so timezone offsets don't shift the day count.
+// Current ET calendar date (YYYY-MM-DD), evaluated per call so "days to
+// expiry" / "days held" track the real clock instead of a value frozen at
+// server start. ET, not the device's local date: expirations are ET dates,
+// and a Pacific browser's date runs a day ahead of ET's view from 9pm PT,
+// which read DTE a day high every night. Matches OptionsEvaluator's
+// marketclock.DaysUntilET.
 function nowISO(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return etDateString(new Date());
 }
 
 // ---- formatting ----------------------------------------------------------
