@@ -129,6 +129,9 @@ function signedQty(o: OptionPosition): number {
   return o.side === "short" ? -o.qty : o.qty;
 }
 
+// Smallest yesterday-value ($) a Today P/L % is computed against.
+const MIN_PCT_BASE = 1;
+
 function buildRow(
   o: SourcedOption,
   profitTargetBySymbol: Map<string, string>,
@@ -144,8 +147,14 @@ function buildRow(
   // this derives it instead of carrying a second number. Still reads
   // null/"-" for a SnapTrade position (no per-position day-change data
   // there at all — see CRM's blank Mark/Theta for the same reason).
+  // Below MIN_PCT_BASE the % is noise, not information: a near-worthless
+  // contract backed into a ~$0.01 yesterday (live: an expiring CRM call
+  // read -$13 as -129,900%). The $ figure still shows.
   const yesterdayValue = todayPl != null ? marketValue - todayPl : null;
-  const todayPlPct = todayPl != null && yesterdayValue ? todayPl / Math.abs(yesterdayValue) : null;
+  const todayPlPct =
+    todayPl != null && yesterdayValue != null && Math.abs(yesterdayValue) >= MIN_PCT_BASE
+      ? todayPl / Math.abs(yesterdayValue)
+      : null;
 
   // profit_target takes priority if a contract somehow matched both (it
   // shouldn't in practice — evaluateLeapPosition's own switch is mutually
