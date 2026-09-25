@@ -1,6 +1,7 @@
 // Shared date-range presets for the "closed history" / realized-P&L filters.
 // Pure functions (take `now` as a param) so they're hydration-safe and reusable
 // across CspClosed, LeapClosed, and the Options realized view.
+import { etCalendarDate } from "@/lib/market-hours";
 
 export type RangeKey = "all" | "mtd" | "lastmo" | "30d" | "90d" | "ytd" | "12m";
 
@@ -28,7 +29,7 @@ function ymd(d: Date): string {
 }
 
 export function resolveRange(key: RangeKey, now: number): Range {
-  const d = new Date(now);
+  const d = etCalendarDate(now);
   const y = d.getFullYear();
   const mo = d.getMonth();
   switch (key) {
