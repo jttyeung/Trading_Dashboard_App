@@ -5,6 +5,7 @@
 // closed view, but renders strategy-specific rows. Kept separate from
 // ClosedOptions so the proven CSP/LEAP view stays untouched.
 import { useMemo, useState } from "react";
+import { etCalendarDate } from "@/lib/market-hours";
 import { usePersistentState } from "@/lib/view-state";
 import type { ReactNode } from "react";
 import { Stat } from "@/components/ui";
@@ -66,7 +67,7 @@ export function ClosedStrategy({
   };
 
   const r = useMemo<Range>(() => {
-    const d = new Date(now);
+    const d = etCalendarDate(now);
     const ymd = (x: Date) =>
       `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
     if (mode === "all") return { start: null, end: null };

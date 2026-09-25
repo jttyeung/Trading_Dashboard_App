@@ -3,6 +3,7 @@
 // Realized stock round-trips (FIFO). Same time filter (YTD · calendar-month
 // slider · Today) and click-to-sort headers as the closed options views.
 import { useMemo, useState } from "react";
+import { etCalendarDate } from "@/lib/market-hours";
 import { usePersistentState } from "@/lib/view-state";
 import type { ReactNode } from "react";
 import { Stat } from "@/components/ui";
@@ -57,7 +58,7 @@ export function ClosedStocks({
   };
 
   const r = useMemo<Range>(() => {
-    const d = new Date(now);
+    const d = etCalendarDate(now);
     const ymd = (x: Date) =>
       `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
     if (mode === "all") return { start: null, end: null };
