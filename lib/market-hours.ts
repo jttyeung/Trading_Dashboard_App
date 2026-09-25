@@ -62,6 +62,17 @@ export function etDateString(now: Date): string {
   return `${p.year}-${String(p.month).padStart(2, "0")}-${String(p.day).padStart(2, "0")}`;
 }
 
+// etCalendarDate is a Date whose LOCAL year/month/day read back as `now`'s
+// ET calendar date, for code that does calendar math with local getters
+// (new Date(y, mo, d), getDate(), getDay()). The browser's own zone is
+// Pacific on the account holder's devices, which is already "tomorrow"
+// in ET from 9pm PT, so reading it directly put "today" filters and week
+// buckets a day off for three hours every night.
+export function etCalendarDate(now: Date | number): Date {
+  const p = marketDateParts(new Date(now));
+  return new Date(p.year, p.month - 1, p.day);
+}
+
 // etOffsetMinutes derives how far America/New_York is behind UTC right
 // now (240 in EDT, 300 in EST) from `now` itself, rather than a
 // hardcoded DST table — comparing the real UTC instant against a
