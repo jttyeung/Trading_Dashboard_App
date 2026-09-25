@@ -5,6 +5,7 @@
 // strike. Reds/oranges are exposed collateral; greens/blue are well out of the money.
 // Tapping a bar selects that DTE window so the positions list above can filter to it.
 import { Card } from "@/components/ui";
+import { etCalendarDate } from "@/lib/market-hours";
 import { Amt } from "@/components/privacy";
 import { compactMoney } from "@/components/OptionRow";
 import {
@@ -33,7 +34,7 @@ export const CASH_BUCKETS: { label: string }[] = [
 export function cashBucketIndex(dte: number): number {
   // Days remaining in the current Mon–Sun week (6 on Monday … 0 on Sunday). Weeks
   // start Monday, so the current week absorbs everything through the coming Sunday.
-  const daysLeftThisWeek = (7 - new Date().getDay()) % 7;
+  const daysLeftThisWeek = (7 - etCalendarDate(new Date()).getDay()) % 7;
   if (dte <= daysLeftThisWeek) return 0;
   return Math.min(CASH_BUCKETS.length - 1, 1 + Math.floor((dte - daysLeftThisWeek - 1) / 7));
 }
