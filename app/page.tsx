@@ -20,6 +20,7 @@ import { computeHoldings } from "@/lib/holdings";
 import { dailyThetaBreakdown } from "@/lib/theta";
 import { getPortfolioRisk } from "@/lib/portfolio-risk";
 import { getSelectedAccount } from "@/lib/account";
+import { etDateString } from "@/lib/market-hours";
 import { getVixSnapshot } from "@/lib/vix-data";
 import { getFomc } from "@/lib/fomc-data";
 import { FomcCard } from "@/components/FomcCard";
@@ -55,14 +56,15 @@ export default async function HomePage() {
   const alerts = (await getAlerts()).alerts;
   const monthlyGoal = await getMonthlyGoal();
   const { accounts, meta } = snap;
-  const { id, data } = await getSelectedAccount(snap);
+  const { id, account, data } = await getSelectedAccount(snap);
   const { summary, equities, options, valueHistory } = data;
 
   // Whole-portfolio risk (every account) for the quick-access card's one-line
   // read: the heaviest classified sector and whether any breaches the cap. The
   // Unclassified bucket (broad funds) is usually the biggest, but it isn't a
   // sector — skip it so the card names a real concentration.
-  const risk = (await getPortfolioRisk()).blended;
+  const riskFile = await getPortfolioRisk();
+  const risk = riskFile.blended;
   const topSector = risk.sectors.find((s) => !s.unclassified);
   const sectorsOver = risk.sectors.filter((s) => s.over).length;
 
@@ -84,7 +86,16 @@ export default async function HomePage() {
     .reduce((s, o) => s + cspCollateral(o), 0);
   const cspCount = options.filter((o) => o.kind === "csp" && !isCashSettledIndex(o.symbol)).length;
   const spreadRisk = spreadRiskCapital(options);
-  const theta = dailyThetaBreakdown(options);
+  const theta = dailyThetaBreakdown(options, etDateString(new Date()));
+  // The headline total is Portfolio Risk's own figure (blended for All Accounts, else
+  // that account's row), so the two screens can never disagree; it's computed off
+  // fresher live quotes than this snapshot's positions. Credit/Debit stay a local split.
+  // Falls back to the local sum only when portfolio-risk.json hasn't been written yet.
+  const riskTheta =
+    account.type === "all"
+      ? riskFile.meta.generatedAt ? risk.thetaToday : undefined
+      : riskFile.perAccount.find((a) => a.accountId === id)?.thetaToday;
+  const thetaTotal = riskTheta ?? theta.total;
   // Capital deployed in options strategies: long LEAP/hedge value + CSP collateral
   // + spread defined risk. (Distinct from summary.optionsValue, the net mark.)
   const optionsCapital = leapCallsValue + hedgeValue + cspCollateralValue + spreadRisk;
@@ -240,8 +251,8 @@ export default async function HomePage() {
         />
         <Stat
           label="Total theta / day"
-          value={<Amt>{`${theta.total >= 0 ? "+" : "−"}${fmtMoney(Math.abs(theta.total))}`}</Amt>}
-          tone={theta.total >= 0 ? "pos" : "neg"}
+          value={<Amt>{`${thetaTotal >= 0 ? "+" : "−"}${fmtMoney(Math.abs(thetaTotal))}`}</Amt>}
+          tone={thetaTotal >= 0 ? "pos" : "neg"}
           sub={
             <>
               Credit{" "}
