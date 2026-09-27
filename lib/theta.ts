@@ -19,13 +19,18 @@ export interface ThetaBreakdown {
 }
 
 /** Split the book's daily theta into Credit vs Debit. Spread legs are paired first so
- *  each spread is judged whole, by whether it opened for a net credit or a net debit. */
-export function dailyThetaBreakdown(options: OptionPosition[]): ThetaBreakdown {
+ *  each spread is judged whole, by whether it opened for a net credit or a net debit.
+ *
+ *  Contracts that expired before `asOf` (an ET YYYY-MM-DD) are skipped: over a weekend
+ *  the brokers still list Friday's expirations, each carrying its final-day theta
+ *  (the whole remaining mark, e.g. a 2.15 put reading −2.15/day), which it can never
+ *  decay again. Portfolio Risk drops them too, since Schwab returns no quote for them. */
+export function dailyThetaBreakdown(options: OptionPosition[], asOf: string): ThetaBreakdown {
   let credit = 0;
   let debit = 0;
   const spreadLegs: OptionPosition[] = [];
 
-  for (const o of options) {
+  for (const o of options.filter((o) => o.expiration >= asOf)) {
     if (o.kind === "put-spread" || o.kind === "call-spread") {
       spreadLegs.push(o);
       continue;
