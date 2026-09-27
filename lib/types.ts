@@ -619,6 +619,7 @@ export interface RiskView {
 // theta — open P&L and sector exposure now live once, portfolio-wide, in
 // Overall/Blended rather than being repeated per row.
 export interface AccountThetaView {
+  accountId: string; // the same masked id snapshot.json keys this account by — joins a row to the selected account
   accountLabel: string; // always masked/labeled server-side — never a raw account number
   thetaToday: number;
   thetaPct: number;

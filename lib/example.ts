@@ -322,6 +322,7 @@ export const examplePortfolioRiskFile: PortfolioRiskFile = {
   },
   perAccount: [
     {
+      accountId: ACC,
       accountLabel: "Individual",
       thetaToday: 25.0,
       thetaPct: 0.018,
@@ -333,6 +334,7 @@ export const examplePortfolioRiskFile: PortfolioRiskFile = {
       portfolioValue: 35500,
     },
     {
+      accountId: IRA,
       accountLabel: "Roth IRA",
       thetaToday: 13.5,
       thetaPct: 0.013,
@@ -346,6 +348,7 @@ export const examplePortfolioRiskFile: PortfolioRiskFile = {
     // SnapTrade/E*TRADE accounts — informational only, not part of the theta
     // ceiling's real gating decision (see PortfolioRiskFile's own doc comment).
     {
+      accountId: "EX000002",
       accountLabel: "Fidelity Individual",
       thetaToday: 18.2,
       thetaPct: 0.00021,
@@ -357,6 +360,7 @@ export const examplePortfolioRiskFile: PortfolioRiskFile = {
       portfolioValue: 87400,
     },
     {
+      accountId: "EX000003",
       accountLabel: "E*TRADE Individual",
       thetaToday: 11.4,
       thetaPct: 0.00016,
