@@ -331,63 +331,6 @@ export function cspAnnualizedReturn(o: OptionPosition): number {
   return (credit / collateral) * (DAYS_PER_YEAR / dte);
 }
 
-/** Return on capital for any short premium-selling position (CSP or covered
- *  call), from the ORIGINAL trade's own term — credit ÷ capital, annualized
- *  over days-to-expiry AT OPEN (openedAt → expiration), not remaining DTE.
- *  Deliberately not "days left" annualized: that version runs hot as
- *  expiration approaches (the same trailing credit divided by a shrinking
- *  denominator) and drifts from what the position was actually entered at.
- *  Reuses cspCollateral's strike-based notional as the capital base for a
- *  covered call too, same as before, since the underlying shares' real cost
- *  basis isn't on OptionPosition. Null for anything that isn't a short
- *  CSP/covered-call, or when openedAt isn't known (no synced transaction
- *  history reaches back to the real open — left null rather than guessing
- *  from remaining DTE, same convention as BBSigma/ErDate above). Used for
- *  the desktop positions table's ARR column. */
-export function positionAnnualizedReturn(o: OptionPosition): number | null {
-  if (o.side !== "short" || (o.kind !== "csp" && o.kind !== "covered-call")) return null;
-  if (!o.openedAt) return null;
-  const capital = cspCollateral(o);
-  if (capital === 0) return null;
-  const credit = optionBasis(o);
-  const dteAtOpen = Math.max(daysToExpiry(o.expiration, o.openedAt), 1);
-  return (credit / capital) * (DAYS_PER_YEAR / dteAtOpen);
-}
-
-/** Static (unannualized) return on capital for a short CSP/covered-call —
- *  credit ÷ capital, the raw yield the position was entered for regardless
- *  of term length. Same gating as positionAnnualizedReturn, minus the
- *  365/DTE annualization factor, so the two read as genuinely different
- *  numbers rather than one being a rescaled copy of the other. Used for the
- *  desktop positions table's RoR% column. */
-export function positionReturnOnCapital(o: OptionPosition): number | null {
-  if (o.side !== "short" || (o.kind !== "csp" && o.kind !== "covered-call")) return null;
-  const capital = cspCollateral(o);
-  if (capital === 0) return null;
-  const credit = optionBasis(o);
-  return credit / capital;
-}
-
-/**
- * Return on capital left to capture, annualized over the days remaining to
- * expiration — the same formula the OptionsEvaluator backend's mobile alert
- * uses (internal/agents/tracker/profit_target.go's annualizedRemainingReturn:
- * remaining Net Liq ÷ collateral × 365/DTE), ported here so the desktop
- * table's own number can never disagree with what a "close for X% annualized"
- * alert already said about the same contract. Same short CSP/covered-call
- * gating as positionAnnualizedReturn/positionReturnOnCapital (this metric
- * only makes sense for a short premium-selling position with a strike-based
- * collateral base) — unlike those two, no openedAt requirement, since this
- * looks forward from today rather than back to entry. */
-export function positionRemainingAnnualizedReturn(o: OptionPosition): number | null {
-  if (o.side !== "short" || (o.kind !== "csp" && o.kind !== "covered-call")) return null;
-  const capital = cspCollateral(o);
-  if (capital === 0) return null;
-  const remaining = optionMarketValue(o); // buy-to-close cost = Net Liq if closed now
-  const dte = Math.max(daysToExpiry(o.expiration), 1);
-  return (remaining / capital) * (DAYS_PER_YEAR / dte);
-}
-
 /**
  * Premium not yet realized on a short put — the mark you'd still keep if it
  * expires worthless from here. Equal to the buy-to-close cost (mark × 100 × qty).
@@ -620,16 +563,44 @@ export function buildAlerts(options: OptionPosition[]): AlertItem[] {
   return alerts.sort((a, b) => LEVEL_RANK[b.level] - LEVEL_RANK[a.level]);
 }
 
-/** The underlying's own move today, as a fraction, or null when it can't
- *  be computed.
- *
- *  Measured against the SAME price the caller displays
- *  (underlyingPrice first) so the number and its percentage can never
- *  disagree. Deliberately NOT underlyingLive: Schwab keeps returning the
- *  last extended-hours print all through the regular session, so that
- *  field goes stale mid-session while underlyingPrice stays current —
- *  confirmed live against a real CRDO quote reading 160.09 current
- *  against a 166.98 pre-market print. */
+// ---- Open Positions table ------------------------------------------------
+// Return figures for the wide positions table. Started from jttyeung's fork;
+// the capital base is cspCollateral (GROSS strike notional upstream, NET of
+// premium in the fork -- see cspCollateral), and the year is 365 days to match
+// the bridge's closed-trade files, so open and realized figures on the table agree.
+const POSITIONS_DAYS_PER_YEAR = 365;
+
+/** Static return on capital for a short CSP / covered call: credit ÷ collateral.
+ *  Null for anything else. */
+export function positionReturnOnCapital(o: OptionPosition): number | null {
+  if (o.side !== "short" || (o.kind !== "csp" && o.kind !== "covered-call")) return null;
+  const capital = cspCollateral(o);
+  if (capital === 0) return null;
+  return optionBasis(o) / capital;
+}
+
+/** The same return annualized over the ORIGINAL term (open → expiry), so it
+ *  stays put as expiration approaches. Null without openedAt. */
+export function positionAnnualizedReturn(o: OptionPosition): number | null {
+  const ror = positionReturnOnCapital(o);
+  if (ror == null || !o.openedAt) return null;
+  const term = Math.max(daysToExpiry(o.expiration, o.openedAt), 1);
+  return ror * (POSITIONS_DAYS_PER_YEAR / term);
+}
+
+/** Return still on the table, annualized over the days remaining: buy-to-close
+ *  cost ÷ collateral × 365/DTE. Looks forward from today; no openedAt needed. */
+export function positionRemainingAnnualizedReturn(o: OptionPosition): number | null {
+  if (o.side !== "short" || (o.kind !== "csp" && o.kind !== "covered-call")) return null;
+  const capital = cspCollateral(o);
+  if (capital === 0) return null;
+  const dte = Math.max(daysToExpiry(o.expiration), 1);
+  return (optionMarketValue(o) / capital) * (POSITIONS_DAYS_PER_YEAR / dte);
+}
+
+/** The underlying's move today as a fraction, measured against the same price
+ *  the table shows (underlyingPrice first, never a stale extended-hours live
+ *  print), so the number and its percentage can't disagree. */
 export function spotPercentChange(o: {
   underlyingPrice?: number;
   underlyingLive?: number | null;
