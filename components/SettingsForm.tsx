@@ -6,6 +6,10 @@
 import { useState, type ReactNode } from "react";
 import { setIvSkew } from "@/lib/simConfig";
 import { SchwabConnect } from "@/components/SchwabConnect";
+import { LayoutToggle } from "@/components/LayoutToggle";
+import { ManualPositions } from "@/components/ManualPositions";
+import type { ManualAccount } from "@/lib/manual-positions";
+import { CombineViews, type CombineAccountOption } from "@/components/CombineViews";
 
 function MenuItem({
   title,
@@ -212,10 +216,18 @@ export function SettingsForm({
   initialIntervals,
   initialSkew,
   bridges = [{ id: "primary", label: "Schwab" }],
+  accounts = [],
+  combineIds = [],
+  combinedSelected = false,
+  manual = [],
 }: {
   initialIntervals: Intervals;
   initialSkew: number;
   bridges?: { id: string; label: string }[];
+  manual?: ManualAccount[];
+  accounts?: CombineAccountOption[];
+  combineIds?: string[];
+  combinedSelected?: boolean;
 }) {
   const multi = bridges.length > 1;
   return (
@@ -230,11 +242,32 @@ export function SettingsForm({
           <SchwabConnect bridge={b.id} />
         </MenuItem>
       ))}
+      <MenuItem
+        title="Combine views"
+        subtitle={
+          combineIds.length > 0
+            ? `Combined View is on · ${combineIds.length} of ${accounts.length} accounts`
+            : "Merge accounts into one Combined View"
+        }
+      >
+        <CombineViews accounts={accounts} initialIds={combineIds} combinedSelected={combinedSelected} />
+      </MenuItem>
       <MenuItem title="Refresh intervals" subtitle="How often each data source updates">
         <IntervalsSection initialIntervals={initialIntervals} />
       </MenuItem>
       <MenuItem title="Simulate skew" subtitle="After-hours what-if IV assumption">
         <SkewSection initialSkew={initialSkew} />
+      </MenuItem>
+      <MenuItem title="Manual positions" subtitle="Track positions held elsewhere, priced by Schwab">
+        <ManualPositions initial={manual} />
+      </MenuItem>
+      <MenuItem title="Layout" subtitle="Phone frame or the wide tablet canvas">
+        <p className="mb-2 text-xs text-muted">
+          Auto picks the tablet layout on screens 900px and wider (an iPad in landscape, any laptop or monitor)
+          and the phone layout otherwise. The canvas never grows past about an iPad, so a big monitor just gets
+          more room around it.
+        </p>
+        <LayoutToggle />
       </MenuItem>
       <LinkItem
         title="Contribute to development"

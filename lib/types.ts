@@ -378,7 +378,7 @@ export interface ClosedCoveredCall {
   creditReceived: number; // $ collected at open
   costToClose: number; // $ to buy-to-close (0 if expired)
   realizedPnl: number;
-  outcome: "closed_profit" | "closed_loss" | "expired";
+  outcome: "closed_profit" | "closed_loss" | "expired" | "assigned"; // assigned = called away; premium folded into the shares' sale proceeds, no option gain booked
   daysHeld: number;
   returnOnNotional: number; // realizedPnl ÷ (strike × 100 × contracts), decimal
   annualized: number; // decimal
@@ -428,6 +428,7 @@ export interface ClosedSpreadFile {
 // A closed stock round-trip (FIFO buys→sells, or short cover).
 export interface ClosedStock {
   id: string;
+  accountId?: string; // matches Account.id — absent for Schwab's manual-entry stock sales, which aren't attributed to one account
   symbol: string;
   name: string;
   side: "long" | "short";
@@ -443,7 +444,6 @@ export interface ClosedStock {
   daysHeld: number;
   returnPct: number; // realizedPnl ÷ costBasis (decimal)
   annualized: number; // decimal
-  accountId?: string; // matches Account.id — absent for Schwab's manual-entry stock sales, which aren't attributed to one account
   manualBasis?: boolean; // the cost came from the user (manual_cost_basis.json), not from Schwab's feeds
   manualEntry?: boolean; // the whole sale was added by hand (manual_stock_sales.json)
 }
