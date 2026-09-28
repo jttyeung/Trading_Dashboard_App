@@ -752,7 +752,9 @@ export interface Alert {
   // Mirrors internal/agents/tracker/evaluate.go's Action* constants.
   // assignment_likely is an ITM short option with no roll inside
   // the $120/contract debit cap (a heads-up, not an action);
-  // leaps_over_allocated is a held LEAP breaching the allocation caps.
+  // leaps_over_allocated is a held LEAP breaching the allocation caps;
+  // earnings is a short put whose underlying reports before it expires
+  // (RULE-027 — close before the report).
   action:
     | "close"
     | "roll"
@@ -761,7 +763,8 @@ export interface Alert {
     | "leap_expiring"
     | "roll_up"
     | "assignment_likely"
-    | "leaps_over_allocated";
+    | "leaps_over_allocated"
+    | "earnings";
   rationale: string;
   rollToSymbol: string | null;
   rollToStrike: number | null;
