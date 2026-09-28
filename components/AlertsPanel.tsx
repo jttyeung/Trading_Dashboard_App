@@ -30,6 +30,10 @@ const ACTION_STYLE: Record<Alert["action"], { label: string; chip: string }> = {
   // A held LEAP that's grown past the allocation caps — usually
   // from appreciation after a compliant entry, not a mistake.
   leaps_over_allocated: { label: "Over-allocated", chip: "bg-amber-500/15 text-amber-300 ring-amber-500/30" },
+  // A short put whose underlying reports earnings before it expires —
+  // close by the named session. Orange: a hard-dated risk, a notch
+  // under the ITM rose and distinct from roll/watch.
+  earnings: { label: "Earnings", chip: "bg-orange-500/15 text-orange-300 ring-orange-500/30" },
 };
 
 // UNKNOWN_STYLE is what an action this build doesn't recognize yet gets
@@ -61,11 +65,14 @@ const ACTION_RANK: Record<Alert["action"], number> = {
   // Already ITM like roll, so it sorts right behind it — ahead of the
   // still-OTM watch — even though there's nothing to do but wait.
   assignment_likely: 2,
-  watch: 3,
-  leap_expiring: 4,
-  leaps_over_allocated: 5,
-  profit_target: 6,
-  roll_up: 7,
+  // A dated deadline (last session before the report) outranks a
+  // drifting delta — mirrors the Go side's merge.go actionRank.
+  earnings: 3,
+  watch: 4,
+  leap_expiring: 5,
+  leaps_over_allocated: 6,
+  profit_target: 7,
+  roll_up: 8,
 };
 
 function rankOf(a: Alert): number {
