@@ -162,7 +162,7 @@ export function closeLongOption(o: ManualOption, input: CloseInput, accountLabel
 }
 
 /** A vertical (short + long leg, same type and expiry) closed together at a net price. */
-export function closeSpread(shortLeg: ManualOption, longLeg: ManualOption, netClosePerShare: number, input: CloseInput, accountLabel: string): ClosedSpread {
+export function closeSpread(shortLeg: ManualOption, longLeg: ManualOption, netClosePerShare: number, input: CloseInput, accountLabel: string, accountId: string): ClosedSpread {
   const contracts = Math.min(shortLeg.qty, longLeg.qty);
   const netOpenPerShare = shortLeg.premium - longLeg.premium; // + credit, − debit
   const netOpen = netOpenPerShare * 100 * contracts;
@@ -177,6 +177,7 @@ export function closeSpread(shortLeg: ManualOption, longLeg: ManualOption, netCl
   const ret = maxRisk ? realized / maxRisk : 0;
   const rec: ClosedSpread = {
     id: `manual:${shortLeg.id}+${longLeg.id}`,
+    accountId,
     symbol: shortLeg.symbol,
     name: `${shortLeg.symbol} · ${accountLabel}`,
     optionType: shortLeg.optionType,
@@ -203,7 +204,7 @@ export function closeSpread(shortLeg: ManualOption, longLeg: ManualOption, netCl
 }
 
 /** Shares sold (all or some) → stocks-closed.json. */
-export function closeStock(s: ManualStock, shares: number, input: CloseInput, accountLabel: string): ClosedStock {
+export function closeStock(s: ManualStock, shares: number, input: CloseInput, accountLabel: string, accountId: string): ClosedStock {
   const costBasis = s.avgCost * shares;
   const proceeds = input.closePrice * shares;
   const fees = input.fees ?? 0;
@@ -212,6 +213,7 @@ export function closeStock(s: ManualStock, shares: number, input: CloseInput, ac
   const ret = costBasis ? realized / costBasis : 0;
   const rec: ClosedStock = {
     id: `manual:${s.id}:${input.closedAt}`,
+    accountId,
     symbol: s.symbol,
     name: `${s.symbol} · ${accountLabel}`,
     side: "long",
