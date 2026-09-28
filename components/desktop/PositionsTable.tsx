@@ -190,10 +190,10 @@ function buildRow(
     dte: daysToExpiry(o.expiration),
     spot: o.underlyingPrice ?? o.underlyingLive ?? o.underlyingClose ?? null,
     // The underlying's own move today, measured against the SAME price
-    // shown in the cell so the two can never disagree. Deliberately not
-    // underlyingLive: Schwab keeps returning the last extended-hours
-    // print during the regular session, so that field goes stale
-    // mid-session while underlyingPrice stays current.
+    // shown in the cell so the two can never disagree. underlyingPrice
+    // and underlyingLive are the same value for every broker: the daemon
+    // picks the extended-hours print only when its trade time is newer
+    // (OptionsEvaluator internal/export/underlying_price.go).
     spotPct: spotPercentChange(o),
     theta: positionDailyTheta(o),
     unrealized: optionPnl(o),
