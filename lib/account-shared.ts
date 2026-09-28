@@ -10,7 +10,10 @@ export const ACCOUNT_COOKIE = "account";
 // on the merged data. Both cookies are plain (not httpOnly) so the switcher can
 // read them client-side without a round trip.
 export const COMBINE_COOKIE = "combineAccounts";
-export const COMBINED_ID = "combined";
+// Not "combined" as upstream has it: OptionsEvaluator's daemon already exports
+// its All Accounts bucket under that id, so the two collided and Home selected
+// an empty Combined View (no value history) instead of All Accounts.
+export const COMBINED_ID = "combined-view";
 export const COMBINED_LABEL = "Combined View";
 
 /** Display label for an account, e.g. "Agentic" or "Individual". */
