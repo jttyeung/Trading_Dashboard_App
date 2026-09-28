@@ -236,38 +236,36 @@ const META = { generatedAt: NOW_ISO, source: "example" as const };
 export const exampleCspFile: ClosedCSPFile = {
   meta: META,
   closed: [
-    { id: "ex-c1", symbol: "SOFI", name: "SoFi Technologies", strike: 24, expiration: isoDay(-8), openedAt: isoDay(-53), closedAt: isoDay(-8), contracts: 2, creditPerShare: 0.95, creditReceived: 190, costToClose: 0, realizedPnl: 190, outcome: "expired", daysHeld: 45, collateral: 4800, returnOnCollateral: 0.0396, annualized: 0.354, washSaleWarning: null, accountId: ACC },
-    { id: "ex-c2", symbol: "MU", name: "Micron Technology", strike: 95, expiration: isoDay(-12), openedAt: isoDay(-57), closedAt: isoDay(-19), contracts: 1, creditPerShare: 3.0, creditReceived: 300, costToClose: 80, realizedPnl: 220, outcome: "closed_profit", daysHeld: 38, collateral: 9500, returnOnCollateral: 0.0232, annualized: 0.223, washSaleWarning: null, accountId: ACC },
-    { id: "ex-c3", symbol: "NVDA", name: "NVIDIA", strike: 95, expiration: isoDay(-34), openedAt: isoDay(-77), closedAt: isoDay(-34), contracts: 1, creditPerShare: 2.4, creditReceived: 240, costToClose: 0, realizedPnl: 240, outcome: "expired", daysHeld: 43, collateral: 9500, returnOnCollateral: 0.0253, annualized: 0.214, washSaleWarning: null, accountId: IRA },
-    { id: "ex-c4", symbol: "SOFI", name: "SoFi Technologies", strike: 26, expiration: isoDay(-61), openedAt: isoDay(-96), closedAt: isoDay(-61), contracts: 3, creditPerShare: 1.15, creditReceived: 345, costToClose: 0, realizedPnl: 345, outcome: "expired", daysHeld: 35, collateral: 7800, returnOnCollateral: 0.0442, annualized: 0.521, washSaleWarning: null, accountId: ACC },
-    { id: "ex-c5", symbol: "CLS", name: "Celestica", strike: 120, expiration: isoDay(-89), openedAt: isoDay(-120), closedAt: isoDay(-96), contracts: 1, creditPerShare: 3.5, creditReceived: 350, costToClose: 520, realizedPnl: -170, outcome: "closed_loss", daysHeld: 24, collateral: 12000, returnOnCollateral: -0.0142, annualized: -0.215, washSaleWarning: null, accountId: ACC },
-    // Reopened 30 days after ex-c5's loss closed (the edge of the wash-sale window) and held
-    // through a longer-than-usual expiration so the close itself lands inside the closed-
-    // trades screen's default "last month" filter — otherwise this row is real but invisible
-    // without switching to a wider window, since Candidates has no such date filter to hide it.
-    { id: "ex-c9", symbol: "CLS", name: "Celestica", strike: 115, expiration: isoDay(-21), openedAt: isoDay(-66), closedAt: isoDay(-21), contracts: 1, creditPerShare: 2.1, creditReceived: 210, costToClose: 0, realizedPnl: 210, outcome: "expired", daysHeld: 45, collateral: 11500, returnOnCollateral: 0.0183, annualized: 0.148, washSaleWarning: `possible wash sale: a PUT loss on CLS closed ${isoDay(-96)} — reopening this may disallow that loss for tax purposes (not tax advice, verify with a preparer)`, accountId: ACC },
-    { id: "ex-c6", symbol: "INTC", name: "Intel", strike: 22, expiration: isoDay(-3), openedAt: isoDay(-31), closedAt: isoDay(-3), contracts: 4, creditPerShare: 0.55, creditReceived: 220, costToClose: 0, realizedPnl: 220, outcome: "expired", daysHeld: 28, collateral: 8800, returnOnCollateral: 0.025, annualized: 0.326, washSaleWarning: null, accountId: ACC },
-    { id: "ex-c7", symbol: "IREN", name: "IREN", strike: 15, expiration: isoDay(-24), openedAt: isoDay(-45), closedAt: isoDay(-15), contracts: 3, creditPerShare: 0.71, creditReceived: 213, costToClose: 42, realizedPnl: 171, outcome: "closed_profit", daysHeld: 30, collateral: 4500, returnOnCollateral: 0.038, annualized: 0.462, washSaleWarning: null, accountId: IRA },
-    { id: "ex-c8", symbol: "GLW", name: "Corning", strike: 45, expiration: isoDay(-6), openedAt: isoDay(-40), closedAt: isoDay(-6), contracts: 2, creditPerShare: 1.35, creditReceived: 270, costToClose: 0, realizedPnl: 270, outcome: "expired", daysHeld: 34, collateral: 9000, returnOnCollateral: 0.03, annualized: 0.322, washSaleWarning: null, accountId: ACC },
+    { id: "ex-c1", symbol: "SOFI", name: "SoFi Technologies", strike: 15.5, expiration: isoDay(-8), openedAt: isoDay(-53), closedAt: isoDay(-8), contracts: 2, creditPerShare: 0.36, creditReceived: 72, costToClose: 0, realizedPnl: 72, outcome: "expired", daysHeld: 45, collateral: 3100, returnOnCollateral: 0.0232, annualized: 0.188, washSaleWarning: null, accountId: ACC },
+    { id: "ex-c2", symbol: "MU", name: "Micron Technology", strike: 850, expiration: isoDay(-12), openedAt: isoDay(-57), closedAt: isoDay(-19), contracts: 1, creditPerShare: 18.61, creditReceived: 1861, costToClose: 553, realizedPnl: 1308, outcome: "closed_profit", daysHeld: 38, collateral: 85000, returnOnCollateral: 0.0154, annualized: 0.148, washSaleWarning: null, accountId: ACC },
+    { id: "ex-c3", symbol: "NVDA", name: "NVIDIA", strike: 180, expiration: isoDay(-34), openedAt: isoDay(-77), closedAt: isoDay(-34), contracts: 1, creditPerShare: 3.08, creditReceived: 308, costToClose: 0, realizedPnl: 308, outcome: "expired", daysHeld: 43, collateral: 18000, returnOnCollateral: 0.0171, annualized: 0.145, washSaleWarning: null, accountId: IRA },
+    { id: "ex-c4", symbol: "SOFI", name: "SoFi Technologies", strike: 16, expiration: isoDay(-61), openedAt: isoDay(-96), closedAt: isoDay(-61), contracts: 3, creditPerShare: 0.33, creditReceived: 99, costToClose: 0, realizedPnl: 99, outcome: "expired", daysHeld: 35, collateral: 4800, returnOnCollateral: 0.0206, annualized: 0.215, washSaleWarning: null, accountId: ACC },
+    { id: "ex-c5", symbol: "CLS", name: "Celestica", strike: 340, expiration: isoDay(-89), openedAt: isoDay(-120), closedAt: isoDay(-96), contracts: 1, creditPerShare: 6.57, creditReceived: 657, costToClose: 128, realizedPnl: 529, outcome: "closed_profit", daysHeld: 24, collateral: 34000, returnOnCollateral: 0.0156, annualized: 0.237, washSaleWarning: null, accountId: ACC },
+    { id: "ex-c6", symbol: "INTC", name: "Intel", strike: 85, expiration: isoDay(-3), openedAt: isoDay(-31), closedAt: isoDay(-3), contracts: 4, creditPerShare: 1.38, creditReceived: 552, costToClose: 0, realizedPnl: 552, outcome: "expired", daysHeld: 28, collateral: 34000, returnOnCollateral: 0.0162, annualized: 0.212, washSaleWarning: null, accountId: ACC },
+    { id: "ex-c7", symbol: "IREN", name: "IREN", strike: 36, expiration: isoDay(-8), openedAt: isoDay(-45), closedAt: isoDay(-15), contracts: 3, creditPerShare: 1.05, creditReceived: 315, costToClose: 21, realizedPnl: 294, outcome: "closed_profit", daysHeld: 30, collateral: 10800, returnOnCollateral: 0.0272, annualized: 0.331, washSaleWarning: null, accountId: IRA },
+    { id: "ex-c8", symbol: "GLW", name: "Corning", strike: 145, expiration: isoDay(-6), openedAt: isoDay(-40), closedAt: isoDay(-6), contracts: 2, creditPerShare: 2.03, creditReceived: 406, costToClose: 0, realizedPnl: 406, outcome: "expired", daysHeld: 34, collateral: 29000, returnOnCollateral: 0.014, annualized: 0.15, washSaleWarning: null, accountId: ACC },
   ],
 };
 
 export const exampleLeapFile: ClosedLeapFile = {
   meta: META,
   closed: [
-    { id: "ex-l1", symbol: "NVDA", name: "NVIDIA", optionType: "call", strike: 70, expiration: isoDay(-66), openedAt: isoDay(-215), closedAt: isoDay(-90), contracts: 1, entryPerShare: 22, costBasis: 2200, proceeds: 5600, realizedPnl: 3400, outcome: "closed_profit", daysHeld: 125, returnPct: 1.545, annualized: 4.51, washSaleWarning: null, accountId: ACC },
-    { id: "ex-l2", symbol: "MU", name: "Micron Technology", optionType: "call", strike: 80, expiration: isoDay(146), openedAt: isoDay(-179), closedAt: isoDay(-110), contracts: 1, entryPerShare: 28, costBasis: 2800, proceeds: 2100, realizedPnl: -700, outcome: "closed_loss", daysHeld: 69, returnPct: -0.25, annualized: -0.83, washSaleWarning: null, accountId: ACC },
-    { id: "ex-l3", symbol: "AAPL", name: "Apple", optionType: "call", strike: 160, expiration: isoDay(118), openedAt: isoDay(-170), closedAt: isoDay(-78), contracts: 1, entryPerShare: 30, costBasis: 3000, proceeds: 4200, realizedPnl: 1200, outcome: "closed_profit", daysHeld: 92, returnPct: 0.4, annualized: 1.59, washSaleWarning: null, accountId: IRA },
+    { id: "ex-l1", symbol: "NVDA", name: "NVIDIA", optionType: "call", strike: 145, expiration: isoDay(-66), openedAt: isoDay(-215), closedAt: isoDay(-90), contracts: 1, entryPerShare: 59.75, costBasis: 5975, proceeds: 7449, realizedPnl: 1474, outcome: "closed_profit", daysHeld: 125, returnPct: 0.247, annualized: 0.72, washSaleWarning: null, accountId: ACC },
+    { id: "ex-l2", symbol: "GOOGL", name: "Alphabet", optionType: "call", strike: 230, expiration: isoDay(146), openedAt: isoDay(-179), closedAt: isoDay(-110), contracts: 1, entryPerShare: 86.58, costBasis: 8658, proceeds: 16957, realizedPnl: 8299, outcome: "closed_profit", daysHeld: 69, returnPct: 0.959, annualized: 5.07, washSaleWarning: null, accountId: ACC },
+    { id: "ex-l3", symbol: "AAPL", name: "Apple", optionType: "call", strike: 200, expiration: isoDay(118), openedAt: isoDay(-170), closedAt: isoDay(-78), contracts: 1, entryPerShare: 76.39, costBasis: 7639, proceeds: 12552, realizedPnl: 4913, outcome: "closed_profit", daysHeld: 92, returnPct: 0.643, annualized: 2.55, washSaleWarning: null, accountId: IRA },
   ],
 };
 
 export const exampleCoveredFile: ClosedCoveredFile = {
   meta: META,
   closed: [
-    { id: "ex-cc1", symbol: "AAPL", name: "Apple", strike: 200, expiration: isoDay(-11), openedAt: isoDay(-42), closedAt: isoDay(-11), contracts: 2, creditPerShare: 3.0, creditReceived: 600, costToClose: 0, realizedPnl: 600, outcome: "expired", daysHeld: 31, returnOnNotional: 0.015, annualized: 0.177, washSaleWarning: null, accountId: ACC },
-    { id: "ex-cc2", symbol: "CLS", name: "Celestica", strike: 130, expiration: isoDay(-25), openedAt: isoDay(-48), closedAt: isoDay(-25), contracts: 1, creditPerShare: 5.0, creditReceived: 500, costToClose: 0, realizedPnl: 500, outcome: "expired", daysHeld: 23, returnOnNotional: 0.0385, annualized: 0.611, washSaleWarning: null, accountId: ACC },
-    { id: "ex-cc3", symbol: "NVDA", name: "NVIDIA", strike: 130, expiration: isoDay(-52), openedAt: isoDay(-82), closedAt: isoDay(-67), contracts: 1, creditPerShare: 4.0, creditReceived: 400, costToClose: 650, realizedPnl: -250, outcome: "closed_loss", daysHeld: 15, returnOnNotional: -0.0192, annualized: -0.468, washSaleWarning: null, accountId: IRA },
-    { id: "ex-cc4", symbol: "INTC", name: "Intel", strike: 25, expiration: isoDay(-9), openedAt: isoDay(-34), closedAt: isoDay(-9), contracts: 2, creditPerShare: 0.5, creditReceived: 100, costToClose: 0, realizedPnl: 100, outcome: "expired", daysHeld: 25, returnOnNotional: 0.02, annualized: 0.292, washSaleWarning: null, accountId: ACC },
+    { id: "ex-cc1", symbol: "AAPL", name: "Apple", strike: 340, expiration: isoDay(-11), openedAt: isoDay(-42), closedAt: isoDay(-11), contracts: 2, creditPerShare: 2.29, creditReceived: 458, costToClose: 0, realizedPnl: 458, outcome: "expired", daysHeld: 31, returnOnNotional: 0.0067, annualized: 0.079, washSaleWarning: null, accountId: ACC },
+    { id: "ex-cc2", symbol: "CLS", name: "Celestica", strike: 350, expiration: isoDay(-25), openedAt: isoDay(-48), closedAt: isoDay(-25), contracts: 1, creditPerShare: 4.18, creditReceived: 418, costToClose: 0, realizedPnl: 418, outcome: "expired", daysHeld: 23, returnOnNotional: 0.0119, annualized: 0.19, washSaleWarning: null, accountId: ACC },
+    { id: "ex-cc3", symbol: "NVDA", name: "NVIDIA", strike: 210, expiration: isoDay(-52), openedAt: isoDay(-82), closedAt: isoDay(-67), contracts: 1, creditPerShare: 2.11, creditReceived: 211, costToClose: 406, realizedPnl: -195, outcome: "closed_loss", daysHeld: 15, returnOnNotional: -0.0093, annualized: -0.226, washSaleWarning: null, accountId: IRA },
+    { id: "ex-cc4", symbol: "INTC", name: "Intel", strike: 110, expiration: isoDay(-9), openedAt: isoDay(-34), closedAt: isoDay(-9), contracts: 2, creditPerShare: 1.18, creditReceived: 236, costToClose: 0, realizedPnl: 236, outcome: "expired", daysHeld: 25, returnOnNotional: 0.0107, annualized: 0.157, washSaleWarning: null, accountId: ACC },
+    // Reopened exactly 30 days after ex-cc3's NVDA call loss closed (the edge of the
+    // wash-sale window), so the closed-trades screen has a real warning to show.
+    { id: "ex-cc5", symbol: "NVDA", name: "NVIDIA", strike: 215, expiration: isoDay(-9), openedAt: isoDay(-37), closedAt: isoDay(-9), contracts: 1, creditPerShare: 3.1, creditReceived: 310, costToClose: 0, realizedPnl: 310, outcome: "expired", daysHeld: 28, returnOnNotional: 0.0144, annualized: 0.188, washSaleWarning: `possible wash sale: a CALL loss on NVDA closed ${isoDay(-67)} — reopening this may disallow that loss for tax purposes (not tax advice, verify with a preparer)`, accountId: IRA },
   ],
 };
 
@@ -540,9 +538,9 @@ const CANDIDATE_META = {
   universe: "example watchlist",
 };
 
-// Screened CSP candidates (data/csp-candidates.json) — CLS carries the same
-// wash-sale warning text as exampleCspFile's ex-c5/ex-c9 pair, so the live
-// Candidates tab and the closed-trade history tell the same consistent story.
+// Screened CSP candidates (data/csp-candidates.json). No wash-sale warning here:
+// the example history has no closed PUT loss, and a candidate only matches one
+// (the closed-trade demo is exampleCoveredFile's ex-cc3/ex-cc5 call pair).
 // exampleCspPicksFile -- demo-mode engine picks for the Theta turnover
 // panel: same tickers as exampleWatchlistBoard so the VRP/tier reads line
 // up, one short-dated CSP_AGGRESSIVE row so that band is visibly present.
@@ -633,7 +631,7 @@ export const exampleCspCandidatesFile: CSPCandidatesFile = {
       ivRank: 66,
       technical: { aboveSma50: true, rsi: 50, strikeBelowSupport: true },
       flags: { earningsBeforeExp: false, exDivBeforeExp: false },
-      washSaleWarning: `possible wash sale: a PUT loss on CLS closed ${isoDay(-96)} — reopening this may disallow that loss for tax purposes (not tax advice, verify with a preparer)`,
+      washSaleWarning: null,
       source: "discovered",
     },
   ],
