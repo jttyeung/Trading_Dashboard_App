@@ -77,11 +77,22 @@ export function MonthlyGoalCard({
   /** Every month on record, oldest first, including the one in progress. */
   history: MonthlyGoalRecord[];
 }) {
-  const [targetPercent, setTargetPercent] = useState(defaultTargetPercent);
-  const [capitalBase, setCapitalBase] = useState(portfolioValue);
+  // The goal the backend says is in force this month -- it records the
+  // saved override (or the defaults, when there is none) into history
+  // every export cycle. Falling back to this rather than the raw
+  // portfolioValue baseline is what keeps an unreachable daemon (a
+  // restart, a page load mid-rebuild) from silently swapping a $333k
+  // override for the $707k whole-portfolio baseline. The raw props only
+  // remain for an older file with no in-progress row.
+  const inForce = history.find((m) => m.inProgress);
+  const fallbackTarget = inForce?.targetPercent ?? defaultTargetPercent;
+  const fallbackCapital = inForce?.capitalBase ?? portfolioValue;
+
+  const [targetPercent, setTargetPercent] = useState(fallbackTarget);
+  const [capitalBase, setCapitalBase] = useState(fallbackCapital);
   const [editing, setEditing] = useState(false);
-  const [targetDraft, setTargetDraft] = useState(String(defaultTargetPercent));
-  const [capitalDraft, setCapitalDraft] = useState(String(portfolioValue));
+  const [targetDraft, setTargetDraft] = useState(String(fallbackTarget));
+  const [capitalDraft, setCapitalDraft] = useState(String(fallbackCapital));
   const [saveError, setSaveError] = useState<string | null>(null);
   // hasOverride tracks whether a real saved override exists server-side —
   // while it's still null (the GET hasn't resolved yet) or false (checked,
@@ -109,8 +120,8 @@ export function MonthlyGoalCard({
         }
       })
       .catch(() => {
-        // Daemon unreachable (or not configured here) — quietly keep the
-        // default / live portfolioValue prop, same degrade-
+        // Daemon unreachable (or not configured here) — keep this month's
+        // in-force goal from history (see inForce above), same degrade-
         // gracefully convention every other on-demand API in this app uses.
         setHasOverride(false);
       });
@@ -121,12 +132,12 @@ export function MonthlyGoalCard({
 
   useEffect(() => {
     if (hasOverride) return;
-    setCapitalBase(portfolioValue);
-  }, [portfolioValue, hasOverride]);
+    setCapitalBase(fallbackCapital);
+  }, [fallbackCapital, hasOverride]);
   useEffect(() => {
     if (hasOverride) return;
-    setTargetPercent(defaultTargetPercent);
-  }, [defaultTargetPercent, hasOverride]);
+    setTargetPercent(fallbackTarget);
+  }, [fallbackTarget, hasOverride]);
 
   function startEditing() {
     setTargetDraft(String(targetPercent));
