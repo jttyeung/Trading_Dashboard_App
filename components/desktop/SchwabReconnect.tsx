@@ -15,7 +15,9 @@
 //     registered on the Schwab app): Schwab delivers the code straight to
 //     the daemon, so there is nothing to copy at all. This page just
 //     polls until the session goes live, since the login finishes in
-//     another tab.
+//     another tab. The exception is the Mac running the daemon, which
+//     can't reach its own tailnet callback, so there the paste steps
+//     show as a fallback.
 //   - Paste flow (the default): Schwab redirects to https://127.0.0.1,
 //     which resolves to whatever device you're on and has nothing
 //     listening — so the one-time code lands in the address bar instead.
@@ -135,6 +137,27 @@ export function SchwabReconnect() {
 
   const connected = phase === "connected" || phase === "done";
 
+  const manualPaste = (
+    <details className="text-xs text-muted">
+      <summary className="cursor-pointer">Clipboard blocked? Paste it manually</summary>
+      <div className="mt-2 space-y-2">
+        <input
+          value={redirectUrl}
+          onChange={(e) => setRedirectUrl(e.target.value)}
+          placeholder={autoComplete ? "https://…/auth/callback?code=…" : "https://127.0.0.1/?code=…"}
+          className="w-full rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm text-text outline-none ring-emerald-400/40 focus:ring-2"
+        />
+        <button
+          onClick={() => submit(redirectUrl.trim())}
+          disabled={busy || !redirectUrl.trim()}
+          className="rounded-full bg-emerald-500/15 px-4 py-1.5 text-xs font-medium text-emerald-600 ring-1 ring-inset ring-emerald-500/30 disabled:opacity-60"
+        >
+          Reconnect
+        </button>
+      </div>
+    </details>
+  );
+
   return (
     <div className="mx-auto max-w-xl px-4 py-6">
       <h1 className="text-lg font-semibold text-text">Schwab connection</h1>
@@ -180,7 +203,28 @@ export function SchwabReconnect() {
               {phase === "awaiting-callback" ? "Reopen Schwab login" : "Open Schwab login"}
             </button>
             {phase === "awaiting-callback" && (
-              <p className="text-xs text-muted">Waiting for you to finish signing in…</p>
+              <>
+                <p className="text-xs text-muted">Waiting for you to finish signing in…</p>
+                {/* On the Mac running the daemon, Schwab's redirect to this
+                    machine's own tailnet name hangs, because the host can't
+                    reach its own `tailscale serve` endpoint. The code is still
+                    in that tab's address bar, and the daemon accepts it pasted,
+                    with the same state check as the redirect. */}
+                <div className="space-y-2 rounded-xl border border-border p-3 text-xs text-muted">
+                  <p>
+                    Login tab stuck loading after you approved? That happens on the computer running
+                    the daemon. Copy that tab&apos;s whole URL, then:
+                  </p>
+                  <button
+                    onClick={handlePasteAndSubmit}
+                    disabled={busy}
+                    className="rounded-full bg-emerald-500/15 px-4 py-1.5 text-xs font-medium text-emerald-600 ring-1 ring-inset ring-emerald-500/30 disabled:opacity-60"
+                  >
+                    Paste &amp; reconnect
+                  </button>
+                  {manualPaste}
+                </div>
+              </>
             )}
           </div>
         )}
@@ -218,24 +262,7 @@ export function SchwabReconnect() {
               </li>
             </ol>
 
-            <details className="text-xs text-muted">
-              <summary className="cursor-pointer">Clipboard blocked? Paste it manually</summary>
-              <div className="mt-2 space-y-2">
-                <input
-                  value={redirectUrl}
-                  onChange={(e) => setRedirectUrl(e.target.value)}
-                  placeholder="https://127.0.0.1/?code=…"
-                  className="w-full rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm text-text outline-none ring-emerald-400/40 focus:ring-2"
-                />
-                <button
-                  onClick={() => submit(redirectUrl.trim())}
-                  disabled={busy || !redirectUrl.trim()}
-                  className="rounded-full bg-emerald-500/15 px-4 py-1.5 text-xs font-medium text-emerald-600 ring-1 ring-inset ring-emerald-500/30 disabled:opacity-60"
-                >
-                  Reconnect
-                </button>
-              </div>
-            </details>
+            {manualPaste}
           </div>
         )}
 
