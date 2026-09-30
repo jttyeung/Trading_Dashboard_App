@@ -4,7 +4,7 @@ import { QuantScanButton } from "@/components/QuantScanButton";
 import { getSnapshot } from "@/lib/snapshot";
 import { getSelectedAccount } from "@/lib/account";
 import { getVixSnapshot } from "@/lib/vix-data";
-import { getQuantScan, quantCapacity, quantFit, type QuantFit, type QuantRow } from "@/lib/quant";
+import { getQuantScan, quantCapacity, quantFit, type QuantFit, type QuantRow, type QuantScan } from "@/lib/quant";
 import { fmtMoney } from "@/lib/calc";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +26,7 @@ function Flag({ tone, children, title }: { tone: "amber" | "rose" | "sky" | "mut
   );
 }
 
-function PickCard({ row, fit }: { row: QuantRow; fit: QuantFit | null }) {
+function PickCard({ row, fit, P }: { row: QuantRow; fit: QuantFit | null; P: QuantScan["meta"]["params"] | undefined }) {| null }) {
   const p = row.pick!;
   return (
     <Card className="px-4 py-3">
@@ -144,7 +144,7 @@ export default async function QuantPage() {
             {picks.length === 0 && <Card className="px-4 py-4 text-center text-xs text-muted">Nothing on the approved list pays the target right now. That is the rule working: it sits out when premium is thin.</Card>}
             <div className="space-y-2.5 tablet:grid tablet:grid-cols-2 tablet:gap-3 tablet:space-y-0">
               {picks.map((r) => (
-                <PickCard key={r.sym} row={r} fit={fits.get(r.sym) ?? null} />
+                <PickCard key={r.sym} row={r} fit={fits.get(r.sym) ?? null} P={P} />
               ))}
             </div>
 
@@ -160,7 +160,7 @@ export default async function QuantPage() {
                       </span>
                       <span className="text-right text-[11px] text-muted tabular">
                         {r.reason === "low" && r.best
-                          ? <>best under {P?.maxDelta ?? 0.35}Δ: ${r.best.strike} {r.best.exp.slice(5)} at <span className="text-text">{pct(r.best.yield30)}</span> / 30d ({r.best.delta.toFixed(2)}Δ)</>
+                          ? <>best under {P?.maxDelta ?? 0.35}Δ: ${r.best.strike} {r.best.exp.slice(5)} at <span className="text-text">{pct(r.best.yield30)}</span> per 30 days ({r.best.delta.toFixed(2)}Δ)</>
                           : r.reason === "no_puts"
                             ? "no puts in the window"
                             : r.reason === "no_chain"
