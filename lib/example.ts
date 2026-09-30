@@ -1292,7 +1292,7 @@ function exampleMyTrade(t: Partial<MyTrade> & Pick<MyTrade, "ticker" | "contract
     profitCapturedPct: null, alertResponse: null, guidelines: {},
     openDate: isoDay(-(t.dit + 10)), closeDate: isoDay(-10),
     ...t,
-    returnPct, win: t.realizedPnl > 0, holdFraction: Math.min(1, t.dit / t.dteAtOpen),
+    returnPct, collateral: strike * 100 * (t.quantity ?? 1), win: t.realizedPnl > 0, holdFraction: Math.min(1, t.dit / t.dteAtOpen),
     annualizedRorAtOpen: Math.round((((t.openPrice ?? 2.5) / strike) * (365 / t.dteAtOpen)) * 10000) / 100,
   };
 }
