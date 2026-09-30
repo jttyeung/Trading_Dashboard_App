@@ -114,6 +114,17 @@ export default async function ResearchPage({
         </Card>
       </Link>
 
+      {/* Quant portfolio check — the same study's management rules against what is held. */}
+      <Link href="/quant/portfolio" className="mt-2 block active:opacity-80">
+        <Card className="flex items-center justify-between gap-3 bg-sky-500/5 px-4 py-3 ring-1 ring-inset ring-sky-500/25">
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-sky-200">Quant portfolio check</div>
+            <div className="text-[11px] text-muted">Your positions against the rules · close at 50% · cash-secured · 10% per name · calls and LEAPS on shares</div>
+          </div>
+          <span className="shrink-0 text-sm font-medium text-sky-300">Open ›</span>
+        </Card>
+      </Link>
+
       <ResearchView data={data} symbols={sortedApproved} holdings={holdings} initialVehicle={initialVehicle} />
 
       <SectionTitle>Screening playbook</SectionTitle>
