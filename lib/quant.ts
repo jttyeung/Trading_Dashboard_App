@@ -10,7 +10,22 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { AccountData } from "./types";
-import { freeCashValue } from "./calc";
+import { cspCollateralTotal, freeCashValue, optionMarketValue, spreadRiskCapital } from "./calc";
+import type { Equity, OptionPosition } from "./types";
+
+/** Capital a set of positions ties up, the way the rest of the app counts it:
+ *  CSPs at their collateral, spreads at their defined risk (not the short leg's
+ *  strike), long calls and hedges at market value, shares at value, covered
+ *  calls nothing (the shares carry them). Filter by symbol first for one name. */
+export function capitalCommitted(options: OptionPosition[], equities: Equity[]): number {
+  const longs = options.filter((o) => o.side === "long" && (o.kind === "leap-call" || o.kind === "leap-put-hedge" || o.kind === "other"));
+  return (
+    cspCollateralTotal(options) +
+    spreadRiskCapital(options) +
+    longs.reduce((s, o) => s + optionMarketValue(o), 0) +
+    equities.reduce((s, e) => s + e.qty * e.price, 0)
+  );
+}
 import { EXAMPLE_CLOSES, EXAMPLE_EARNINGS, lastClose } from "./example-market";
 
 export interface QuantContract {
@@ -100,13 +115,13 @@ export function vixMargin(vix: number | null): number {
 export function quantCapacity(data: AccountData, vix: number | null): QuantCapacity {
   const totalValue = data.summary.totalValue;
   const margin = vixMargin(vix);
-  const putObligations = data.options.filter((o) => o.side === "short" && o.optionType === "put").reduce((s, o) => s + o.strike * 100 * o.qty, 0);
+  // Collateral the short book pledges: CSPs at strike x 100, spreads at their
+  // defined risk. A short put inside a spread is NOT a cash-secured put.
+  const putObligations = cspCollateralTotal(data.options) + spreadRiskCapital(data.options);
   // What is actually uncommitted, the way the Home page counts it: total value
   // less everything deployed (shares, LEAPS, collateral, spread risk), plus
   // money-market sweep funds, which Schwab reports as a holding rather than cash.
   const free = freeCashValue(data.summary, data.equities, data.options);
-  const stock = data.equities.reduce((s, e) => s + e.qty * e.price, 0);
-  const leaps = data.options.filter((o) => o.side === "long" && o.optionType === "call").reduce((s, o) => s + o.mark * 100 * o.qty, 0);
   return {
     totalValue,
     cash: free + putObligations, // cash on hand, including what already secures the puts
@@ -114,7 +129,7 @@ export function quantCapacity(data: AccountData, vix: number | null): QuantCapac
     margin,
     buyingPower: totalValue * (1 + margin),
     putObligations,
-    committedTotal: putObligations + stock + leaps,
+    committedTotal: capitalCommitted(data.options, data.equities),
     freeCash: free + margin * totalValue,
   };
 }
@@ -123,10 +138,10 @@ export function quantFit(row: QuantRow, data: AccountData, cap: QuantCapacity, p
   const pick = row.pick;
   if (!pick) return null;
   const sym = row.sym.toUpperCase();
-  const puts = data.options.filter((o) => o.symbol === sym && o.side === "short" && o.optionType === "put").reduce((s, o) => s + o.strike * 100 * o.qty, 0);
-  const stock = data.equities.filter((e) => e.symbol === sym).reduce((s, e) => s + e.qty * e.price, 0);
-  const leaps = data.options.filter((o) => o.symbol === sym && o.side === "long" && o.optionType === "call").reduce((s, o) => s + o.mark * 100 * o.qty, 0);
-  const committed = puts + stock + leaps;
+  const committed = capitalCommitted(
+    data.options.filter((o) => o.symbol === sym),
+    data.equities.filter((e) => e.symbol === sym),
+  );
   const perTickerCap = params.maxPerTicker * cap.buyingPower;
   const roomTicker = perTickerCap - committed;
   const roomTotal = cap.buyingPower - cap.committedTotal;

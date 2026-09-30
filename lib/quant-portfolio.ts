@@ -12,7 +12,7 @@
 //   * capital that isn't working: put it into a name the scan says pays
 import type { AccountData, CoveredCallQuote } from "./types";
 import { capturedPct, daysToExpiry } from "./calc";
-import { quantCapacity, quantFit, type QuantCapacity, type QuantScan } from "./quant";
+import { capitalCommitted, quantCapacity, quantFit, type QuantCapacity, type QuantScan } from "./quant";
 
 export type Urgency = "act" | "income" | "deploy" | "note";
 
@@ -56,7 +56,9 @@ export function checkPortfolio(data: AccountData, vix: number | null, scan: Quan
   const cap = quantCapacity(data, vix);
   const actions: QuantAction[] = [];
   const compliant: string[] = [];
-  const shortPuts = data.options.filter((o) => o.side === "short" && o.optionType === "put");
+  // Cash-secured puts only: a spread's short leg is managed as a spread, and is
+  // capitalised at the spread's defined risk, not its strike.
+  const shortPuts = data.options.filter((o) => o.kind === "csp" && o.side === "short");
   const shortCalls = data.options.filter((o) => o.side === "short" && o.optionType === "call");
   const longCalls = data.options.filter((o) => o.side === "long" && o.optionType === "call");
   const eqBySym = bySymbol(data.equities);
@@ -87,18 +89,21 @@ export function checkPortfolio(data: AccountData, vix: number | null, scan: Quan
       rule: "cash-secured",
       symbol: "—",
       title: `Collateral exceeds cash by ${money(-cap.freeCash)}`,
-      detail: `Puts pledge ${money(cap.putObligations)}; cash on hand (sweep funds included) ${money(cap.cash)} plus a ${Math.round(cap.margin * 100)}% margin allowance at VIX ${vix != null ? vix.toFixed(1) : "?"} covers ${money(cap.cash + cap.margin * cap.totalValue)}. Close the weakest puts (lowest yield left, nearest the money) until it fits.`,
+      detail: `CSPs and spreads pledge ${money(cap.putObligations)}; cash on hand (sweep funds included) ${money(cap.cash)} plus a ${Math.round(cap.margin * 100)}% margin allowance at VIX ${vix != null ? vix.toFixed(1) : "?"} covers ${money(cap.cash + cap.margin * cap.totalValue)}. Close the weakest puts (lowest yield left, nearest the money) until it fits.`,
       amount: -cap.freeCash,
     });
   } else if (shortPuts.length) {
-    compliant.push(`Every put is cash-secured: ${money(cap.putObligations)} pledged against ${money(cap.cash + cap.margin * cap.totalValue)} available.`);
+    compliant.push(`Every put and spread is covered: ${money(cap.putObligations)} pledged against ${money(cap.cash + cap.margin * cap.totalValue)} available.`);
   }
 
   // 3. Per-name cap.
+  // Per name, counted the way the Options page does: CSP collateral, spread
+  // defined risk, long options at market, shares at value.
   const committedBy = new Map<string, number>();
-  for (const o of shortPuts) committedBy.set(o.symbol, (committedBy.get(o.symbol) ?? 0) + o.strike * 100 * o.qty);
-  for (const e of data.equities) committedBy.set(e.symbol, (committedBy.get(e.symbol) ?? 0) + e.qty * e.price);
-  for (const o of longCalls) committedBy.set(o.symbol, (committedBy.get(o.symbol) ?? 0) + o.mark * 100 * o.qty);
+  for (const sym of new Set([...data.options.map((o) => o.symbol), ...data.equities.map((e) => e.symbol)])) {
+    const c = capitalCommitted(data.options.filter((o) => o.symbol === sym), data.equities.filter((e) => e.symbol === sym));
+    if (c > 0) committedBy.set(sym, c);
+  }
   const capHi = (R.maxPerTicker + R.tickerBand) * cap.buyingPower;
   const capLo = R.maxPerTicker * cap.buyingPower;
   let over = 0;
@@ -110,7 +115,7 @@ export function checkPortfolio(data: AccountData, vix: number | null, scan: Quan
         rule: "10% per name",
         symbol: sym,
         title: `${sym} is ${money(committed - capLo)} over its cap`,
-        detail: `${money(committed)} in ${sym} (shares, puts, LEAPS) against a ${money(capLo)} cap (${money(capHi)} with the adding band). Don't add; let puts run off or close the newest.`,
+        detail: `${money(committed)} in ${sym} (shares, put collateral, spread risk, LEAPS) against a ${money(capLo)} cap (${money(capHi)} with the adding band). Don't add; let puts run off or close the newest.`,
         amount: committed - capLo,
       });
     } else if (committed > capLo) {

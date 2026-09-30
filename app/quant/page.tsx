@@ -215,7 +215,7 @@ export default async function QuantPage({ searchParams }: { searchParams: Promis
           <div className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] tabular sm:grid-cols-4">
             <div><span className="text-muted">Total</span> <Amt>{money0(cap.totalValue)}</Amt></div>
             <div><span className="text-muted">Free cash</span> <Amt className={cap.freeCash < 0 ? "text-rose-400" : ""}>{money0(cap.freeCash)}</Amt></div>
-            <div><span className="text-muted">Put collateral</span> <Amt>{money0(cap.putObligations)}</Amt></div>
+            <div><span className="text-muted">Collateral</span> <Amt>{money0(cap.putObligations)}</Amt> <span className="text-muted">CSPs + spread risk</span></div>
             <div><span className="text-muted">Per-name cap</span> <Amt>{money0((P?.maxPerTicker ?? 0.1) * cap.buyingPower)}</Amt></div>
             <div className="col-span-2 sm:col-span-4 text-muted">
               VIX {vix != null ? vix.toFixed(1) : "—"} → margin allowance {Math.round(cap.margin * 100)}% · buying power <Amt>{money0(cap.buyingPower)}</Amt>
