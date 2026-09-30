@@ -13,10 +13,20 @@ import { combineAccountData } from "./combine";
 
 export { ACCOUNT_COOKIE, COMBINE_COOKIE, COMBINED_ID, accountLabel } from "./account-shared";
 
-/** Account ids picked for the Combined View, limited to accounts this snapshot has. */
+/** Accounts the Combined View may merge. Excludes a type "all" bucket (the
+ *  daemon's All Accounts, which lib/snapshot.ts also folds SnapTrade/E*TRADE
+ *  into): it already contains every real account, so ticking it alongside them
+ *  counted each position twice. */
+export function combinableAccounts(snap: Snapshot): Account[] {
+  return snap.accounts.filter((a) => a.type !== "all");
+}
+
+/** Account ids picked for the Combined View, limited to combinable accounts this
+ *  snapshot has, so a cookie saved before the "all" bucket was excluded drops it. */
 export async function getCombineIds(snap: Snapshot): Promise<string[]> {
   const store = await cookies();
-  return parseCombineIds(store.get(COMBINE_COOKIE)?.value).filter((id) => Boolean(snap.data[id]));
+  const allowed = new Set(combinableAccounts(snap).map((a) => a.id));
+  return parseCombineIds(store.get(COMBINE_COOKIE)?.value).filter((id) => allowed.has(id) && Boolean(snap.data[id]));
 }
 
 export async function getSelectedAccountId(snap: Snapshot): Promise<string> {
