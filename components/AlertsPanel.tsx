@@ -85,9 +85,11 @@ function rankOf(a: Alert): number {
 // same checkmark on the phone. It used to be localStorage-only here,
 // which didn't sync across devices -- the third per-viewer preference to
 // hit that wall, after the roll target and the monthly goal. Keyed by
-// contractSymbol: if the SAME contract's alert later changes (e.g.
-// escalates from Watch to Roll), it stays collapsed rather than
-// re-surfacing -- a known, accepted simplification carried over as-is.
+// contractSymbol (the board holds one alert per contract). The backend
+// drops the checkmark when that alert re-fires -- its action changes
+// (e.g. Watch to Roll) or a profit target keeps another 10 points of
+// credit -- so it comes back unread with nothing to change here (see
+// OptionsEvaluator's internal/agents/tracker/refire.go).
 //
 // READ_KEY is now only the offline fallback: the demo build / example
 // mode has no daemon to talk to, and so does a viewer whose daemon is
