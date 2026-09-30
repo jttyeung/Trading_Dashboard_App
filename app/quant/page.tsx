@@ -54,14 +54,15 @@ const TIER_CLS: Record<string, string> = {
   B: "bg-surface-2 text-muted ring-border",
 };
 function BriefScore({ b }: { b: AmBoardRow | null }) {
-  if (!b) return <span className="text-[10px] text-muted" title="Not on the Brief's board: it failed the screen or hasn't been scored">no Brief score</span>;
+  if (!b) return <span className="text-[10px] text-muted" title="The Brief hasn't scored this name yet (it scores the approved list each run)">no Brief score</span>;
+  const failed = b.fails.length > 0;
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${TIER_CLS[b.tier] ?? TIER_CLS.B}`}
-      title={`Brief screen: tier ${b.tier}, score ${Math.round(b.score)} · trend ${b.trend.uptrend ? "up" : "not up"} · VRP ${b.vrp}${b.ivr != null ? ` · IV rank ${Math.round(b.ivr)}` : ""}`}
+      className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${failed ? "bg-surface-2 text-muted ring-border line-through decoration-rose-400/60" : TIER_CLS[b.tier] ?? TIER_CLS.B}`}
+      title={`Brief screen: tier ${b.tier}, score ${Math.round(b.score)} · trend ${b.trend.uptrend ? "up" : "not up"} · VRP ${b.vrp}${b.ivr != null ? ` · IV rank ${Math.round(b.ivr)}` : ""}${failed ? ` · off the board: ${b.fails.join(", ")}` : ""}`}
     >
       {b.tier} · {Math.round(b.score)}
-      <span className="font-normal opacity-80">{b.vrp !== "n/a" ? b.vrp : ""}</span>
+      <span className="font-normal opacity-80">{failed ? "off board" : b.vrp !== "n/a" ? b.vrp : ""}</span>
     </span>
   );
 }
@@ -156,7 +157,8 @@ export default async function QuantPage({ searchParams }: { searchParams: Promis
   // The Brief's screen (trend, VRP, IV rank, liquidity) scores the same names.
   // Where a pick is on the board, its score orders the list; the yield is the
   // tie-break, and names the Brief didn't score come last.
-  const board = new Map((getAmReport(example)?.board ?? []).map((b) => [b.sym, b]));
+  const report = getAmReport(example);
+  const board = new Map((report?.screened ?? report?.board ?? []).map((b) => [b.sym, b]));
   const sortBy = params.sort === "yield" ? "yield" : "score";
   const byScore = (a: QuantRow, b: QuantRow) => {
     const sa = board.get(a.sym)?.score ?? -1;

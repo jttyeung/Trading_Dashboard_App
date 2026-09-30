@@ -111,6 +111,7 @@ export interface AmReport {
   meta: { asOf: string; source: string; count: number; passed: number; params?: unknown; ladderAsOf?: string; marketOpen?: boolean; earlyClose?: string | null; earningsLoaded?: boolean; ladderIntervalSec?: number; ladderNextAt?: string; ladderCadence?: "fast" | "base"; ladderStress?: { vix: number | null; ivts: number | null; spyMovePct: number | null; stressed: boolean } };
   regime: AmRegime;
   board: AmBoardRow[];
+  screened?: AmBoardRow[]; // every scored name, fails and all — the board is the subset that passed
   movers?: { gainers: AmMover[]; losers: AmMover[] };
   vrpGroups: AmVrpGroup[];
   landmines?: { sym: string; erDate: string | null; erDays: number | null }[];
