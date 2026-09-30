@@ -53,7 +53,8 @@ built-in demo dataset, so you can explore the whole UI immediately.
   feedback loop into the bots
 - **Combined View** — Settings → Combine views picks which linked accounts to merge; a
   "Combined View" entry then appears in the account switcher, summing balances, holdings,
-  positions and value history across them
+  positions and value history across them. The All Accounts bucket isn't offered there: it
+  already contains every account, so merging it with them would count each position twice
 - **Example mode** — a full, self-consistent demo dataset so the app is presentable
   without exposing (or even having) real data
 

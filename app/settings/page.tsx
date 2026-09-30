@@ -6,7 +6,7 @@ import { readEnvFile } from "@/lib/env-file";
 import { getSimSkew } from "@/lib/sim-skew";
 import { readManualFile } from "@/lib/manual-positions";
 import { getSnapshot } from "@/lib/snapshot";
-import { getCombineIds, getSelectedAccountId, COMBINED_ID, accountLabel } from "@/lib/account";
+import { combinableAccounts, getCombineIds, getSelectedAccountId, COMBINED_ID, accountLabel } from "@/lib/account";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +20,7 @@ export default async function SettingsPage() {
   const bridgeList = bridges().map((b) => ({ id: b.id, label: b.label }));
   const snap = await getSnapshot();
   const [combineIds, selectedId] = await Promise.all([getCombineIds(snap), getSelectedAccountId(snap)]);
-  const accounts = snap.accounts.map((a) => ({ id: a.id, label: accountLabel(a), mask: a.mask, type: a.type }));
+  const accounts = combinableAccounts(snap).map((a) => ({ id: a.id, label: accountLabel(a), mask: a.mask, type: a.type }));
 
   return (
     <main className="px-4">
