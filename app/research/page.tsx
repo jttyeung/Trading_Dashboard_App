@@ -103,6 +103,17 @@ export default async function ResearchPage({
         </Card>
       </Link>
 
+      {/* Quant scan — the wheel study's 4%-target put rule over the approved list. */}
+      <Link href="/quant" className="mt-2 block active:opacity-80">
+        <Card className="flex items-center justify-between gap-3 bg-emerald-500/5 px-4 py-3 ring-1 ring-inset ring-emerald-500/25">
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-emerald-200">Quant CSP scan</div>
+            <div className="text-[11px] text-muted">Backtested rule · lowest-delta put paying ≥4% / 30d · every approved name</div>
+          </div>
+          <span className="shrink-0 text-sm font-medium text-emerald-300">Open ›</span>
+        </Card>
+      </Link>
+
       <ResearchView data={data} symbols={sortedApproved} holdings={holdings} initialVehicle={initialVehicle} />
 
       <SectionTitle>Screening playbook</SectionTitle>

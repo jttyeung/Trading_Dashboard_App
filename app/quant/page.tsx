@@ -1,0 +1,186 @@
+import { BackLink, Card, PageHeader, Pill, SectionTitle } from "@/components/ui";
+import { Amt, ShowAmounts } from "@/components/privacy";
+import { QuantScanButton } from "@/components/QuantScanButton";
+import { getSnapshot } from "@/lib/snapshot";
+import { getSelectedAccount } from "@/lib/account";
+import { getVixSnapshot } from "@/lib/vix-data";
+import { getQuantScan, quantCapacity, quantFit, type QuantFit, type QuantRow } from "@/lib/quant";
+import { fmtMoney } from "@/lib/calc";
+
+export const dynamic = "force-dynamic";
+
+const pct = (n: number, d = 1) => `${n.toFixed(d)}%`;
+const money0 = (n: number) => fmtMoney(n);
+
+function Flag({ tone, children, title }: { tone: "amber" | "rose" | "sky" | "muted"; children: React.ReactNode; title?: string }) {
+  const cls = {
+    amber: "bg-amber-500/10 text-amber-300 ring-amber-500/25",
+    rose: "bg-rose-500/10 text-rose-300 ring-rose-500/25",
+    sky: "bg-sky-500/10 text-sky-300 ring-sky-500/25",
+    muted: "bg-surface-2 text-muted ring-border",
+  }[tone];
+  return (
+    <span title={title} className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ring-1 ring-inset ${cls}`}>
+      {children}
+    </span>
+  );
+}
+
+function PickCard({ row, fit }: { row: QuantRow; fit: QuantFit | null }) {
+  const p = row.pick!;
+  return (
+    <Card className="px-4 py-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <div className="min-w-0">
+          <span className="text-sm font-semibold" data-ticker={row.sym}>{row.sym}</span>{" "}
+          <span className="text-xs text-muted">
+            {row.price != null ? `$${row.price.toFixed(2)}` : ""}
+          </span>
+        </div>
+        <div className="shrink-0 text-right">
+          <div className="text-sm font-semibold text-emerald-300">{pct(p.yield30, 1)} / 30d</div>
+          <div className="text-[10px] text-muted">{pct(p.annPct, 0)} annualized</div>
+        </div>
+      </div>
+
+      <div className="mt-2 grid grid-cols-4 gap-x-2 gap-y-1 text-[11px] tabular">
+        <div><span className="text-muted">Sell</span> <span className="text-text">${p.strike} put</span></div>
+        <div><span className="text-muted">Exp</span> <span className="text-text">{p.exp.slice(5)}</span> <span className="text-muted">({p.dte}d)</span></div>
+        <div><span className="text-muted">Δ</span> <span className="text-text">{p.delta.toFixed(2)}</span></div>
+        <div><span className="text-muted">Bid</span> <span className="text-text">${p.bid.toFixed(2)}</span></div>
+        <div><span className="text-muted">Below</span> <span className="text-text">{p.belowSpotPct != null ? pct(p.belowSpotPct) : "—"}</span></div>
+        <div><span className="text-muted">OI</span> <span className="text-text">{p.oi.toLocaleString()}</span></div>
+        <div><span className="text-muted">Spread</span> <span className={p.spreadPct != null && p.spreadPct > 15 ? "text-amber-300" : "text-text"}>{p.spreadPct != null ? pct(p.spreadPct, 0) : "—"}</span></div>
+        <div><span className="text-muted">Close at</span> <span className="text-text">${(p.bid / 2).toFixed(2)}</span></div>
+      </div>
+
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {fit && (
+          <Flag tone={fit.contracts > 0 ? "sky" : "muted"} title={`Collateral ${money0(p.collateral)} per contract · per-name cap ${money0(fit.perTickerCap)} · ${money0(fit.committed)} already in this name`}>
+            {fit.contracts > 0 ? (
+              <>
+                {fit.contracts} contract{fit.contracts === 1 ? "" : "s"} fits · <Amt>{money0(p.premium * fit.contracts)}</Amt> credit
+              </>
+            ) : (
+              <>0 contracts fit</>
+            )}
+          </Flag>
+        )}
+        {fit?.full && <Flag tone="amber" title={`${money0(fit.committed)} of a ${money0(fit.perTickerCap)} per-name cap is already in this name (shares, puts, LEAPS)`}>position full</Flag>}
+        {fit?.held && !fit.full && <Flag tone="muted" title={`${money0(fit.committed)} already in this name`}>already held · add</Flag>}
+        {fit?.cashShort && <Flag tone="rose" title="Free cash (after margin allowance and collateral already pledged) can't secure one contract">cash short</Flag>}
+        {row.erInWindow && <Flag tone="amber" title={`Earnings ${row.erDate} — inside this put's life; the study didn't filter these, but you may want to`}>earnings in {row.erDays}d</Flag>}
+        {p.oi < 200 && <Flag tone="muted" title="Thin open interest">thin</Flag>}
+      </div>
+    </Card>
+  );
+}
+
+export default async function QuantPage() {
+  const snap = await getSnapshot();
+  const example = snap.meta.source === "example";
+  const { account, data } = await getSelectedAccount(snap);
+  const scan = getQuantScan(example);
+  const vix = getVixSnapshot(example)?.inputs.vix ?? null;
+  const cap = quantCapacity(data, vix);
+
+  const picks = scan ? scan.rows.filter((r) => r.pick) : [];
+  const misses = scan ? scan.rows.filter((r) => !r.pick) : [];
+  const fits = new Map(picks.map((r) => [r.sym, scan ? quantFit(r, data, cap, scan.meta.params) : null]));
+  const P = scan?.meta.params;
+  const asOf = scan ? new Date(scan.meta.asOf) : null;
+
+  return (
+    <main className="px-4" data-wide="1">
+      <ShowAmounts>
+        <PageHeader
+          title="Quant CSP scan"
+          subtitle={scan ? `${scan.meta.qualifying} of ${scan.meta.universe} approved names pay the target · ${asOf?.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}` : "No scan yet"}
+          right={
+            <div className="flex items-center gap-2">
+              <QuantScanButton demo={example} />
+              <BackLink />
+            </div>
+          }
+        />
+
+        {/* The rule, in one card, so nobody has to trust the list blind. */}
+        <Card className="mt-3 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Pill className="bg-emerald-500/10 text-emerald-300 ring-emerald-500/20">The rule</Pill>
+            <span className="text-[11px] text-muted">from the wheel backtests, 2022–2026 + 2023 hold-out</span>
+          </div>
+          <ul className="mt-2 space-y-1 text-xs text-muted">
+            <li>· Sell the <span className="text-text">lowest-delta</span> put paying <span className="text-text">≥ {P ? (P.targetYield * 100).toFixed(0) : 4}% of the strike per {P?.yieldDays ?? 30} days</span> (at the bid), never above <span className="text-text">{P?.maxDelta ?? 0.35} delta</span>.</li>
+            <li>· Any expiration <span className="text-text">{P?.expMin ?? 28}–{P?.expMax ?? 45} days</span> out; ties go to the higher yield. Skip the name if nothing pays.</li>
+            <li>· <span className="text-text">Close at {P?.closeAtPct ?? 50}%</span> of the credit, even late in the put&apos;s life. Take assignment; buy a LEAPS on it.</li>
+            <li>· Up to <span className="text-text">{P ? Math.round(P.maxPerTicker * 100) : 10}% of buying power per name</span> (one contract may overshoot to {P ? Math.round((P.maxPerTicker + P.tickerBand) * 100) : 15}% when adding). Margin allowance scales with the VIX: 0 under 20, then 5% per 5 points, capped at 35%.</li>
+          </ul>
+        </Card>
+
+        {/* What this account can take on. */}
+        <Card className="mt-3 px-4 py-3">
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-muted">{account.nickname ?? account.mask} · capacity</div>
+          <div className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] tabular sm:grid-cols-4">
+            <div><span className="text-muted">Total</span> <Amt>{money0(cap.totalValue)}</Amt></div>
+            <div><span className="text-muted">Free cash</span> <Amt className={cap.freeCash < 0 ? "text-rose-400" : ""}>{money0(cap.freeCash)}</Amt></div>
+            <div><span className="text-muted">Put collateral</span> <Amt>{money0(cap.putObligations)}</Amt></div>
+            <div><span className="text-muted">Per-name cap</span> <Amt>{money0((P?.maxPerTicker ?? 0.1) * cap.buyingPower)}</Amt></div>
+            <div className="col-span-2 sm:col-span-4 text-muted">
+              VIX {vix != null ? vix.toFixed(1) : "—"} → margin allowance {Math.round(cap.margin * 100)}% · buying power <Amt>{money0(cap.buyingPower)}</Amt>
+            </div>
+          </div>
+        </Card>
+
+        {!scan && (
+          <Card className="mt-3 px-4 py-4 text-center text-xs text-muted">
+            No scan on file yet. Press <span className="font-medium text-text">Scan now</span> — the bridge pulls one chain per approved name (about a minute) and the list appears here.
+          </Card>
+        )}
+
+        {scan && (
+          <>
+            <SectionTitle>Recommended CSPs</SectionTitle>
+            {picks.length === 0 && <Card className="px-4 py-4 text-center text-xs text-muted">Nothing on the approved list pays the target right now. That is the rule working: it sits out when premium is thin.</Card>}
+            <div className="space-y-2.5 tablet:grid tablet:grid-cols-2 tablet:gap-3 tablet:space-y-0">
+              {picks.map((r) => (
+                <PickCard key={r.sym} row={r} fit={fits.get(r.sym) ?? null} />
+              ))}
+            </div>
+
+            {misses.length > 0 && (
+              <>
+                <SectionTitle>Not paying the target</SectionTitle>
+                <Card className="divide-y divide-border px-0 py-0">
+                  {misses.map((r) => (
+                    <div key={r.sym} className="flex items-baseline justify-between gap-3 px-4 py-2 text-xs">
+                      <span>
+                        <span className="font-semibold" data-ticker={r.sym}>{r.sym}</span>{" "}
+                        <span className="text-muted">{r.price != null ? `$${r.price.toFixed(2)}` : ""}</span>
+                      </span>
+                      <span className="text-right text-[11px] text-muted tabular">
+                        {r.reason === "low" && r.best
+                          ? <>best under {P?.maxDelta ?? 0.35}Δ: ${r.best.strike} {r.best.exp.slice(5)} at <span className="text-text">{pct(r.best.yield30)}</span> / 30d ({r.best.delta.toFixed(2)}Δ)</>
+                          : r.reason === "no_puts"
+                            ? "no puts in the window"
+                            : r.reason === "no_chain"
+                              ? "no chain returned"
+                              : r.reason}
+                      </span>
+                    </div>
+                  ))}
+                </Card>
+              </>
+            )}
+          </>
+        )}
+
+        <p className="mt-4 px-1 text-[11px] leading-relaxed text-muted">
+          Yields use the bid, so they are what you would collect at market. Nothing here places a trade. The backtest&apos;s basket was
+          picked with hindsight, so treat the rule as a filter for names you already approve of, not a forecast; without the study&apos;s
+          five biggest winners, its returns roughly halved.
+        </p>
+      </ShowAmounts>
+    </main>
+  );
+}
