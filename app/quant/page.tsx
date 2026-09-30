@@ -40,7 +40,7 @@ function PickCard({ row, fit, P }: { row: QuantRow; fit: QuantFit | null; P: Qua
         </div>
         <div className="shrink-0 text-right">
           <div className="text-sm font-semibold text-emerald-300">{pct(p.yield30, 1)} <span className="text-[10px] font-medium text-emerald-300/70">per 30 days</span></div>
-          <div className="text-[10px] text-muted">{pct((p.bid / p.strike) * 100, 1)} over the {p.dte} days · target {P ? (P.targetYield * 100).toFixed(0) : 4}%</div>
+          <div className="text-[10px] text-muted">{pct((p.mark / p.strike) * 100, 1)} over the {p.dte} days · target {P ? (P.targetYield * 100).toFixed(0) : 4}%</div>
         </div>
       </div>
 
@@ -48,11 +48,11 @@ function PickCard({ row, fit, P }: { row: QuantRow; fit: QuantFit | null; P: Qua
         <div><span className="text-muted">Sell</span> <span className="text-text">${p.strike} put</span></div>
         <div><span className="text-muted">Exp</span> <span className="text-text">{p.exp.slice(5)}</span> <span className="text-muted">({p.dte}d)</span></div>
         <div><span className="text-muted">Δ</span> <span className="text-text">{p.delta.toFixed(2)}</span></div>
-        <div><span className="text-muted">Bid</span> <span className="text-text">${p.bid.toFixed(2)}</span></div>
+        <div><span className="text-muted">Mid</span> <span className="text-text">${p.mark.toFixed(2)}</span> <span className="text-muted">({p.bid.toFixed(2)}–{p.ask.toFixed(2)})</span></div>
         <div><span className="text-muted">Below</span> <span className="text-text">{p.belowSpotPct != null ? pct(p.belowSpotPct) : "—"}</span></div>
         <div><span className="text-muted">OI</span> <span className="text-text">{p.oi.toLocaleString()}</span></div>
         <div><span className="text-muted">Spread</span> <span className={p.spreadPct != null && p.spreadPct > 15 ? "text-amber-300" : "text-text"}>{p.spreadPct != null ? pct(p.spreadPct, 0) : "—"}</span></div>
-        <div><span className="text-muted">Close at</span> <span className="text-text">${(p.bid / 2).toFixed(2)}</span></div>
+        <div><span className="text-muted">Close at</span> <span className="text-text">${(p.mark / 2).toFixed(2)}</span></div>
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -203,7 +203,7 @@ export default async function QuantPage({ searchParams }: { searchParams: Promis
         )}
 
         <p className="mt-4 px-1 text-[11px] leading-relaxed text-muted">
-          Yields use the bid, so they are what you would collect at market. Nothing here places a trade. The backtest&apos;s basket was
+          Yields use the mid price, about where a working limit order fills; the bid–ask is shown beside it. Nothing here places a trade. The backtest&apos;s basket was
           picked with hindsight, so treat the rule as a filter for names you already approve of, not a forecast; without the study&apos;s
           five biggest winners, its returns roughly halved.
         </p>

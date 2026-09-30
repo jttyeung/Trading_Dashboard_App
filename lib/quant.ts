@@ -20,9 +20,9 @@ export interface QuantContract {
   ask: number;
   mark: number;
   delta: number;
-  yield30: number; // % of strike per 30 days, at the bid
+  yield30: number; // % of strike per 30 days, at the mid
   annPct: number;
-  premium: number; // $ per contract at the bid
+  premium: number; // $ per contract at the mid
   collateral: number;
   oi: number;
   volume: number;
@@ -155,12 +155,13 @@ function exampleQuantScan(): QuantScan {
     const inc = price < 30 ? 0.5 : price < 100 ? 1 : price < 250 ? 5 : 10;
     const strike = Math.round((price * (1 - 0.07 - (i % 3) * 0.01)) / inc) * inc;
     const yield30 = 3.1 + ((i * 7) % 23) / 10; // 3.1 … 5.3
-    const bid = Math.round(((yield30 / 100) * strike * dte) / 30 * 100) / 100;
+    const mark = Math.round(((yield30 / 100) * strike * dte) / 30 * 100) / 100;
+    const bid = Math.round((mark - 0.03) * 100) / 100;
     const contract: QuantContract = {
-      exp: exp(dte), dte, strike, bid, ask: Math.round((bid + 0.05 + bid * 0.03) * 100) / 100, mark: Math.round((bid + 0.03) * 100) / 100,
+      exp: exp(dte), dte, strike, bid, ask: Math.round((mark + 0.03) * 100) / 100, mark,
       delta: Math.round((0.22 + ((i * 5) % 13) / 100) * 1000) / 1000,
-      yield30: Math.round(yield30 * 100) / 100, annPct: Math.round((bid / strike) * (365 / dte) * 1000) / 10,
-      premium: Math.round(bid * 100 * 100) / 100, collateral: strike * 100, oi: 1200 + ((i * 917) % 9000), volume: 80 + ((i * 131) % 700),
+      yield30: Math.round(yield30 * 100) / 100, annPct: Math.round((mark / strike) * (365 / dte) * 1000) / 10,
+      premium: Math.round(mark * 100 * 100) / 100, collateral: strike * 100, oi: 1200 + ((i * 917) % 9000), volume: 80 + ((i * 131) % 700),
       spreadPct: Math.round((4 + (i % 5)) * 10) / 10, iv: Math.round((0.35 + ((i * 3) % 40) / 100) * 1000) / 1000,
       belowSpotPct: Math.round((1 - strike / price) * 1000) / 10,
     };
