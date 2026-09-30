@@ -395,6 +395,7 @@ export function MyTradesReport({ file }: { file: MyTradesFile }) {
   }
 
   const factors = file.factors.filter((f) => f.n > 0);
+  const notYet = file.factors.filter((f) => f.n === 0);
   const since = meta.capturedSince;
   const nonEmpty = (b: BucketStat[]) => b.length > 0;
 
@@ -482,13 +483,18 @@ export function MyTradesReport({ file }: { file: MyTradesFile }) {
         <BucketBars title="Win rate by VRP at open" buckets={file.vrpBuckets} empty={fillsIn(since, "VRP")} />
       </BucketGrid>
 
-      <SectionTitle>Score factors on the trades a suggestion matched</SectionTitle>
+      <SectionTitle>Score factors on your trades</SectionTitle>
       <Card className="divide-y divide-border overflow-x-auto">
         <div className="px-3 py-1.5 text-[10px] text-muted">
-          {`${meta.matchedCount} of ${meta.tradeCount} trade${meta.tradeCount === 1 ? "" : "s"} matched a suggestion · ${factors[0]?.n ?? 0} of those carry the points it earned (breakdowns were stored from a later date) · r is shown from n=${meta.minSample}`}
+          {`${meta.scoredCount ?? 0} of ${meta.tradeCount} trade${meta.tradeCount === 1 ? "" : "s"} scored the way the app would have scored them on the day you opened them, suggested or not · a factor only counts trades whose input existed that day · r is shown from n=${meta.minSample}`}
         </div>
+        {notYet.length > 0 && (
+          <div className="px-3 py-1.5 text-[10px] text-muted">
+            {`Not scoreable yet: ${notYet.map((f) => f.label).join(", ")} — IV rank needs 20 days of IV history before the open, and GEX is only known for trades opened after the tracker began recording it at entry.`}
+          </div>
+        )}
         {factors.length === 0 ? (
-          <div className="px-3 py-4 text-xs text-muted">No closed trade has matched a suggestion with a stored score breakdown yet.</div>
+          <div className="px-3 py-4 text-xs text-muted">No closed trade has been scored yet.</div>
         ) : (
           <table className="w-full min-w-[720px] border-collapse text-xs">
             <thead>
