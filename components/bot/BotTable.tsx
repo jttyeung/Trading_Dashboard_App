@@ -106,6 +106,32 @@ const COLUMNS: { key: SortKey; label: string; title?: string }[] = [
 // rationale row's colSpan has to span every column.
 const TOTAL_COLUMNS = COLUMNS.length + 5;
 
+const DAY_MS = 86_400_000;
+
+// realizedAnnualReturn is what the resolved trades actually earned per
+// dollar of cash-secured collateral per year: Σ realizedPnl ÷ Σ
+// (strike × 100 × days held), × 365. Total P&L alone can't compare bots,
+// since the bots have no cash cap on purpose (every candidate stays
+// visible as a daily idea feed), so raw dollars mostly track how much
+// collateral each bot happened to tie up. Weighting by days held also
+// credits a short-DTE bot for recycling its collateral faster. Days held
+// runs post date → expiration, floored at 1 so a same-day 0-DTE post
+// still counts. Returns a fraction (0.8 = 80%), or null with nothing resolved.
+function realizedAnnualReturn(trades: BotTrade[]): number | null {
+  let pnl = 0;
+  let capitalDays = 0;
+  for (const t of trades) {
+    if (t.realizedPnl == null) continue;
+    const posted = Date.parse(t.postedAt.slice(0, 10));
+    const expires = Date.parse(t.expiration);
+    if (Number.isNaN(posted) || Number.isNaN(expires)) continue;
+    const days = Math.max(1, Math.round((expires - posted) / DAY_MS));
+    pnl += t.realizedPnl;
+    capitalDays += t.strike * 100 * days;
+  }
+  return capitalDays > 0 ? (pnl / capitalDays) * 365 : null;
+}
+
 function ThumbButton({
   active,
   onClick,
@@ -371,6 +397,7 @@ export function BotTable({
   const winRate = wins + losses > 0 ? wins / (wins + losses) : null;
   const avgAnnualRoR = totalTrades > 0 ? localTrades.reduce((s, t) => s + t.annualizedRorPct, 0) / totalTrades : null;
   const totalPnl = localTrades.reduce((s, t) => s + (t.realizedPnl ?? 0), 0);
+  const realizedAnnual = realizedAnnualReturn(localTrades);
 
   const needsReview = localTrades.filter((t) => t.status === "pending_approval").length;
 
@@ -380,7 +407,7 @@ export function BotTable({
 
   return (
     <div className="w-full overflow-x-auto rounded-xl border border-border bg-surface">
-      <div className="grid grid-cols-2 gap-2 border-b border-border p-4 sm:grid-cols-4 lg:grid-cols-7">
+      <div className="grid grid-cols-2 gap-2 border-b border-border p-4 sm:grid-cols-4 lg:grid-cols-8">
         <Stat label="Total Trades" value={totalTrades} />
         <Stat label="Pending" value={pendingOutcome} />
         <Stat label="Wins" value={wins} tone="pos" />
@@ -388,6 +415,12 @@ export function BotTable({
         <Stat label="Win Rate" value={winRate != null ? fmtPct(winRate, 2) : "—"} />
         <Stat label="Avg Annual RoR" value={avgAnnualRoR != null ? fmtPct(avgAnnualRoR / 100, 2) : "—"} />
         <Stat label="Total P&L" value={fmtMoney(totalPnl, { sign: true })} tone={totalPnl >= 0 ? "pos" : "neg"} />
+        <Stat
+          label="Realized Annual Return"
+          value={realizedAnnual != null ? fmtPct(realizedAnnual, 1) : "—"}
+          sub="per $ of collateral, by days held"
+          tone={realizedAnnual == null ? "default" : realizedAnnual >= 0 ? "pos" : "neg"}
+        />
       </div>
 
       <div className="flex flex-wrap items-center gap-4 border-b border-border px-4 py-2 text-xs text-muted">
