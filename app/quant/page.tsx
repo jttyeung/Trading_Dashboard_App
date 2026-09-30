@@ -6,7 +6,7 @@ import { getSnapshot } from "@/lib/snapshot";
 import { getSelectedAccount } from "@/lib/account";
 import { getVixSnapshot } from "@/lib/vix-data";
 import { getQuantScan, quantCapacity, quantFit, type QuantFit, type QuantRow, type QuantScan } from "@/lib/quant";
-import { fmtMoney } from "@/lib/calc";
+import { cspEarningsFlag, fmtMoney } from "@/lib/calc";
 
 export const dynamic = "force-dynamic";
 
@@ -27,13 +27,34 @@ function Flag({ tone, children, title }: { tone: "amber" | "rose" | "sky" | "mut
   );
 }
 
+// Earnings mark, the way the Brief does it: a small ER on the ticker when the put
+// spans the report (rose) or the report lands within a week after expiry (orange);
+// the date and days sit in the hover title.
+function erFlag(row: QuantRow, exp: string | undefined) {
+  return exp ? cspEarningsFlag(exp, row.erDate) : null;
+}
+function erTitle(row: QuantRow, exp: string | undefined): string | undefined {
+  const f = erFlag(row, exp);
+  if (!f) return undefined;
+  const when = `${row.erDate}${row.erDays != null ? ` · ${row.erDays}d` : ""}`;
+  return f === "spans" ? `Put spans earnings ${when}` : `Earnings within 7 days after expiry ${when}`;
+}
+function ErMark({ row, exp }: { row: QuantRow; exp: string | undefined }) {
+  const f = erFlag(row, exp);
+  if (!f) return null;
+  return <sup className={`ml-0.5 text-[7px] font-bold uppercase ${f === "spans" ? "text-rose-400" : "text-orange-400"}`}>ER</sup>;
+}
+
 function PickCard({ row, fit, P }: { row: QuantRow; fit: QuantFit | null; P: QuantScan["meta"]["params"] | undefined }) {
   const p = row.pick!;
   return (
     <Card className="px-4 py-3">
       <div className="flex items-baseline justify-between gap-3">
         <div className="min-w-0">
-          <span className="text-sm font-semibold" data-ticker={row.sym}>{row.sym}</span>{" "}
+          <span className="text-sm font-semibold" data-ticker={row.sym} title={erTitle(row, p.exp)}>
+            {row.sym}
+            <ErMark row={row} exp={p.exp} />
+          </span>{" "}
           <span className="text-xs text-muted">
             {row.price != null ? `$${row.price.toFixed(2)}` : ""}
           </span>
@@ -70,7 +91,6 @@ function PickCard({ row, fit, P }: { row: QuantRow; fit: QuantFit | null; P: Qua
         {fit?.full && <Flag tone="amber" title={`${money0(fit.committed)} of a ${money0(fit.perTickerCap)} per-name cap is already in this name (shares, puts, LEAPS)`}>position full</Flag>}
         {fit?.held && !fit.full && <Flag tone="muted" title={`${money0(fit.committed)} already in this name`}>already held · add</Flag>}
         {fit?.cashShort && <Flag tone="rose" title="Free cash (after margin allowance and collateral already pledged) can't secure one contract">cash short</Flag>}
-        {row.erInWindow && <Flag tone="amber" title={`Earnings ${row.erDate} — inside this put's life; the study didn't filter these, but you may want to`}>earnings in {row.erDays}d</Flag>}
         {p.oi < 200 && <Flag tone="muted" title="Thin open interest">thin</Flag>}
       </div>
     </Card>
@@ -184,7 +204,10 @@ export default async function QuantPage({ searchParams }: { searchParams: Promis
                   {misses.map((r) => (
                     <div key={r.sym} className="flex items-baseline justify-between gap-3 px-4 py-2 text-xs">
                       <span>
-                        <span className="font-semibold" data-ticker={r.sym}>{r.sym}</span>{" "}
+                        <span className="font-semibold" data-ticker={r.sym} title={erTitle(r, r.best?.exp)}>
+                          {r.sym}
+                          <ErMark row={r} exp={r.best?.exp} />
+                        </span>{" "}
                         <span className="text-muted">{r.price != null ? `$${r.price.toFixed(2)}` : ""}</span>
                       </span>
                       <span className="text-right text-[11px] text-muted tabular">
