@@ -16,7 +16,11 @@ export default async function PositionsPage() {
   const snap = await getSnapshot();
   const options: SourcedOption[] = [];
   const equities: SourcedEquity[] = [];
-  for (const a of snap.accounts) {
+  // Skip the type "all" bucket (the daemon's All Accounts, with SnapTrade and
+  // E*TRADE folded in by lib/snapshot.ts): it repeats every real account's
+  // positions, so including it listed each one twice.
+  const accounts = snap.accounts.filter((a) => a.type !== "all");
+  for (const a of accounts) {
     const d = snap.data[a.id];
     if (!d) continue;
     const account = accountLabel(a);
@@ -35,14 +39,14 @@ export default async function PositionsPage() {
             <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
               <span>
                 {n} {n === 1 ? "position" : "positions"} · {options.length} options · {equities.length} stocks
-                {snap.accounts.length > 1 ? ` · ${snap.accounts.length} accounts` : ""}
+                {accounts.length > 1 ? ` · ${accounts.length} accounts` : ""}
               </span>
               <DataRefresh nextAt={getRefreshStatus().app?.nextAt} />
             </span>
           }
           right={<BackLink />}
         />
-        <PositionsTable options={options} equities={equities} multiAccount={snap.accounts.length > 1} />
+        <PositionsTable options={options} equities={equities} multiAccount={accounts.length > 1} />
       </ShowAmounts>
     </main>
   );
