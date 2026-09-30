@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { BackLink, Card, PageHeader, Pill, SectionTitle } from "@/components/ui";
 import { Amt, ShowAmounts } from "@/components/privacy";
 import { QuantScanButton } from "@/components/QuantScanButton";
@@ -26,7 +27,7 @@ function Flag({ tone, children, title }: { tone: "amber" | "rose" | "sky" | "mut
   );
 }
 
-function PickCard({ row, fit, P }: { row: QuantRow; fit: QuantFit | null; P: QuantScan["meta"]["params"] | undefined }) {| null }) {
+function PickCard({ row, fit, P }: { row: QuantRow; fit: QuantFit | null; P: QuantScan["meta"]["params"] | undefined }) {
   const p = row.pick!;
   return (
     <Card className="px-4 py-3">
@@ -38,8 +39,8 @@ function PickCard({ row, fit, P }: { row: QuantRow; fit: QuantFit | null; P: Qua
           </span>
         </div>
         <div className="shrink-0 text-right">
-          <div className="text-sm font-semibold text-emerald-300">{pct(p.yield30, 1)} / 30d</div>
-          <div className="text-[10px] text-muted">{pct(p.annPct, 0)} annualized</div>
+          <div className="text-sm font-semibold text-emerald-300">{pct(p.yield30, 1)} <span className="text-[10px] font-medium text-emerald-300/70">per 30 days</span></div>
+          <div className="text-[10px] text-muted">{pct((p.bid / p.strike) * 100, 1)} over the {p.dte} days · target {P ? (P.targetYield * 100).toFixed(0) : 4}%</div>
         </div>
       </div>
 
@@ -76,7 +77,11 @@ function PickCard({ row, fit, P }: { row: QuantRow; fit: QuantFit | null; P: Qua
   );
 }
 
-export default async function QuantPage() {
+export default async function QuantPage({ searchParams }: { searchParams: Promise<{ earnings?: string }> }) {
+  // Earnings filter: on unless ?earnings=show. A report inside the put's life is the
+  // one thing the study never tested, so those names are set aside, not hidden.
+  const { earnings } = await searchParams;
+  const skipEarnings = earnings !== "show";
   const snap = await getSnapshot();
   const example = snap.meta.source === "example";
   const { account, data } = await getSelectedAccount(snap);
@@ -84,9 +89,11 @@ export default async function QuantPage() {
   const vix = getVixSnapshot(example)?.inputs.vix ?? null;
   const cap = quantCapacity(data, vix);
 
-  const picks = scan ? scan.rows.filter((r) => r.pick) : [];
+  const qualifying = scan ? scan.rows.filter((r) => r.pick) : [];
+  const picks = skipEarnings ? qualifying.filter((r) => !r.erInWindow) : qualifying;
+  const earningsSkipped = skipEarnings ? qualifying.filter((r) => r.erInWindow) : [];
   const misses = scan ? scan.rows.filter((r) => !r.pick) : [];
-  const fits = new Map(picks.map((r) => [r.sym, scan ? quantFit(r, data, cap, scan.meta.params) : null]));
+  const fits = new Map(qualifying.map((r) => [r.sym, scan ? quantFit(r, data, cap, scan.meta.params) : null]));
   const P = scan?.meta.params;
   const asOf = scan ? new Date(scan.meta.asOf) : null;
 
@@ -140,13 +147,33 @@ export default async function QuantPage() {
 
         {scan && (
           <>
-            <SectionTitle>Recommended CSPs</SectionTitle>
+            <SectionTitle
+              action={
+                <Link href={skipEarnings ? "/quant?earnings=show" : "/quant"} className="text-[11px] text-muted underline">
+                  {skipEarnings ? `earnings filter on${earningsSkipped.length ? ` · ${earningsSkipped.length} set aside` : ""} · show them` : "earnings filter off · hide earnings names"}
+                </Link>
+              }
+            >
+              Recommended CSPs
+            </SectionTitle>
             {picks.length === 0 && <Card className="px-4 py-4 text-center text-xs text-muted">Nothing on the approved list pays the target right now. That is the rule working: it sits out when premium is thin.</Card>}
             <div className="space-y-2.5 tablet:grid tablet:grid-cols-2 tablet:gap-3 tablet:space-y-0">
               {picks.map((r) => (
                 <PickCard key={r.sym} row={r} fit={fits.get(r.sym) ?? null} P={P} />
               ))}
             </div>
+
+            {earningsSkipped.length > 0 && (
+              <>
+                <SectionTitle>Set aside: earnings inside the put&apos;s life</SectionTitle>
+                <p className="mb-2 px-1 text-[11px] text-muted">These pay the target but report before the put expires. The backtest never traded through earnings, so they are listed here rather than recommended.</p>
+                <div className="space-y-2.5 tablet:grid tablet:grid-cols-2 tablet:gap-3 tablet:space-y-0">
+                  {earningsSkipped.map((r) => (
+                    <PickCard key={r.sym} row={r} fit={fits.get(r.sym) ?? null} P={P} />
+                  ))}
+                </div>
+              </>
+            )}
 
             {misses.length > 0 && (
               <>
