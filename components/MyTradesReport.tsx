@@ -7,7 +7,8 @@
 // proximity, concurrency and sizing, plus the same factor and IVR/VRP
 // buckets the Bot Scorecard shows for paper picks. Every number arrives
 // precomputed from data/my-trades.json (internal/export/my_trades.go is
-// the one definition); this file only lays them out. Deliberately not a
+// the one definition); this file only lays them out, apart from the
+// per-ticker ranking, which rolls up the per-trade rows. Deliberately not a
 // bot-vs-human comparison, and a mirror only — nothing here re-weights
 // anything.
 //
@@ -15,10 +16,11 @@
 // prospective ones (delta band, liquidity, earnings, VRP, alert
 // response) only know trades opened after the tracker began freezing
 // entry inputs, so they say so instead of showing a hollow zero.
+import { useState } from "react";
 import { Card, SectionTitle } from "@/components/ui";
 import { BucketBars, FactorTableRow } from "@/components/FactorScorecard";
 import { fmtMoney } from "@/lib/calc";
-import type { BucketStat, GuidelineStat, LeapsSection, MyLeapTrade, MyTradesFile, RollChain } from "@/lib/types";
+import type { BucketStat, GuidelineStat, LeapsSection, MyLeapTrade, MyTrade, MyTradesFile, RollChain } from "@/lib/types";
 
 const pct = (v: number | null) => (v == null ? "—" : `${Math.round(v)}%`);
 const ret = (v: number | null) => (v == null ? "—" : `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(2)}%`);
@@ -108,6 +110,100 @@ function RollChainRow({ c }: { c: RollChain }) {
         <span className="ml-1.5 text-[10px] text-muted">{c.status === "open" ? "so far" : "closed"}</span>
       </td>
     </tr>
+  );
+}
+
+// TickerRank is one underlying's closed short trades rolled together.
+// annualReturn is the bot tables' Realized Annual Return applied per
+// ticker: Σ realizedPnl ÷ Σ (collateral × days held) × 365, so a ticker
+// that turns its collateral over fast in short trades isn't outranked
+// by one that just tied up more cash for longer. Days held is floored
+// at 1 so a same-day close still counts. A fraction (0.4 = 40%).
+type TickerRank = {
+  ticker: string;
+  trades: number;
+  wins: number;
+  pnl: number;
+  capitalDays: number;
+  annualReturn: number | null;
+};
+
+function rankTickers(trades: MyTrade[]): TickerRank[] {
+  const by = new Map<string, TickerRank>();
+  for (const t of trades) {
+    if (!t.collateral) continue;
+    const r = by.get(t.ticker) ?? { ticker: t.ticker, trades: 0, wins: 0, pnl: 0, capitalDays: 0, annualReturn: null };
+    r.trades++;
+    if (t.win) r.wins++;
+    r.pnl += t.realizedPnl;
+    r.capitalDays += t.collateral * Math.max(1, t.dit);
+    by.set(t.ticker, r);
+  }
+  return [...by.values()].map((r) => ({ ...r, annualReturn: r.capitalDays > 0 ? (r.pnl / r.capitalDays) * 365 : null }));
+}
+
+type TickerSort = "annual" | "pnl";
+
+function TickerRanking({ trades }: { trades: MyTrade[] }) {
+  const [sort, setSort] = useState<TickerSort>("annual");
+  const rows = rankTickers(trades).sort((a, b) =>
+    sort === "pnl" ? b.pnl - a.pnl : (b.annualReturn ?? -Infinity) - (a.annualReturn ?? -Infinity),
+  );
+  if (rows.length === 0) return null;
+  const toggle = (
+    <div className="flex gap-1 text-[10px]">
+      {(["annual", "pnl"] as const).map((k) => (
+        <button
+          key={k}
+          type="button"
+          onClick={() => setSort(k)}
+          className={`rounded px-2 py-0.5 ${sort === k ? "bg-border text-text" : "text-muted hover:text-text"}`}
+        >
+          {k === "annual" ? "By annual return" : "By total P&L"}
+        </button>
+      ))}
+    </div>
+  );
+  return (
+    <>
+      <SectionTitle action={toggle}>Best tickers you traded</SectionTitle>
+      <Card className="divide-y divide-border overflow-x-auto">
+        <div className="px-3 py-1.5 text-[10px] text-muted">
+          Closed short options (CSPs, covered calls) per underlying · annual return = total P&L ÷ (collateral × days held) × 365,
+          so fast turnover counts · one-trade tickers are a single data point
+        </div>
+        <table className="w-full min-w-[520px] border-collapse text-xs">
+          <thead>
+            <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted">
+              <th className="whitespace-nowrap px-3 py-1.5 font-medium">#</th>
+              <th className="whitespace-nowrap px-3 py-1.5 font-medium">Ticker</th>
+              <th className="whitespace-nowrap px-3 py-1.5 font-medium">Trades</th>
+              <th className="whitespace-nowrap px-3 py-1.5 font-medium">Win rate</th>
+              <th className="whitespace-nowrap px-3 py-1.5 text-right font-medium">Total P&L</th>
+              <th className="whitespace-nowrap px-3 py-1.5 text-right font-medium">Annual return</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={r.ticker} className="border-b border-border/60">
+                <td className="px-3 py-2 tabular text-muted">{i + 1}</td>
+                <td className="px-3 py-2 font-medium text-text">{r.ticker}</td>
+                <td className="px-3 py-2 tabular">{r.trades}</td>
+                <td className="px-3 py-2 tabular">{pct((r.wins / r.trades) * 100)}</td>
+                <td className={`whitespace-nowrap px-3 py-2 text-right tabular ${r.pnl >= 0 ? "text-pos" : "text-neg"}`}>{money(r.pnl)}</td>
+                <td
+                  className={`whitespace-nowrap px-3 py-2 text-right font-semibold tabular ${
+                    r.annualReturn == null ? "text-muted" : r.annualReturn >= 0 ? "text-pos" : "text-neg"
+                  }`}
+                >
+                  {r.annualReturn == null ? "—" : ret(r.annualReturn * 100)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+    </>
   );
 }
 
@@ -276,6 +372,7 @@ export function MyTradesReport({ file }: { file: MyTradesFile }) {
 
   return (
     <>
+      <TickerRanking trades={file.trades} />
       <SectionTitle>Execution vs the guidelines</SectionTitle>
       <Card className="divide-y divide-border overflow-x-auto">
         <div className="px-3 py-1.5 text-[10px] text-muted">
