@@ -113,65 +113,91 @@ function RollChainRow({ c }: { c: RollChain }) {
   );
 }
 
-// TickerRank is one underlying's closed short trades rolled together.
+// TickerRank is one underlying's closed trades rolled together.
 // annualReturn is the bot tables' Realized Annual Return applied per
-// ticker: Σ realizedPnl ÷ Σ (collateral × days held) × 365, so a ticker
-// that turns its collateral over fast in short trades isn't outranked
-// by one that just tied up more cash for longer. Days held is floored
-// at 1 so a same-day close still counts. A fraction (0.4 = 40%).
+// ticker: Σ realizedPnl ÷ Σ (capital × days held) × 365, so a ticker
+// that turns its capital over fast isn't outranked by one that just
+// tied up more cash for longer. Days held is floored at 1 so a same-day
+// close still counts. A fraction (0.4 = 40%).
 type TickerRank = {
   ticker: string;
   trades: number;
   wins: number;
   pnl: number;
+  days: number;
   capitalDays: number;
   annualReturn: number | null;
 };
 
-function rankTickers(trades: MyTrade[]): TickerRank[] {
+// RankInput is the slice of a short trade or a LEAP the ranking needs;
+// capital is collateral for a short trade and the premium paid for a
+// LEAP, which is why the two are ranked separately rather than mixed.
+type RankInput = { ticker: string; win: boolean; realizedPnl: number; dit: number; capital: number };
+
+function rankTickers(trades: RankInput[]): TickerRank[] {
   const by = new Map<string, TickerRank>();
   for (const t of trades) {
-    if (!t.collateral) continue;
-    const r = by.get(t.ticker) ?? { ticker: t.ticker, trades: 0, wins: 0, pnl: 0, capitalDays: 0, annualReturn: null };
+    if (!(t.capital > 0)) continue;
+    const r = by.get(t.ticker) ?? { ticker: t.ticker, trades: 0, wins: 0, pnl: 0, days: 0, capitalDays: 0, annualReturn: null };
+    const days = Math.max(1, t.dit);
     r.trades++;
     if (t.win) r.wins++;
     r.pnl += t.realizedPnl;
-    r.capitalDays += t.collateral * Math.max(1, t.dit);
+    r.days += days;
+    r.capitalDays += t.capital * days;
     by.set(t.ticker, r);
   }
   return [...by.values()].map((r) => ({ ...r, annualReturn: r.capitalDays > 0 ? (r.pnl / r.capitalDays) * 365 : null }));
 }
 
 type TickerSort = "annual" | "pnl";
+type TickerKind = "short" | "leaps";
 
-function TickerRanking({ trades }: { trades: MyTrade[] }) {
-  const [sort, setSort] = useState<TickerSort>("annual");
-  const rows = rankTickers(trades).sort((a, b) =>
-    sort === "pnl" ? b.pnl - a.pnl : (b.annualReturn ?? -Infinity) - (a.annualReturn ?? -Infinity),
-  );
-  if (rows.length === 0) return null;
-  const toggle = (
+function ToggleGroup<K extends string>({ value, options, onChange }: { value: K; options: [K, string][]; onChange: (k: K) => void }) {
+  return (
     <div className="flex gap-1 text-[10px]">
-      {(["annual", "pnl"] as const).map((k) => (
+      {options.map(([k, label]) => (
         <button
           key={k}
           type="button"
-          onClick={() => setSort(k)}
-          className={`rounded px-2 py-0.5 ${sort === k ? "bg-border text-text" : "text-muted hover:text-text"}`}
+          onClick={() => onChange(k)}
+          className={`rounded px-2 py-0.5 ${value === k ? "bg-border text-text" : "text-muted hover:text-text"}`}
         >
-          {k === "annual" ? "By annual return" : "By total P&L"}
+          {label}
         </button>
       ))}
     </div>
   );
+}
+
+function TickerRanking({ trades, leaps }: { trades: MyTrade[]; leaps: MyLeapTrade[] }) {
+  const [sort, setSort] = useState<TickerSort>("annual");
+  const [kind, setKind] = useState<TickerKind>("short");
+  const input: RankInput[] =
+    kind === "short"
+      ? trades.map((t) => ({ ...t, capital: t.collateral ?? 0 }))
+      : leaps.map((t) => ({ ...t, capital: t.openPrice * 100 * t.quantity }));
+  const rows = rankTickers(input).sort((a, b) =>
+    sort === "pnl" ? b.pnl - a.pnl : (b.annualReturn ?? -Infinity) - (a.annualReturn ?? -Infinity),
+  );
+  if (trades.length === 0 && leaps.length === 0) return null;
+  const toggles = (
+    <div className="flex flex-wrap justify-end gap-2">
+      <ToggleGroup value={kind} onChange={setKind} options={[["short", "Short options"], ["leaps", "LEAPs"]]} />
+      <ToggleGroup value={sort} onChange={setSort} options={[["annual", "By annual return"], ["pnl", "By total P&L"]]} />
+    </div>
+  );
   return (
     <>
-      <SectionTitle action={toggle}>Best tickers you traded</SectionTitle>
+      <SectionTitle action={toggles}>Best tickers you traded</SectionTitle>
       <Card className="divide-y divide-border overflow-x-auto">
         <div className="px-3 py-1.5 text-[10px] text-muted">
-          Closed short options (CSPs, covered calls) per underlying · annual return = total P&L ÷ (collateral × days held) × 365,
-          so fast turnover counts · one-trade tickers are a single data point
+          {kind === "short"
+            ? "Closed short options (CSPs, covered calls) per underlying · annual return = total P&L ÷ (collateral × days held) × 365"
+            : "Closed LEAPs per underlying · annual return = total P&L ÷ (premium paid × days held) × 365 — a quick flip annualizes high"}
+          {" · one-trade tickers are a single data point"}
         </div>
+        {rows.length === 0 && <div className="px-3 py-4 text-center text-xs text-muted">No closed {kind === "short" ? "short options" : "LEAPs"} yet.</div>}
         <table className="w-full min-w-[520px] border-collapse text-xs">
           <thead>
             <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted">
@@ -179,6 +205,7 @@ function TickerRanking({ trades }: { trades: MyTrade[] }) {
               <th className="whitespace-nowrap px-3 py-1.5 font-medium">Ticker</th>
               <th className="whitespace-nowrap px-3 py-1.5 font-medium">Trades</th>
               <th className="whitespace-nowrap px-3 py-1.5 font-medium">Win rate</th>
+              <th className="whitespace-nowrap px-3 py-1.5 font-medium">Avg days held</th>
               <th className="whitespace-nowrap px-3 py-1.5 text-right font-medium">Total P&L</th>
               <th className="whitespace-nowrap px-3 py-1.5 text-right font-medium">Annual return</th>
             </tr>
@@ -190,6 +217,7 @@ function TickerRanking({ trades }: { trades: MyTrade[] }) {
                 <td className="px-3 py-2 font-medium text-text">{r.ticker}</td>
                 <td className="px-3 py-2 tabular">{r.trades}</td>
                 <td className="px-3 py-2 tabular">{pct((r.wins / r.trades) * 100)}</td>
+                <td className="px-3 py-2 tabular">{Math.round(r.days / r.trades)}</td>
                 <td className={`whitespace-nowrap px-3 py-2 text-right tabular ${r.pnl >= 0 ? "text-pos" : "text-neg"}`}>{money(r.pnl)}</td>
                 <td
                   className={`whitespace-nowrap px-3 py-2 text-right font-semibold tabular ${
@@ -372,7 +400,7 @@ export function MyTradesReport({ file }: { file: MyTradesFile }) {
 
   return (
     <>
-      <TickerRanking trades={file.trades} />
+      <TickerRanking trades={file.trades} leaps={leaps.trades} />
       <SectionTitle>Execution vs the guidelines</SectionTitle>
       <Card className="divide-y divide-border overflow-x-auto">
         <div className="px-3 py-1.5 text-[10px] text-muted">
