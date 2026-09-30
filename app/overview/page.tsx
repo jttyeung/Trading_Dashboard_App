@@ -8,7 +8,6 @@
 import { getSnapshot } from "@/lib/snapshot";
 import { getAlerts } from "@/lib/alerts";
 import { getGeneralBot, get20DeltaSafeBot, getAggressiveBot } from "@/lib/bot";
-import { getSuggestionPerformance } from "@/lib/suggestion-performance";
 import { getStrategyPerformance } from "@/lib/strategy-performance";
 import { getScoreFactors } from "@/lib/score-factors";
 import { getMyTrades } from "@/lib/my-trades";
@@ -23,12 +22,11 @@ export const dynamic = "force-dynamic";
 export default async function OverviewPage() {
   const snap = await getSnapshot();
   const alerts = (await getAlerts()).alerts;
-  const [generalBot, safeBot, aggressiveBot, suggestionPerf, strategyPerf, scoreFactors, myTrades, cspPicks, risk, exampleMode] =
+  const [generalBot, safeBot, aggressiveBot, strategyPerf, scoreFactors, myTrades, cspPicks, risk, exampleMode] =
     await Promise.all([
       getGeneralBot(),
       get20DeltaSafeBot(),
       getAggressiveBot(),
-      getSuggestionPerformance(),
       getStrategyPerformance(),
       getScoreFactors(),
       getMyTrades(),
@@ -52,7 +50,6 @@ export default async function OverviewPage() {
       safeBot={safeBot}
       aggressiveBot={aggressiveBot}
       scoreRows={strategyPerf.rows}
-      totalSuggestions={suggestionPerf.meta.totalSuggestions}
       scoreFactors={scoreFactors}
       myTrades={myTrades}
       cspPicks={cspPicks}
