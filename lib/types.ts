@@ -1110,6 +1110,7 @@ export interface MyTrade {
   closePrice: number;
   realizedPnl: number;
   returnPct: number; // on strike × 100 × qty
+  collateral?: number; // strike × 100 × qty; absent in files exported before it was added
   win: boolean;
   dit: number;
   dteAtOpen: number;
