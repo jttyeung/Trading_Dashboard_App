@@ -151,7 +151,7 @@ export default async function QuantPage({ searchParams }: { searchParams: Promis
               action={
                 <Link href={skipEarnings ? "/quant?earnings=show" : "/quant"} className="text-[11px] text-muted underline">
                   {skipEarnings
-                    ? ` with earnings before expiry hidden — show them`
+                    ? `${earningsSkipped.length} with earnings before expiry hidden — show them`
                     : "Names with earnings before expiry are included — hide them"}
                 </Link>
               }
