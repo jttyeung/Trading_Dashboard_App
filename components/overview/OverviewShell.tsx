@@ -211,7 +211,6 @@ export function OverviewShell({
   safeBot,
   aggressiveBot,
   scoreRows,
-  totalSuggestions,
   scoreFactors,
   myTrades,
   cspPicks,
@@ -224,7 +223,6 @@ export function OverviewShell({
   safeBot: BotSnapshot;
   aggressiveBot: BotSnapshot;
   scoreRows: PerformanceRow[];
-  totalSuggestions: number;
   scoreFactors: ScoreFactorsFile;
   myTrades: MyTradesFile;
   cspPicks: CspPicksFile;
@@ -350,7 +348,7 @@ export function OverviewShell({
         <div className={tab === "bot-aggressive" ? "" : "hidden"}>
           <BotTable trades={aggressiveBot.trades} myGrade={aggressiveBot.myGrade} storageKey="aggressive" exampleMode={exampleMode} />
         </div>
-        {tab === "trades" && <MyTradesScorecard rows={scoreRows} totalSuggestions={totalSuggestions} myTrades={myTrades} />}
+        {tab === "trades" && <MyTradesScorecard myTrades={myTrades} />}
         {tab === "scorecard" && <BotScorecard rows={scoreRows} scoreFactors={scoreFactors} />}
         {/* Always mounted (just hidden), unlike the desktop/trades/scorecard tabs above --
             this panel does its own live fetch plus in-flight add/remove

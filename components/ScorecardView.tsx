@@ -1,8 +1,8 @@
 "use client";
 
 // Outcomes by strategy, with a delta-bucket drill-down, for ONE origin
-// at a time: the account holder's real trades (broker-confirmed, matched
-// from suggestion_history) on the desktop "My Trades" tab, or the paper
+// at a time: the account holder's real trades (every broker-confirmed
+// close, from my-trades.json) on the desktop "My Trades" tab, or the paper
 // bots' own resolved picks on the "Bot Scorecard" tab. These used to
 // share one view with an All/Real/Paper toggle (Phase 1 of the paper-bot
 // feedback-loop plan, "does the bigger paper sample agree with the real
@@ -138,13 +138,9 @@ function StrategyRow({ agg, rows, maxAbsStrategy }: { agg: Agg; rows: Performanc
 export function ScorecardView({
   rows,
   origin,
-  totalSuggestions,
 }: {
   rows: PerformanceRow[];
   origin: "real" | "paper";
-  // totalSuggestions is context for the real view only ("how small a
-  // slice of everything ever suggested this is").
-  totalSuggestions?: number;
 }) {
   const mine = useMemo(() => rows.filter((r) => r.origin === origin), [rows, origin]);
   const summary = useMemo(() => summarize(mine), [mine]);
@@ -155,11 +151,7 @@ export function ScorecardView({
     return (
       <Card className="mt-3 px-4 py-6 text-center text-sm text-muted">
         {origin === "real" ? (
-          <>
-            No suggested trade has closed yet
-            {totalSuggestions != null ? ` — ${totalSuggestions} suggestion${totalSuggestions === 1 ? "" : "s"} logged so far` : ""}.
-            This fills in when a contract the app suggested shows up in your realized trades.
-          </>
+          <>No closed option trade on file yet. This fills in as your trades close, expire or are assigned.</>
         ) : (
           <>No bot pick has resolved yet. This fills in as picks reach expiration.</>
         )}
@@ -176,11 +168,7 @@ export function ScorecardView({
           tone={summary.pnl >= 0 ? "pos" : "neg"}
           sub={`${summary.winRate}% win · ${signed(summary.pnl)}`}
         />
-        {origin === "real" && totalSuggestions != null ? (
-          <Stat label="Suggestions logged" value={totalSuggestions} sub="ever, taken or not" />
-        ) : (
-          <Stat label="Profitable" value={summary.wins} sub={`of ${summary.count}`} tone={summary.wins === summary.count ? "pos" : "default"} />
-        )}
+        <Stat label="Profitable" value={summary.wins} sub={`of ${summary.count}`} tone={summary.wins === summary.count ? "pos" : "default"} />
       </div>
 
       <SectionTitle>By strategy</SectionTitle>
@@ -192,7 +180,7 @@ export function ScorecardView({
 
       <p className="mt-3 px-1 text-[11px] leading-relaxed text-muted">
         {origin === "real"
-          ? "Broker-confirmed trades that matched a contract the app suggested — one row per traded contract, under the single-leg strategy that suggested it most. A mirror for spotting your own patterns; nothing here changes what the app suggests."
+          ? "Every closed option trade across Schwab, Fidelity and E*TRADE, whether or not the app suggested it — one row per traded contract, grouped by what you traded. Delta is the one frozen when the position was first seen, so trades opened before 9/14 sit outside the delta drill-down. A mirror for spotting your own patterns; nothing here changes what the app suggests."
           : "The bots' own simulated outcomes — a much bigger sample than your real trades, but a simplified P&L (no rolls or partial closes). Win means the pick expired worthless or closed profitable."}
       </p>
     </div>
