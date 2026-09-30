@@ -10,6 +10,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { AccountData } from "./types";
+import { freeCashValue } from "./calc";
 import { EXAMPLE_CLOSES, EXAMPLE_EARNINGS, lastClose } from "./example-market";
 
 export interface QuantContract {
@@ -88,7 +89,7 @@ export interface QuantCapacity {
   buyingPower: number;
   putObligations: number;
   committedTotal: number;
-  freeCash: number; // cash + margin allowance − collateral already pledged
+  freeCash: number; // uncommitted cash + the margin allowance
 }
 
 export function vixMargin(vix: number | null): number {
@@ -100,17 +101,21 @@ export function quantCapacity(data: AccountData, vix: number | null): QuantCapac
   const totalValue = data.summary.totalValue;
   const margin = vixMargin(vix);
   const putObligations = data.options.filter((o) => o.side === "short" && o.optionType === "put").reduce((s, o) => s + o.strike * 100 * o.qty, 0);
+  // What is actually uncommitted, the way the Home page counts it: total value
+  // less everything deployed (shares, LEAPS, collateral, spread risk), plus
+  // money-market sweep funds, which Schwab reports as a holding rather than cash.
+  const free = freeCashValue(data.summary, data.equities, data.options);
   const stock = data.equities.reduce((s, e) => s + e.qty * e.price, 0);
   const leaps = data.options.filter((o) => o.side === "long" && o.optionType === "call").reduce((s, o) => s + o.mark * 100 * o.qty, 0);
   return {
     totalValue,
-    cash: data.summary.cash,
+    cash: free + putObligations, // cash on hand, including what already secures the puts
     vix,
     margin,
     buyingPower: totalValue * (1 + margin),
     putObligations,
     committedTotal: putObligations + stock + leaps,
-    freeCash: data.summary.cash + margin * totalValue - putObligations,
+    freeCash: free + margin * totalValue,
   };
 }
 

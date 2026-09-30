@@ -87,7 +87,7 @@ export function checkPortfolio(data: AccountData, vix: number | null, scan: Quan
       rule: "cash-secured",
       symbol: "—",
       title: `Collateral exceeds cash by ${money(-cap.freeCash)}`,
-      detail: `Puts pledge ${money(cap.putObligations)}; cash ${money(cap.cash)} plus a ${Math.round(cap.margin * 100)}% margin allowance at VIX ${vix != null ? vix.toFixed(1) : "?"} covers ${money(cap.cash + cap.margin * cap.totalValue)}. Close the weakest puts (lowest yield left, nearest the money) until it fits.`,
+      detail: `Puts pledge ${money(cap.putObligations)}; cash on hand (sweep funds included) ${money(cap.cash)} plus a ${Math.round(cap.margin * 100)}% margin allowance at VIX ${vix != null ? vix.toFixed(1) : "?"} covers ${money(cap.cash + cap.margin * cap.totalValue)}. Close the weakest puts (lowest yield left, nearest the money) until it fits.`,
       amount: -cap.freeCash,
     });
   } else if (shortPuts.length) {

@@ -40,7 +40,7 @@ function PickCard({ row, fit, P }: { row: QuantRow; fit: QuantFit | null; P: Qua
         </div>
         <div className="shrink-0 text-right">
           <div className="text-sm font-semibold text-emerald-300">{pct(p.yield30, 1)} <span className="text-[10px] font-medium text-emerald-300/70">per 30 days</span></div>
-          <div className="text-[10px] text-muted">{pct((p.mark / p.strike) * 100, 1)} over the {p.dte} days · target {P ? (P.targetYield * 100).toFixed(0) : 4}%</div>
+          <div className="text-[10px] text-muted">{pct((p.mark / p.strike) * 100, 1)} for this {p.dte}-day put · target {P ? (P.targetYield * 100).toFixed(0) : 4}% per 30</div>
         </div>
       </div>
 
@@ -114,11 +114,11 @@ export default async function QuantPage({ searchParams }: { searchParams: Promis
         {/* The rule, in one card, so nobody has to trust the list blind. */}
         <Card className="mt-3 px-4 py-3">
           <div className="flex items-center gap-2">
-            <Pill className="bg-emerald-500/10 text-emerald-300 ring-emerald-500/20">The rule</Pill>
+            <Pill className="shrink-0 whitespace-nowrap bg-emerald-500/10 text-emerald-300 ring-emerald-500/20">The rule</Pill>
             <span className="text-[11px] text-muted">from the wheel backtests, 2022–2026 + 2023 hold-out</span>
           </div>
           <ul className="mt-2 space-y-1 text-xs text-muted">
-            <li>· Sell the <span className="text-text">lowest-delta</span> put paying <span className="text-text">≥ {P ? (P.targetYield * 100).toFixed(0) : 4}% of the strike per {P?.yieldDays ?? 30} days</span> (at the bid), never above <span className="text-text">{P?.maxDelta ?? 0.35} delta</span>.</li>
+            <li>· Sell the <span className="text-text">lowest-delta</span> put paying <span className="text-text">≥ {P ? (P.targetYield * 100).toFixed(0) : 4}% of the strike per {P?.yieldDays ?? 30} days</span> (at the mid), never above <span className="text-text">{P?.maxDelta ?? 0.35} delta</span>.</li>
             <li>· Any expiration <span className="text-text">{P?.expMin ?? 28}–{P?.expMax ?? 45} days</span> out; ties go to the higher yield. Skip the name if nothing pays.</li>
             <li>· <span className="text-text">Close at {P?.closeAtPct ?? 50}%</span> of the credit, even late in the put&apos;s life. Take assignment; buy a LEAPS on it.</li>
             <li>· Up to <span className="text-text">{P ? Math.round(P.maxPerTicker * 100) : 10}% of buying power per name</span> (one contract may overshoot to {P ? Math.round((P.maxPerTicker + P.tickerBand) * 100) : 15}% when adding). Margin allowance scales with the VIX: 0 under 20, then 5% per 5 points, capped at 35%.</li>
@@ -150,7 +150,9 @@ export default async function QuantPage({ searchParams }: { searchParams: Promis
             <SectionTitle
               action={
                 <Link href={skipEarnings ? "/quant?earnings=show" : "/quant"} className="text-[11px] text-muted underline">
-                  {skipEarnings ? `earnings filter on${earningsSkipped.length ? ` · ${earningsSkipped.length} set aside` : ""} · show them` : "earnings filter off · hide earnings names"}
+                  {skipEarnings
+                    ? ` with earnings before expiry hidden — show them`
+                    : "Names with earnings before expiry are included — hide them"}
                 </Link>
               }
             >

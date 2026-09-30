@@ -57,7 +57,7 @@ export default async function QuantPortfolioPage() {
 
         <Card className="mt-3 px-4 py-3">
           <div className="flex items-center gap-2">
-            <Pill className="bg-emerald-500/10 text-emerald-300 ring-emerald-500/20">The rules</Pill>
+            <Pill className="shrink-0 whitespace-nowrap bg-emerald-500/10 text-emerald-300 ring-emerald-500/20">The rules</Pill>
             <span className="text-[11px] text-muted">management side of the backtested wheel</span>
           </div>
           <ul className="mt-2 space-y-1 text-xs text-muted">
@@ -94,7 +94,7 @@ export default async function QuantPortfolioPage() {
             <div key={s.key}>
               <SectionTitle>
                 <span className="flex items-center gap-2">
-                  <Pill className={s.pill}>{s.title}</Pill>
+                  <Pill className={`shrink-0 whitespace-nowrap ${s.pill}`}>{s.title}</Pill>
                   <span className="text-[11px] font-normal normal-case tracking-normal text-muted">{s.blurb}</span>
                 </span>
               </SectionTitle>
