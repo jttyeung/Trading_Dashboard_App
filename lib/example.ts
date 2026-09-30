@@ -1337,7 +1337,7 @@ function exampleGuideline(key: string, label: string, rule: string) {
 }
 
 export const exampleMyTradesFile: MyTradesFile = {
-  meta: { generatedAt: NOW_ISO, minSample: 10, tradeCount: exampleMyTrades.length, matchedCount: 4, capturedSince: isoDay(-50).slice(0, 10) },
+  meta: { generatedAt: NOW_ISO, minSample: 10, tradeCount: exampleMyTrades.length, matchedCount: 4, scoredCount: exampleMyTrades.length, capturedSince: isoDay(-50).slice(0, 10) },
   trades: exampleMyTrades,
   factors: [
     exampleFactor("vrpBonus", "VRP", "earned", 4, 2, 0.3, 41),

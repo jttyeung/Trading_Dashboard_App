@@ -985,7 +985,8 @@ export interface MyTradesFile {
     generatedAt: string;
     minSample: number;
     tradeCount: number;
-    matchedCount: number; // trades that matched a suggestion (feed the factor rows)
+    matchedCount: number; // trades that matched a suggestion
+    scoredCount?: number; // trades scored at their own open (feed the factor rows); absent in older files
     capturedSince: string; // YYYY-MM-DD of the first entry snapshot; "" until one exists
   };
   trades: MyTrade[];
