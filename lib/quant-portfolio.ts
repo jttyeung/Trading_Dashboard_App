@@ -24,6 +24,9 @@ export interface QuantAction {
   title: string; // the action, imperative
   detail: string; // the numbers behind it
   amount?: number; // $ involved, when there is one
+  href?: string; // where the card takes you when tapped
+  href?: string; // where tapping the card goes, when there is somewhere to go
+  linkLabel?: string; // shown under the detail when href is set
 }
 
 export interface PortfolioCheck {
@@ -224,8 +227,11 @@ export function checkPortfolio(data: AccountData, vix: number | null, scan: Quan
         rule: "4% target",
         symbol: best.r.sym,
         title: `${money(cap.freeCash)} free: ${fits.length} scan pick${fits.length === 1 ? "" : "s"} fit`,
-        detail: `Richest is ${best.r.sym} $${best.r.pick!.strike} ${best.r.pick!.exp.slice(5)} at ${best.r.pick!.yield30.toFixed(1)}% per 30 days (${best.fit!.contracts} contract${best.fit!.contracts === 1 ? "" : "s"}). See the scan for the rest.`,
+        href: "/quant",
+        detail: `Richest is ${best.r.sym} $${best.r.pick!.strike} ${best.r.pick!.exp.slice(5)} at ${best.r.pick!.yield30.toFixed(1)}% per 30 days (${best.fit!.contracts} contract${best.fit!.contracts === 1 ? "" : "s"}).`,
         amount: cap.freeCash,
+        href: "/quant",
+        linkLabel: "(Click to view scan results)",
       });
     } else if (scan.meta.qualifying === 0) {
       compliant.push("Free cash is idle because nothing on the approved list pays the target — that is the rule sitting out, not a problem.");

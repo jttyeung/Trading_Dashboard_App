@@ -18,8 +18,8 @@ const SECTIONS: { key: Urgency; title: string; blurb: string; pill: string }[] =
 ];
 
 function ActionCard({ a }: { a: QuantAction }) {
-  return (
-    <Card className="px-4 py-3">
+  const card = (
+    <Card className={`px-4 py-3 ${a.href ? "transition-colors group-hover:border-sky-500/40" : ""}`}>
       <div className="flex items-baseline justify-between gap-3">
         <div className="min-w-0 text-sm font-semibold">
           <span data-ticker={a.symbol !== "—" ? a.symbol : undefined}>{a.title}</span>
@@ -31,8 +31,15 @@ function ActionCard({ a }: { a: QuantAction }) {
         )}
       </div>
       <p className="mt-1 text-[11px] leading-relaxed text-muted">{a.detail}</p>
+      {a.href && a.linkLabel && <p className="mt-1 text-[11px] text-sky-300 group-hover:underline">{a.linkLabel}</p>}
       <div className="mt-1.5 text-[10px] uppercase tracking-wide text-muted/70">rule · {a.rule}</div>
     </Card>
+  );
+  if (!a.href) return card;
+  return (
+    <Link href={a.href} className="group block rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400">
+      {card}
+    </Link>
   );
 }
 
