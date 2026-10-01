@@ -270,16 +270,20 @@ export function freeCashValue(
   equities: Equity[],
   options: OptionPosition[],
 ): number {
-  const leapCalls = options.filter((o) => o.kind === "leap-call").reduce((s, o) => s + optionMarketValue(o), 0);
-  const hedge = options.filter((o) => o.kind === "leap-put-hedge").reduce((s, o) => s + optionMarketValue(o), 0);
-  const cspColl = cspCollateralTotal(options);
-  const spread = spreadRiskCapital(options);
+  // Schwab's total (liquidation value) already carries every option at its mark:
+  // long ones add to it, short ones take off what they would cost to buy back.
+  // Back all of that out, plus shares and crypto, and what is left is the cash
+  // balance. Then take off the collateral and spread risk that cash stands
+  // behind. Subtracting collateral from a total that already deducted the puts'
+  // buy-back value counted the short book twice, and read tens of thousands low.
+  const optionsNet = options.reduce((s, o) => s + optionNetValue(o), 0);
+  const cash = summary.totalValue - summary.equityValue - summary.cryptoValue - optionsNet;
+  // Money-market sweep funds report as holdings but spend like cash.
   const moneyMarket = equities
     .filter((e) => isCashEquivalent(e.symbol))
     .reduce((s, e) => s + equityValue(e), 0);
-  const deployed = summary.equityValue + leapCalls + hedge + cspColl + spread + summary.cryptoValue;
-  const remainder = Math.max(0, summary.totalValue - deployed);
-  return remainder + moneyMarket;
+  const committed = cspCollateralTotal(options) + spreadRiskCapital(options);
+  return Math.max(0, cash + moneyMarket - committed);
 }
 
 /**
