@@ -12,6 +12,7 @@
 // before showing a preview of what will be imported.
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { etDateString } from "@/lib/market-hours";
 import type { ManualAccount, ManualOption, ManualPosition } from "@/lib/manual-positions";
 import {
   FIELD_HELP,
@@ -301,7 +302,9 @@ function AddForm({ accountId, onAdded }: { accountId: string; onAdded: (a: Manua
 }
 
 // ---- close form ----------------------------------------------------------------
-const today = () => new Date().toISOString().slice(0, 10);
+// ET, not UTC: toISOString's UTC date is already tomorrow from 8pm ET, which
+// pre-filled a month-end evening close into the next month.
+const today = () => etDateString(new Date());
 
 function CloseForm({
   accountId,
