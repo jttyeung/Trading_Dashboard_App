@@ -115,7 +115,7 @@ export function checkPortfolio(data: AccountData, vix: number | null, scan: Quan
         rule: "10% per name",
         symbol: sym,
         title: `${sym} is ${money(committed - capLo)} over its cap`,
-        detail: `${money(committed)} in ${sym} (shares, put collateral, spread risk, LEAPS) against a ${money(capLo)} cap (${money(capHi)} with the adding band). Don't add; let puts run off or close the newest.`,
+        detail: `${money(committed)} in ${sym} (shares, put collateral, spread risk, LEAPS) against a ${money(capLo)} 10% cap; the 15% stretch allocation is ${money(capHi)}. Don't add; let puts run off or close the newest.`,
         amount: committed - capLo,
       });
     } else if (committed > capLo) {
@@ -124,7 +124,7 @@ export function checkPortfolio(data: AccountData, vix: number | null, scan: Quan
         rule: "10% per name",
         symbol: sym,
         title: `${sym} is at its cap`,
-        detail: `${money(committed)} of ${money(capLo)}; inside the adding band, so nothing to do, but no more here.`,
+        detail: `${money(committed)} against the ${money(capLo)} 10% cap, inside the 15% stretch allocation (${money(capHi)}). Nothing to do, but no more here.`,
       });
     }
   }
