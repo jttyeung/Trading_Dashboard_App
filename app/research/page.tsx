@@ -5,6 +5,7 @@ import { getApproved } from "@/lib/approved";
 import { getResearch } from "@/lib/research";
 import { getSnapshot } from "@/lib/snapshot";
 import type { Holding } from "@/lib/research-types";
+import { readSuggestions, traderPresent } from "@/lib/trader";
 
 export const dynamic = "force-dynamic";
 
@@ -77,6 +78,9 @@ export default async function ResearchPage({
   const holdings = aggregateHoldings(snap.data);
   const approved = getApproved();
   const sortedApproved = [...approved].sort((a, b) => a.localeCompare(b));
+  // Only installs running the optional trader service have its file; everyone else never sees the card.
+  const trader = traderPresent() ? readSuggestions() : null;
+  const traderOpen = trader?.suggestions.filter((s) => s.status === "new").length ?? 0;
 
   return (
     <main className="px-4">
@@ -124,6 +128,22 @@ export default async function ResearchPage({
           <span className="shrink-0 text-sm font-medium text-sky-300">Open ›</span>
         </Card>
       </Link>
+
+      {/* Trader — only when the trader service is installed (its suggestions file exists). */}
+      {trader && (
+        <Link href="/trader" className="mt-2 block active:opacity-80">
+          <Card className="flex items-center justify-between gap-3 bg-amber-500/5 px-4 py-3 ring-1 ring-inset ring-amber-500/25">
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-amber-200">Trader</div>
+              <div className="text-[11px] text-muted">
+                {traderOpen === 0 ? "No open suggestions" : `${traderOpen} open suggestion${traderOpen === 1 ? "" : "s"}`} · rules applied once a day
+                in the entry window · Run now any time
+              </div>
+            </div>
+            <span className="shrink-0 text-sm font-medium text-amber-300">Open ›</span>
+          </Card>
+        </Link>
+      )}
 
       <ResearchView data={data} symbols={sortedApproved} holdings={holdings} initialVehicle={initialVehicle} />
 
