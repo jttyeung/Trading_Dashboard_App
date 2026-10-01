@@ -83,6 +83,43 @@ export interface SuggestionsFile {
   suggestions: Suggestion[];
 }
 
+// The Auto Trader paper account's trade log, written by the trader each pass.
+export const PAPER_PATH = path.join(process.cwd(), "data", "trader-paper.json");
+
+export interface PaperTrade {
+  at: string;
+  kind: "csp" | "close" | "cc" | "assigned" | "called" | "expired" | string;
+  text: string;
+  amount: number | null;
+  symbol?: string;
+  rule?: string;
+}
+export interface PaperFile {
+  meta: {
+    asOf: string;
+    accountId: string;
+    label: string;
+    startingCash: number;
+    cash: number;
+    totalValue: number;
+    puts: number;
+    calls: number;
+    shareLots: number;
+    priced: boolean;
+    trades: number;
+  };
+  trades: PaperTrade[];
+}
+
+export function readPaper(): PaperFile | null {
+  try {
+    const doc = JSON.parse(fs.readFileSync(PAPER_PATH, "utf8")) as PaperFile;
+    return doc?.meta && Array.isArray(doc.trades) ? doc : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Ask the trader for a full pass now (any time, any day). Write-only: the marker is the request. */
 export function requestRun(): void {
   fs.mkdirSync(path.dirname(RUN_PATH), { recursive: true });

@@ -4,7 +4,11 @@ import { ShowAmounts } from "@/components/privacy";
 import { TraderList } from "@/components/TraderList";
 import { TraderRunButton } from "@/components/TraderRunButton";
 import { TraderRebuildButton } from "@/components/TraderRebuildButton";
-import { readSuggestions, traderPresent } from "@/lib/trader";
+import { readPaper, readSuggestions, traderPresent } from "@/lib/trader";
+import { Amt } from "@/components/privacy";
+
+const money = (n: number) => `$${Math.round(n).toLocaleString()}`;
+const signed = (n: number) => `${n >= 0 ? "+" : "−"}$${Math.abs(Math.round(n)).toLocaleString()}`;
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +19,9 @@ export default async function TraderPage() {
   const doc = readSuggestions();
   const m = doc?.meta;
   const asOf = m ? new Date(m.asOf) : null;
+  const paper = readPaper();
+  const pm = paper?.meta;
+  const paperPnl = pm ? pm.totalValue - pm.startingCash : 0;
 
   return (
     <main className="px-4" data-wide="1">
@@ -41,6 +48,55 @@ export default async function TraderPage() {
           yourself, or <span className="text-text">skip</span> to stop the reminders. That record is what decides when the next stage —
           placing orders after your approval — is ready. Nothing here places a trade.
         </Card>
+        {pm && (
+          <Card className="mt-3 px-4 py-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold">{pm.label} · paper</div>
+                <div className="text-[11px] text-muted">
+                  The rules traded for pretend money, booked as a manual account. Pick it in the account switcher for positions and P&amp;L.
+                </div>
+              </div>
+              <div className="shrink-0 text-right">
+                <div className="text-sm font-semibold tabular">
+                  <Amt>{money(pm.totalValue)}</Amt>
+                </div>
+                <div className={`text-[11px] tabular ${paperPnl >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
+                  <Amt>{signed(paperPnl)}</Amt> on {money(pm.startingCash)}
+                </div>
+              </div>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-muted">
+              <span>
+                cash <Amt>{money(pm.cash)}</Amt>
+              </span>
+              <span>{pm.puts} puts</span>
+              <span>{pm.calls} calls</span>
+              <span>{pm.shareLots} share lots</span>
+              <span>{pm.trades} trades</span>
+              {!pm.priced && <span className="text-amber-300">not priced by the bridge yet</span>}
+            </div>
+            {paper!.trades.length > 0 && (
+              <ul className="mt-2 space-y-0.5 text-[11px] text-muted">
+                {paper!.trades
+                  .slice(-8)
+                  .reverse()
+                  .map((t, i) => (
+                    <li key={i} className="flex justify-between gap-3">
+                      <span className="min-w-0 truncate">
+                        <span className="text-text/80">{new Date(t.at).toLocaleDateString([], { month: "short", day: "numeric" })}</span> · {t.text}
+                      </span>
+                      {t.amount != null && (
+                        <span className="shrink-0 tabular">
+                          <Amt>{signed(t.amount)}</Amt>
+                        </span>
+                      )}
+                    </li>
+                  ))}
+              </ul>
+            )}
+          </Card>
+        )}
         <div className="mt-3">
           <TraderList initial={doc?.suggestions ?? []} />
         </div>
