@@ -3,7 +3,6 @@ import { BackLink, Card, PageHeader } from "@/components/ui";
 import { ShowAmounts } from "@/components/privacy";
 import { TraderList } from "@/components/TraderList";
 import { TraderRunButton } from "@/components/TraderRunButton";
-import { TraderRebuildButton } from "@/components/TraderRebuildButton";
 import { readPaper, readSuggestions, traderPresent } from "@/lib/trader";
 import { Amt } from "@/components/privacy";
 
@@ -35,8 +34,7 @@ export default async function TraderPage() {
           }
           right={<BackLink />}
         />
-        <div className="mt-3 flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
-          <TraderRebuildButton />
+        <div className="mt-3 flex items-center justify-end">
           <TraderRunButton />
         </div>
         <Card className="mt-3 px-4 py-3 text-[11px] leading-relaxed text-muted">
