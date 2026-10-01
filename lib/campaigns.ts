@@ -407,9 +407,11 @@ function finish(d: Draft, symbol: string, flatSince: string | null, price: numbe
   if (stage === "shares") needsAction.push("No call open on the shares");
   if (adjustedBasis != null && price != null && price < adjustedBasis) needsAction.push("Below adjusted basis");
   if (adjustedBasis != null && openCalls.some((l) => l.strike < adjustedBasis)) needsAction.push("Call strike under adjusted basis");
-  for (const l of open) {
+  // Close-at-50% is a PUT rule (the wheel study's exit_mode 1). Covered calls are only
+  // written where expiring or being called away is fine, so they run to expiration.
+  for (const l of openPuts) {
     const cap = legCaptured(l);
-    if (cap >= CLOSE_AT) needsAction.push(`${l.optionType === "put" ? "Put" : "Call"} $${l.strike} ${Math.round(cap * 100)}% captured — close`);
+    if (cap >= CLOSE_AT) needsAction.push(`Put $${l.strike} ${Math.round(cap * 100)}% captured — close`);
   }
   // Cash committed right now: open put collateral + the shares' raw cost.
   const capitalNow = collateral(d) + (d.shares > 0 ? d.shareCost : 0);

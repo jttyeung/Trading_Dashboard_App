@@ -66,6 +66,7 @@ function NextStep({ c, quotes }: { c: Campaign; quotes: { dte: number; strike: n
           const cap = legCaptured(open);
           const per = open.credit / (MULT * open.contracts);
           const target = per * (1 - CLOSE_AT);
+          const isPut = open.optionType === "put";
           return (
             <div key={open.id} className="flex flex-col gap-1.5">
               <div className="flex items-baseline justify-between">
@@ -74,23 +75,26 @@ function NextStep({ c, quotes }: { c: Campaign; quotes: { dte: number; strike: n
               </div>
               <div className="relative h-1.5 rounded-full bg-surface-2">
                 <div className="absolute inset-y-0 left-0 rounded-full bg-emerald-400" style={{ width: `${Math.max(0, Math.min(1, cap)) * 100}%` }} />
-                <div className="absolute -top-[3px] h-3 w-0.5 bg-[var(--text)]" style={{ left: `${CLOSE_AT * 100}%` }} />
+                {isPut && <div className="absolute -top-[3px] h-3 w-0.5 bg-[var(--text)]" style={{ left: `${CLOSE_AT * 100}%` }} />}
               </div>
               <div className="tabular flex justify-between text-[11px] text-muted">
                 <span>
                   {capturedText(open)} · sold {per.toFixed(2)}, mark {open.mark?.toFixed(2) ?? "—"}
                 </span>
-                <span className={cap >= CLOSE_AT ? "text-emerald-300" : ""}>{cap >= CLOSE_AT ? "at target — close" : `50% at ${target.toFixed(2)}`}</span>
+                {isPut ? (
+                  <span className={cap >= CLOSE_AT ? "text-emerald-300" : ""}>{cap >= CLOSE_AT ? "at target — close" : `50% at ${target.toFixed(2)}`}</span>
+                ) : (
+                  <span>runs to expiration</span>
+                )}
               </div>
             </div>
           );
         })}
         <p className="text-xs text-muted">
-          Close each at 50%.{" "}
           {anyCall
             ? floor != null
-              ? `Then sell the next 7–21 day call at or above ${basisText(floor)}.`
-              : "Then sell the next call."
+              ? `Calls run to expiration — expire or get called away. Then sell the next 7–21 day call at or above ${basisText(floor)}.`
+              : "Calls run to expiration — expire or get called away. Then sell the next call."
             : c.ifAssignedBasis != null
               ? `If assigned, the shares would cost ${basisText(c.ifAssignedBasis)} after premium.`
               : ""}
