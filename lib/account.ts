@@ -37,7 +37,10 @@ export async function getSelectedAccount(
     return {
       id: COMBINED_ID,
       account: combinedAccount(members),
-      data: combineAccountData(members.map((a) => snap.data[a.id])),
+      data: combineAccountData(
+        members.map((a) => snap.data[a.id]),
+        members.map((a) => accountLabel(a)),
+      ),
     };
   }
   const account = snap.accounts.find((a) => a.id === id) ?? snap.accounts[0];
