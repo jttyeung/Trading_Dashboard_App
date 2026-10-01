@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { BackLink, Card, PageHeader, SectionTitle } from "@/components/ui";
 import { Amt, ShowAmounts } from "@/components/privacy";
-import { Signed, StageChip, legLabel, pct, px, shortDate } from "@/components/WheelCampaigns";
+import { Signed, StageChip, basisText, capturedText, legLabel, pct, px, shortDate } from "@/components/WheelCampaigns";
 import { getSnapshot } from "@/lib/snapshot";
 import { getCampaigns } from "@/lib/campaigns-load";
 import { CLOSE_AT, legCaptured, legDte, type Campaign, type CampaignLeg, type ShareEvent } from "@/lib/campaigns";
@@ -56,38 +56,43 @@ function Line({ k, v, strong }: { k: ReactNode; v: ReactNode; strong?: boolean }
 }
 
 function NextStep({ c, quotes }: { c: Campaign; quotes: { dte: number; strike: number; mark: number }[] }) {
-  const open = c.openCall ?? c.openPut;
-  if (open) {
-    const cap = legCaptured(open);
-    const per = open.credit / (MULT * open.contracts);
-    const target = per * (1 - CLOSE_AT);
+  const legs = c.sharesHeld > 0 ? [...c.openCalls, ...c.openPuts] : [...c.openPuts, ...c.openCalls];
+  if (legs.length) {
     const floor = c.adjustedBasis;
+    const anyCall = legs.some((l) => l.optionType === "call");
     return (
-      <Card className="flex flex-col gap-2.5 p-3.5">
-        <div className="flex items-baseline justify-between">
-          <span className="text-sm font-semibold">{legLabel(open)}</span>
-          <span className="tabular text-xs text-muted">{legDte(open)} DTE</span>
-        </div>
-        <div>
-          <div className="relative h-1.5 rounded-full bg-surface-2">
-            <div className="absolute inset-y-0 left-0 rounded-full bg-emerald-400" style={{ width: `${Math.max(0, Math.min(1, cap)) * 100}%` }} />
-            <div className="absolute -top-[3px] h-3 w-0.5 bg-[var(--text)]" style={{ left: `${CLOSE_AT * 100}%` }} />
-          </div>
-          <div className="tabular mt-1.5 flex justify-between text-[11px] text-muted">
-            <span>
-              {Math.round(cap * 100)}% captured · sold {per.toFixed(2)}, mark {open.mark?.toFixed(2) ?? "—"}
-            </span>
-            <span>50% at {target.toFixed(2)}</span>
-          </div>
-        </div>
+      <Card className="flex flex-col gap-3 p-3.5">
+        {legs.map((open) => {
+          const cap = legCaptured(open);
+          const per = open.credit / (MULT * open.contracts);
+          const target = per * (1 - CLOSE_AT);
+          return (
+            <div key={open.id} className="flex flex-col gap-1.5">
+              <div className="flex items-baseline justify-between">
+                <span className="text-sm font-semibold">{legLabel(open)}</span>
+                <span className="tabular text-xs text-muted">{legDte(open)} DTE</span>
+              </div>
+              <div className="relative h-1.5 rounded-full bg-surface-2">
+                <div className="absolute inset-y-0 left-0 rounded-full bg-emerald-400" style={{ width: `${Math.max(0, Math.min(1, cap)) * 100}%` }} />
+                <div className="absolute -top-[3px] h-3 w-0.5 bg-[var(--text)]" style={{ left: `${CLOSE_AT * 100}%` }} />
+              </div>
+              <div className="tabular flex justify-between text-[11px] text-muted">
+                <span>
+                  {capturedText(open)} · sold {per.toFixed(2)}, mark {open.mark?.toFixed(2) ?? "—"}
+                </span>
+                <span className={cap >= CLOSE_AT ? "text-emerald-300" : ""}>{cap >= CLOSE_AT ? "at target — close" : `50% at ${target.toFixed(2)}`}</span>
+              </div>
+            </div>
+          );
+        })}
         <p className="text-xs text-muted">
-          {cap >= CLOSE_AT ? "At target — close it. " : `Close at 50% (≤ $${target.toFixed(2)}). `}
-          {open.optionType === "call"
+          Close each at 50%.{" "}
+          {anyCall
             ? floor != null
-              ? `Then sell the next 7–21 day call at or above ${px(floor)}.`
+              ? `Then sell the next 7–21 day call at or above ${basisText(floor)}.`
               : "Then sell the next call."
             : c.ifAssignedBasis != null
-              ? `If assigned, the shares would cost ${px(c.ifAssignedBasis)} after premium.`
+              ? `If assigned, the shares would cost ${basisText(c.ifAssignedBasis)} after premium.`
               : ""}
         </p>
       </Card>
@@ -141,7 +146,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
   const others = campaigns.filter((x) => x.symbol === c.symbol && x.id !== c.id);
   const putPrem = c.legs.filter((l) => l.optionType === "put").reduce((s, l) => s + l.credit - l.debit, 0);
   const callPrem = c.legs.filter((l) => l.optionType === "call").reduce((s, l) => s + l.credit - l.debit, 0);
-  const openLegs = [c.openPut, c.openCall].filter((l): l is CampaignLeg => !!l);
+  const openLegs = [...c.openPuts, ...c.openCalls];
   const openPnl = openLegs.reduce((s, l) => s + l.credit - (l.mark ?? 0) * MULT * l.contracts, 0);
   const closedPrem = c.premium - openLegs.reduce((s, l) => s + l.credit, 0);
   const showBasis = c.sharesHeld > 0 && c.shareCostPerShare != null && c.adjustedBasis != null;
@@ -214,7 +219,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
               {putPrem !== 0 && <Line k="Put premium" v={<span className="text-emerald-400">−{px(putPrem / c.sharesHeld)}</span>} />}
               {callPrem !== 0 && <Line k="Call premium" v={<span className="text-emerald-400">−{px(callPrem / c.sharesHeld)}</span>} />}
               <div className="h-px bg-border" />
-              <Line k="Adjusted basis" v={px(c.adjustedBasis!)} strong />
+              <Line k="Adjusted basis" v={basisText(c.adjustedBasis!)} strong />
               {equity && equity.avgCost > 0 && <Line k={<span className="text-xs">Schwab shows</span>} v={<span className="text-xs text-muted">{px(equity.avgCost)}</span>} />}
             </Card>
           </>
@@ -223,7 +228,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
         {c.calledAway && (
           <div className="mt-3 flex flex-col gap-1 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-3.5">
             <div className="text-xs font-semibold text-emerald-300">
-              If called away at ${c.calledAway.strike} on {shortDate(c.calledAway.expiration)}
+              If called away at {c.calledAway.strikes} on {shortDate(c.calledAway.expiration)}
             </div>
             <div className="tabular text-xl font-bold">
               <Signed n={c.calledAway.pnl} />{" "}
@@ -235,7 +240,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
           </div>
         )}
 
-        {c.active && (c.openCall || c.openPut || c.stage === "shares") && (
+        {c.active && (c.openCalls.length > 0 || c.openPuts.length > 0 || c.stage === "shares") && (
           <>
             <SectionTitle>Next step</SectionTitle>
             <NextStep c={c} quotes={quotes} />
