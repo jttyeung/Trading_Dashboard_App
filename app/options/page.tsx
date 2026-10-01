@@ -8,6 +8,8 @@ import { getSnapshot } from "@/lib/snapshot";
 import { getSelectedAccount } from "@/lib/account";
 import { cspCollateral, optionMarketValue } from "@/lib/calc";
 import { OptionsSummarySim } from "@/components/OptionsSummarySim";
+import { CampaignRow } from "@/components/WheelCampaigns";
+import { getCampaigns } from "@/lib/campaigns-load";
 import type { OptionPosition } from "@/lib/types";
 
 const CSP_COLOR = "#38bdf8"; // sky — matches the CSP side accent
@@ -40,6 +42,12 @@ export default async function OptionsPage() {
     { label: "LEAPs", value: leapCapital, color: LEAP_COLOR },
   ];
 
+  const { campaigns } = await getCampaigns(snap);
+  const activeCampaigns = campaigns.filter((c) => c.active);
+  const needsAction = activeCampaigns.filter((c) => c.needsAction.length > 0).length;
+  const rank = (c: (typeof campaigns)[number]) => (c.needsAction.length > 0 ? 0 : c.sharesHeld > 0 ? 1 : 2);
+  const preview = activeCampaigns.slice().sort((a, b) => rank(a) - rank(b) || b.capital - a.capital).slice(0, 4);
+
   return (
     <main className="px-4 tablet:px-6" data-wide="1">
       <ShowAmounts>
@@ -58,6 +66,32 @@ export default async function OptionsPage() {
             The wheel lives inside the client island so the Simulate toggle can overlay
             its corner and drive every re-priced number in one place. */}
         <OptionsSummarySim options={options} allocation={allocation} stratTotal={stratTotal} />
+
+        {/* Wheel campaigns: each ticker's put → shares → calls run as one record. A short
+            preview here (anything needing action, then wheels holding shares); the full
+            list and per-campaign detail live under /options/wheel. */}
+        <SectionTitle
+          action={
+            <Link href="/options/wheel" className="text-xs font-medium text-muted active:opacity-80">
+              All ›
+            </Link>
+          }
+        >
+          Wheel campaigns
+        </SectionTitle>
+        <Card className="divide-y divide-border overflow-hidden">
+          {preview.map((c) => (
+            <CampaignRow key={c.id} c={c} />
+          ))}
+          <Link href="/options/wheel" className="tabular flex items-center justify-between gap-3 px-4 py-2.5 text-[11px] text-muted active:bg-surface-2">
+            <span>
+              {activeCampaigns.length} active
+              {activeCampaigns.length > preview.length && ` · ${activeCampaigns.length - preview.length} more`}
+              {needsAction > 0 && <span className="text-orange-300"> · {needsAction} need action</span>}
+            </span>
+            <span>Open ›</span>
+          </Link>
+        </Card>
 
         {/* Tablet only: the wide all-positions table (the rail also links it). */}
         <Link href="/positions" className="mt-3 hidden active:opacity-80 tablet:block">
