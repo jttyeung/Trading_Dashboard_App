@@ -204,7 +204,7 @@ export default async function QuantPage({ searchParams }: { searchParams: Promis
           <ul className="mt-2 space-y-1 text-xs text-muted">
             <li>· Sell the <span className="text-text">lowest-delta</span> put paying <span className="text-text">≥ {P ? (P.targetYield * 100).toFixed(0) : 4}% of the strike per {P?.yieldDays ?? 30} days</span> (at the mid), never above <span className="text-text">{P?.maxDelta ?? 0.35} delta</span>.</li>
             <li>· Any expiration <span className="text-text">{P?.expMin ?? 28}–{P?.expMax ?? 45} days</span> out; ties go to the higher yield. Skip the name if nothing pays.</li>
-            <li>· <span className="text-text">Close at {P?.closeAtPct ?? 50}%</span> of the credit, even late in the put&apos;s life. Take assignment; buy a LEAPS on it.</li>
+            <li>· <span className="text-text">Close at {P?.closeAtPct ?? 50}%</span> of the credit, even late in the put&apos;s life. Take assignment; buy a ~0.75Δ LEAPS on it.</li>
             <li>· Up to <span className="text-text">{P ? Math.round(P.maxPerTicker * 100) : 10}% of buying power per name</span> (a {P ? Math.round((P.maxPerTicker + P.tickerBand) * 100) : 15}% stretch allocation lets one more contract on when a name is under its cap). Margin allowance scales with the VIX: 0 under 20, then 5% per 5 points, capped at 35%.</li>
           </ul>
         </Card>

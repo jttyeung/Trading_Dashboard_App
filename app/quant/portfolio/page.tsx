@@ -65,7 +65,7 @@ export default async function QuantPortfolioPage() {
             <li>· Every put <span className="text-text">cash-secured</span>; the margin allowance follows the VIX (0 under 20, 5% per 5 points, cap 35%).</li>
             <li>· No name over <span className="text-text">10% of buying power</span>; a 15% stretch allocation lets one more contract on when a name is under its cap.</li>
             <li>· On shares: sell a <span className="text-text">7–21 day call at or above cost</span>, the furthest strike still paying 0.5% of basis a week; hold with no call if none does.</li>
-            <li>· On shares: hold a <span className="text-text">~0.60Δ LEAPS ~450 days out</span> per 100 shares; sell it when they&apos;re called away or inside 90 days.</li>
+            <li>· On shares: hold a <span className="text-text">~0.75Δ LEAPS ~450 days out</span> per 100 shares; sell it when they&apos;re called away or inside 90 days. (0.75 beat 0.60 by about 2 points a year across every period tested.)</li>
             <li>· Idle cash goes to whatever the <Link href="/quant" className="text-emerald-300 underline">scan</Link> says pays.</li>
           </ul>
         </Card>

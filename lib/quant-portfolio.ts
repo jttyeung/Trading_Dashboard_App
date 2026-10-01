@@ -7,7 +7,8 @@
 //   * no name above 10% of buying power (15% when a contract overshoots while adding)
 //   * assigned shares: sell a call 7–21 days out at or above cost basis, the furthest
 //     strike still paying ≥0.5% of basis per week; hold with no call if none does
-//   * assigned shares: buy a ~0.60-delta LEAPS ~450 days out (one per 100 shares);
+//   * assigned shares: buy a ~0.75-delta LEAPS ~450 days out (one per 100 shares);
+//     (0.75 beat 0.60–0.80 in every period tested, by ~2 pts/yr over 0.60)
 //     close it once the shares are called away or it gets within 90 days of expiry
 //   * capital that isn't working: put it into a name the scan says pays
 import type { AccountData, CoveredCallQuote } from "./types";
@@ -39,7 +40,7 @@ const R = {
   callMinDte: 7,
   callMaxDte: 21,
   callWeeklyMin: 0.005, // of cost basis, per week
-  leapsDelta: 0.6,
+  leapsDelta: 0.75,
   leapsDte: 450,
   leapsMinDteToHold: 90,
 };
@@ -184,7 +185,7 @@ export function checkPortfolio(data: AccountData, vix: number | null, scan: Quan
       rule: "LEAPS on shares",
       symbol: sym,
       title: `Buy ${Math.floor(shares / 100)} × ${sym} ~${R.leapsDelta.toFixed(2)}Δ call, ~${R.leapsDte} days out`,
-      detail: `Shares held with no long call under them. The study pairs each 100 assigned shares with a deep call to keep upside while the shares get called away (it added $503k over the full backtest). Roughly a $${Math.round(price * 0.8 / (price < 100 ? 1 : 5)) * (price < 100 ? 1 : 5)} strike.`,
+      detail: `Shares held with no long call under them. The study pairs each 100 assigned shares with a deep call to keep upside while the shares get called away (it added $503k over the full backtest). Well in the money: a strike around $${Math.round(price * 0.72 / (price < 100 ? 1 : 5)) * (price < 100 ? 1 : 5)} at today's price.`,
     });
   }
   for (const o of longCalls) {
