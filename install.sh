@@ -98,7 +98,7 @@ ENV
 
   # ── start ───────────────────────────────────────────────────────────────
   say "Pulling images and starting (about a minute)"
-  docker compose pull
+  docker compose pull --ignore-pull-failures
   docker compose up -d
 
   # An existing .env may not have DASHBOARD_PORT at all; that's fine.
@@ -119,7 +119,7 @@ ENV
    Installed in:  $DIR
    Check on it:   cd $DIR && docker compose ps
    Read the logs: cd $DIR && docker compose logs -f
-   Update later:  cd $DIR && docker compose pull && docker compose up -d
+   Update later:  cd $DIR && docker compose pull --ignore-pull-failures && docker compose up -d
   ────────────────────────────────────────────────────────────
 
 DONE
