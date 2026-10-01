@@ -96,10 +96,11 @@ services:
             rm -f "$$marker"
             echo "updater: update requested"
             report running null
-            # Every service except this one: recreating the updater from inside itself
-            # would kill this very command part-way through.
-            others=$$(docker compose config --services 2>/dev/null | grep -v "^updater$$" | tr "\n" " ")
-            if out=$$(docker compose pull $$others 2>&1) && out2=$$(docker compose up -d --no-deps $$others 2>&1); then
+            # Every service except this one (recreating the updater from inside itself
+            # would kill this very command part-way through) and except the optional
+            # trader, which is built locally and has no image to pull.
+            others=$$(docker compose config --services 2>/dev/null | grep -v -E "^(updater|trader)$$" | tr "\n" " ")
+            if out=$$(docker compose pull --ignore-pull-failures $$others 2>&1) && out2=$$(docker compose up -d --no-deps $$others 2>&1); then
               report done null
               echo "updater: done"
             else

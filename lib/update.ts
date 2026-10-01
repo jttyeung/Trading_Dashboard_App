@@ -38,7 +38,10 @@ export interface UpdateCheck {
   error: string | null;
 }
 
-let cache: { at: number; value: UpdateCheck } | null = null;
+// A failed check is remembered for ten minutes, not five hours, so the card
+// recovers on its own once GitHub answers again.
+const FAIL_TTL_MS = 10 * 60 * 1000;
+let cache: { at: number; ttl: number; value: UpdateCheck } | null = null;
 
 const gh = (p: string) =>
   fetch(`https://api.github.com/repos/${REPO}${p}`, {
@@ -46,16 +49,26 @@ const gh = (p: string) =>
     cache: "no-store",
   });
 
+/** GitHub allows 60 anonymous requests an hour per address; say when it frees up instead of just "403". */
+function explain(r: Response): string {
+  if ((r.status === 403 || r.status === 429) && r.headers.get("x-ratelimit-remaining") === "0") {
+    const reset = Number(r.headers.get("x-ratelimit-reset"));
+    const at = Number.isFinite(reset) && reset > 0 ? new Date(reset * 1000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : null;
+    return `GitHub's hourly limit for this address is used up${at ? ` until ${at}` : ""}`;
+  }
+  return `GitHub answered ${r.status}`;
+}
+
 export async function checkForUpdate(force = false): Promise<UpdateCheck> {
   const base: UpdateCheck = { enabled: !!BUILD_SHA, current: BUILD_SHA.slice(0, 7), latest: null, available: false, publishedAt: null, changes: [], checkedAt: null, error: null };
   if (!BUILD_SHA) return base;
-  if (!force && cache && Date.now() - cache.at < CHECK_TTL_MS) return cache.value;
+  if (!force && cache && Date.now() - cache.at < cache.ttl) return cache.value;
   const out = { ...base, checkedAt: new Date().toISOString() };
   try {
     // The newest build that actually published, not merely the newest commit —
     // the image lands a few minutes after the push.
     const runs = await gh("/actions/workflows/publish.yml/runs?branch=main&status=success&per_page=1");
-    if (!runs.ok) throw new Error(`GitHub answered ${runs.status}`);
+    if (!runs.ok) throw new Error(explain(runs));
     const run = ((await runs.json()) as { workflow_runs?: { head_sha: string; updated_at: string }[] }).workflow_runs?.[0];
     if (!run) throw new Error("no published build found");
     out.latest = run.head_sha.slice(0, 7);
@@ -73,8 +86,12 @@ export async function checkForUpdate(force = false): Promise<UpdateCheck> {
     }
   } catch (e) {
     out.error = e instanceof Error ? e.message : "check failed";
+    // Keep what the last good check found: a build that was available an hour
+    // ago is still available, and the button stays usable.
+    const prev = cache?.value;
+    if (prev?.latest) Object.assign(out, { latest: prev.latest, available: prev.available, publishedAt: prev.publishedAt, changes: prev.changes });
   }
-  cache = { at: Date.now(), value: out };
+  cache = { at: Date.now(), ttl: out.error ? FAIL_TTL_MS : CHECK_TTL_MS, value: out };
   return out;
 }
 
