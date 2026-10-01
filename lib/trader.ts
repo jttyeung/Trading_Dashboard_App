@@ -8,6 +8,8 @@ import path from "node:path";
 
 export const SUGGESTIONS_PATH = path.join(process.cwd(), "data", "trade-suggestions.json");
 export const FEEDBACK_PATH = path.join(process.cwd(), "data", "trade-feedback.json");
+// "Run now": the app drops this marker; the trader runs a full pass within seconds and removes it.
+export const RUN_PATH = path.join(process.cwd(), "data", "trader-run");
 
 export type SuggestionStatus = "new" | "good" | "bad" | "done" | "skip" | "expired";
 
@@ -34,8 +36,30 @@ export interface Suggestion {
 }
 
 export interface SuggestionsFile {
-  meta: { asOf: string; interval: number; paused: boolean; ntfy: boolean; active: number; pushed: number };
+  meta: {
+    asOf: string;
+    interval: number;
+    paused: boolean;
+    ntfy: boolean;
+    active: number;
+    pushed: number;
+    /** e.g. "11:00-12:30 ET": when new puts, calls and notes are evaluated */
+    window?: string;
+    /** the last day (ET) the entry half ran */
+    entriesBuilt?: string | null;
+    lastPass?: "entries" | "closes" | "run now";
+  };
   suggestions: Suggestion[];
+}
+
+/** Ask the trader for a full pass now (any time, any day). Write-only: the marker is the request. */
+export function requestRun(): void {
+  fs.mkdirSync(path.dirname(RUN_PATH), { recursive: true });
+  fs.writeFileSync(RUN_PATH, new Date().toISOString());
+}
+
+export function runPending(): boolean {
+  return fs.existsSync(RUN_PATH);
 }
 
 export function traderPresent(): boolean {

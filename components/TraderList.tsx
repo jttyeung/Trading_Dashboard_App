@@ -89,7 +89,7 @@ export function TraderList({ initial }: { initial: Suggestion[] }) {
 
   return (
     <>
-      {live.length === 0 && <Card className="px-4 py-4 text-center text-xs text-muted">Nothing suggested right now. The trader looks every 15 minutes during the session.</Card>}
+      {live.length === 0 && <Card className="px-4 py-4 text-center text-xs text-muted">Nothing suggested right now. Closes are checked every 15 minutes; new entries once a day in the entry window, or on Run now.</Card>}
       <div className="space-y-2.5 tablet:grid tablet:grid-cols-2 tablet:gap-3 tablet:space-y-0">
         {live.map((s) => (
           <Row key={s.key} s={s} />
