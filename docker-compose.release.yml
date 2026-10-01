@@ -89,24 +89,43 @@ services:
     command:
       - |
         marker=data/update-request; status=data/update-status.json
-        report() { printf '{"status":"%s","message":%s,"updatedAt":"%s"}\n' "$$1" "$$2" "$$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$$status.tmp" && mv "$$status.tmp" "$$status"; }
-        echo "updater: watching $$(pwd)/$$marker"
+        rebuild=data/trader-rebuild; rstatus=data/trader-rebuild-status.json
+        report() { f=$$1; printf '{"status":"%s","message":%s,"updatedAt":"%s"}\n' "$$2" "$$3" "$$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$$f.tmp" && mv "$$f.tmp" "$$f"; }
+        tail3() { tail -n 3 | tr -d '"\' | tr '\n' ' '; }
+        echo "updater: watching $$(pwd)/$$marker and $$rebuild"
         while true; do
           if [ -f "$$marker" ]; then
             rm -f "$$marker"
             echo "updater: update requested"
-            report running null
+            report "$$status" running null
             # Every service except this one (recreating the updater from inside itself
             # would kill this very command part-way through) and except the optional
             # trader, which is built locally and has no image to pull.
             others=$$(docker compose config --services 2>/dev/null | grep -v -E "^(updater|trader)$$" | tr "\n" " ")
             if out=$$(docker compose pull --ignore-pull-failures $$others 2>&1) && out2=$$(docker compose up -d --no-deps $$others 2>&1); then
-              report done null
+              report "$$status" done null
               echo "updater: done"
             else
-              msg=$$(printf '%s\n%s' "$$out" "$$out2" | tail -n 3 | tr -d '"\' | tr '\n' ' ')
-              report error "\"$$msg\""
+              msg=$$(printf '%s\n%s' "$$out" "$$out2" | tail3)
+              report "$$status" error "\"$$msg\""
               echo "updater: FAILED: $$msg"
+            fi
+          fi
+          # The Trader page's "Rebuild": build the trader folder copied into this
+          # stack (./trader) and restart just that container. Nothing is fetched.
+          if [ -f "$$rebuild" ]; then
+            rm -f "$$rebuild"
+            echo "updater: trader rebuild requested"
+            report "$$rstatus" running null
+            if ! docker compose config --services 2>/dev/null | grep -qx trader; then
+              report "$$rstatus" error "\"The trader service is not in this stack (COMPOSE_FILE in .env).\""
+            elif out=$$(docker compose build trader 2>&1) && out2=$$(docker compose up -d --no-deps trader 2>&1); then
+              report "$$rstatus" done null
+              echo "updater: trader rebuilt"
+            else
+              msg=$$(printf '%s\n%s' "$$out" "$$out2" | tail3)
+              report "$$rstatus" error "\"$$msg\""
+              echo "updater: trader rebuild FAILED: $$msg"
             fi
           fi
           sleep 10

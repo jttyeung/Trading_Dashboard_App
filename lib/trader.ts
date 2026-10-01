@@ -10,6 +10,37 @@ export const SUGGESTIONS_PATH = path.join(process.cwd(), "data", "trade-suggesti
 export const FEEDBACK_PATH = path.join(process.cwd(), "data", "trade-feedback.json");
 // "Run now": the app drops this marker; the trader runs a full pass within seconds and removes it.
 export const RUN_PATH = path.join(process.cwd(), "data", "trader-run");
+// "Rebuild": the updater container builds the stack's ./trader folder and restarts
+// the trader, reporting through the status file. Same write-only contract as updates.
+export const REBUILD_PATH = path.join(process.cwd(), "data", "trader-rebuild");
+export const REBUILD_STATUS_PATH = path.join(process.cwd(), "data", "trader-rebuild-status.json");
+
+export interface RebuildStatus {
+  status: "idle" | "requested" | "running" | "done" | "error";
+  message: string | null;
+  updatedAt: string | null;
+}
+
+export function requestRebuild(): void {
+  fs.mkdirSync(path.dirname(REBUILD_PATH), { recursive: true });
+  fs.writeFileSync(REBUILD_PATH, new Date().toISOString() + "\n");
+  try {
+    fs.unlinkSync(REBUILD_STATUS_PATH); // last time's "done" must not read as this one finishing instantly
+  } catch {
+    // none on file
+  }
+}
+
+export function readRebuildStatus(): RebuildStatus {
+  let s: RebuildStatus = { status: "idle", message: null, updatedAt: null };
+  try {
+    s = { ...s, ...(JSON.parse(fs.readFileSync(REBUILD_STATUS_PATH, "utf8")) as Partial<RebuildStatus>) };
+  } catch {
+    // nothing reported yet
+  }
+  if (s.status === "idle" && fs.existsSync(REBUILD_PATH)) s = { ...s, status: "requested" };
+  return s;
+}
 
 export type SuggestionStatus = "new" | "good" | "bad" | "done" | "skip" | "expired";
 
