@@ -70,12 +70,15 @@ export interface Campaign {
   shareCostPerShare: number | null; // raw average cost of the shares held
   adjustedBasis: number | null; // shareCostPerShare − premium ÷ sharesHeld
   ifAssignedBasis: number | null; // puts stage: open put strike − premium per assignable share
-  capital: number; // peak cash tied up (put collateral + share cost)
+  capital: number; // peak cash tied up (put collateral + share cost) — what returns are measured on
+  capitalNow: number; // cash tied up today
   returnPct: number; // netPnl ÷ capital
   annualized: number;
-  openPut: CampaignLeg | null;
-  openCall: CampaignLeg | null;
-  calledAway: { strike: number; expiration: string; pnl: number; days: number } | null; // if the open call is assigned
+  openPut: CampaignLeg | null; // the nearest open put (first of openPuts)
+  openCall: CampaignLeg | null; // the lowest-strike open call (first of openCalls)
+  openPuts: CampaignLeg[];
+  openCalls: CampaignLeg[];
+  calledAway: { strikes: string; expiration: string; pnl: number; days: number } | null; // if every open call is assigned
   needsAction: string[]; // flags, never gates
   estimatedBasis: boolean;
 }
@@ -185,6 +188,44 @@ export function buildCampaigns(input: Inputs): Campaign[] {
     const underlying =
       equity?.price ?? input.options.find((o) => up(o.symbol) === sym && o.underlyingPrice)?.underlyingPrice ?? null;
 
+    // Shares written against before the history saw them arrive ("held") have no fill
+    // of their own. First pass prices them at Schwab's average cost; when the campaign
+    // still holds shares, that average is for the WHOLE holding (assigned lots
+    // included), so solve for the one held-share price that makes today's raw cost
+    // match it. Cost is linear in that price, so two probe runs give it exactly.
+    const first = simulate(sym, evs, equity, underlying, today, input.closedStocks, null);
+    const last = first[first.length - 1];
+    let result = first;
+    if (last && last.active && last.sharesHeld > 0 && equity && equity.avgCost > 0 && last.shareEvents.some((s) => s.kind === "held")) {
+      const cost = (p: number) => {
+        const c = simulate(sym, evs, equity, underlying, today, input.closedStocks, { from: last.start, price: p });
+        const l = c[c.length - 1];
+        return l && l.shareCostPerShare != null ? l.shareCostPerShare * l.sharesHeld : 0;
+      };
+      const f0 = cost(0);
+      const f1 = cost(1);
+      const p = f1 - f0 > 0 ? (equity.avgCost * last.sharesHeld - f0) / (f1 - f0) : NaN;
+      if (Number.isFinite(p) && p > 0) result = simulate(sym, evs, equity, underlying, today, input.closedStocks, { from: last.start, price: p });
+    }
+    out.push(...result);
+  }
+
+  return out.sort((a, b) => (a.active !== b.active ? (a.active ? -1 : 1) : (b.end ?? b.start).localeCompare(a.end ?? a.start)));
+}
+
+/** One symbol's campaigns from its sorted events. `heldPx` overrides the price of shares
+ *  already held when a call was written, for campaigns starting on/after `heldPx.from`. */
+function simulate(
+  sym: string,
+  evs: Ev[],
+  equity: Equity | undefined,
+  underlying: number | null,
+  today: string,
+  closedStocks: ClosedStock[],
+  heldPx: { from: string; price: number } | null,
+): Campaign[] {
+  const out: Campaign[] = [];
+  {
     // The campaign being built and the date it went flat (no legs, no shares), if it has.
     const st: { cur: Draft | null; flatSince: string | null } = { cur: null, flatSince: null };
     const finalize = () => {
@@ -204,14 +245,18 @@ export function buildCampaigns(input: Inputs): Campaign[] {
         d.openLegs.add(e.leg);
         if (e.leg.optionType === "call") {
           // A call written on shares the history never saw come in: they were held already.
-          const need = e.leg.contracts * MULT - d.shares;
+          let covered = 0;
+          for (const l of d.openLegs) if (l.optionType === "call") covered += l.contracts * MULT;
+          const need = covered - d.shares;
           if (need > 0) {
-            const cost = equity?.avgCost ?? input.closedStocks.find((s) => up(s.symbol) === sym && day(s.closedAt) >= e.date)?.avgOpen;
-            const price = cost && cost > 0 ? cost : e.leg.strike;
+            const solved = heldPx && d.start >= heldPx.from ? heldPx.price : null;
+            const cost = solved ?? equity?.avgCost ?? closedStocks.find((s) => up(s.symbol) === sym && day(s.closedAt) >= e.date)?.avgOpen;
+            const price = cost != null && cost >= 0 ? cost : e.leg.strike;
+            const guessed = solved == null && !(cost != null && cost > 0);
             d.shares += need;
             d.shareCost += need * price;
-            d.shareEvents.push({ date: e.date, kind: "held", shares: need, price, estimated: !(cost && cost > 0) });
-            if (!(cost && cost > 0)) d.estimated = true;
+            d.shareEvents.push({ date: e.date, kind: "held", shares: need, price, estimated: guessed });
+            if (guessed) d.estimated = true;
           }
         }
       } else if (st.cur) {
@@ -256,12 +301,21 @@ export function buildCampaigns(input: Inputs): Campaign[] {
         d.shareEvents.push({ date: today, kind: "sold", shares: q, price: px, estimated: true });
         d.estimated = true;
         if (d.openLegs.size === 0 && d.shares <= 0) st.flatSince = st.flatSince ?? today;
+      } else if (d.shares > 0 && held > d.shares) {
+        // The wheel holds shares and the account has more of them than the history
+        // explains (bought outright, never written against): they're part of the holding.
+        const q = held - d.shares;
+        const solved = heldPx && d.start >= heldPx.from ? heldPx.price : null;
+        const price = solved ?? equity!.avgCost;
+        const date = evs[evs.length - 1]?.date ?? today;
+        d.shares += q;
+        d.shareCost += q * price;
+        d.shareEvents.push({ date, kind: "held", shares: q, price });
       }
       finalize();
     }
   }
-
-  return out.sort((a, b) => (a.active !== b.active ? (a.active ? -1 : 1) : (b.end ?? b.start).localeCompare(a.end ?? a.start)));
+  return out;
 }
 
 interface Draft {
@@ -308,8 +362,8 @@ function finish(d: Draft, symbol: string, flatSince: string | null, price: numbe
   const shareUnrealized = d.shares > 0 && price != null ? (price - shareCostPerShare!) * d.shares : 0;
   const sharePnl = d.shareRealized + shareUnrealized;
   const netPnl = premium - openCost + sharePnl;
-  const openPut = open.find((l) => l.optionType === "put") ?? null;
-  const openCall = open.find((l) => l.optionType === "call") ?? null;
+  const openPut = open.filter((l) => l.optionType === "put").sort((a, b) => a.expiration.localeCompare(b.expiration))[0] ?? null;
+  const openCall = open.filter((l) => l.optionType === "call").sort((a, b) => a.strike - b.strike)[0] ?? null;
   const adjustedBasis = d.shares > 0 ? shareCostPerShare! - premium / d.shares : null;
   const putShares = open.filter((l) => l.optionType === "put").reduce((s, l) => s + l.contracts * MULT, 0);
   const ifAssignedBasis = d.shares === 0 && openPut && putShares > 0 ? openPut.strike - premium / putShares : null;
@@ -330,22 +384,37 @@ function finish(d: Draft, symbol: string, flatSince: string | null, price: numbe
         ? "shares-sold"
         : "put-only";
 
+  // Every open call assigned at its strike (lowest strikes take the shares first);
+  // shares no call covers stay at today's price.
+  const openCalls = open.filter((l) => l.optionType === "call").sort((a, b) => a.strike - b.strike);
+  const openPuts = open.filter((l) => l.optionType === "put").sort((a, b) => a.expiration.localeCompare(b.expiration));
   let calledAway: Campaign["calledAway"] = null;
-  if (openCall && d.shares > 0 && shareCostPerShare != null) {
-    const q = Math.min(d.shares, openCall.contracts * MULT);
-    const rest = d.shares - q;
-    const pnl = premium + d.shareRealized + (openCall.strike - shareCostPerShare) * q + (price != null ? (price - shareCostPerShare) * rest : 0);
-    calledAway = { strike: openCall.strike, expiration: openCall.expiration, pnl, days: Math.max(1, daysBetween(d.start, openCall.expiration)) };
+  if (openCalls.length && d.shares > 0 && shareCostPerShare != null) {
+    let left = d.shares;
+    let pnl = premium + d.shareRealized;
+    for (const l of openCalls) {
+      const q = Math.min(left, l.contracts * MULT);
+      pnl += (l.strike - shareCostPerShare) * q;
+      left -= q;
+    }
+    if (price != null) pnl += (price - shareCostPerShare) * left;
+    const expiration = openCalls.reduce((m, l) => (l.expiration > m ? l.expiration : m), openCalls[0].expiration);
+    const strikes = [...new Set(openCalls.map((l) => `$${l.strike}`))].join(" / ");
+    calledAway = { strikes, expiration, pnl, days: Math.max(1, daysBetween(d.start, expiration)) };
   }
 
   const needsAction: string[] = [];
   if (stage === "shares") needsAction.push("No call open on the shares");
   if (adjustedBasis != null && price != null && price < adjustedBasis) needsAction.push("Below adjusted basis");
-  if (openCall && adjustedBasis != null && openCall.strike < adjustedBasis) needsAction.push("Call strike under adjusted basis");
-  for (const l of open) {
-    const cap = l.mark != null && l.credit > 0 ? 1 - (l.mark * MULT * l.contracts) / l.credit : 0;
-    if (cap >= CLOSE_AT) needsAction.push(`${l.optionType === "put" ? "Put" : "Call"} at ${Math.round(cap * 100)}% — close at 50%`);
+  if (adjustedBasis != null && openCalls.some((l) => l.strike < adjustedBasis)) needsAction.push("Call strike under adjusted basis");
+  // Close-at-50% is a PUT rule (the wheel study's exit_mode 1). Covered calls are only
+  // written where expiring or being called away is fine, so they run to expiration.
+  for (const l of openPuts) {
+    const cap = legCaptured(l);
+    if (cap >= CLOSE_AT) needsAction.push(`Put $${l.strike} ${Math.round(cap * 100)}% captured — close`);
   }
+  // Cash committed right now: open put collateral + the shares' raw cost.
+  const capitalNow = collateral(d) + (d.shares > 0 ? d.shareCost : 0);
 
   return {
     id: `${symbol}-${d.start}`,
@@ -369,6 +438,9 @@ function finish(d: Draft, symbol: string, flatSince: string | null, price: numbe
     adjustedBasis,
     ifAssignedBasis,
     capital: d.capital,
+    capitalNow,
+    openPuts,
+    openCalls,
     returnPct,
     annualized: (returnPct * 365) / days,
     openPut,

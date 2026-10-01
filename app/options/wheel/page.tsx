@@ -57,7 +57,7 @@ export default async function WheelCampaignsPage({ searchParams }: { searchParam
         />
 
         <div className="mt-3 grid grid-cols-3 gap-2">
-          <Stat label="Active" value={active.length} sub={<Amt>{`${fmtMoney(sum(active, (c) => c.capital))} tied up`}</Amt>} />
+          <Stat label="Active" value={active.length} sub={<Amt>{`${fmtMoney(sum(active, (c) => c.capitalNow))} tied up`}</Amt>} />
           <Stat label="Premium" value={<Amt>{fmtMoney(sum(active, (c) => c.premium))}</Amt>} sub="active" />
           <Stat
             label="Net P/L"

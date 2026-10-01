@@ -60,11 +60,23 @@ export function shortDate(iso: string): string {
   return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 }
 
+/** "44% captured", or for a leg now worth more than its credit "32% over credit". */
+export function capturedText(l: CampaignLeg): string {
+  const n = Math.round(legCaptured(l) * 100);
+  return n >= 0 ? `${n}% captured` : `${-n}% over credit`;
+}
+
+/** A per-share basis that the premium has pushed to (or below) zero. */
+export function basisText(n: number): string {
+  return n > 0 ? px(n) : "$0 · premium covers it";
+}
+
 function footer(c: Campaign): string {
-  const open = c.openCall ?? c.openPut;
-  if (c.active && open) {
+  const legs = c.sharesHeld > 0 ? [...c.openCalls, ...c.openPuts] : [...c.openPuts, ...c.openCalls];
+  if (c.active && legs.length) {
     const shares = c.sharesHeld > 0 ? `${c.sharesHeld} sh · ` : "";
-    return `${shares}${legLabel(open)} · ${Math.round(legCaptured(open) * 100)}% captured`;
+    const more = legs.length > 1 ? ` · +${legs.length - 1} more` : "";
+    return `${shares}${legLabel(legs[0])} · ${capturedText(legs[0])}${more}`;
   }
   if (c.active) return `${c.sharesHeld} sh · avg ${px(c.shareCostPerShare ?? 0)}`;
   return `${shortDate(c.start)} → ${shortDate(c.end ?? c.start)} · ${c.legs.length} leg${c.legs.length === 1 ? "" : "s"}`;
@@ -74,7 +86,7 @@ function footer(c: Campaign): string {
 export function CampaignCard({ c }: { c: Campaign }) {
   const basisLabel = c.adjustedBasis != null ? "Adj. basis" : c.ifAssignedBasis != null ? "If assigned" : "Return";
   const basisValue =
-    c.adjustedBasis != null ? px(c.adjustedBasis) : c.ifAssignedBasis != null ? px(c.ifAssignedBasis) : `${pct(c.returnPct)}`;
+    c.adjustedBasis != null ? basisText(c.adjustedBasis) : c.ifAssignedBasis != null ? basisText(c.ifAssignedBasis) : `${pct(c.returnPct)}`;
   return (
     <Link href={`/options/wheel/${encodeURIComponent(c.id)}`} className="block active:opacity-80">
       <Card className="p-3.5">
@@ -132,7 +144,7 @@ export function CampaignRow({ c }: { c: Campaign }) {
         </div>
         <div className="tabular mt-0.5 truncate text-[11px] text-muted">
           <Amt>{fmtMoney(c.premium)}</Amt> premium
-          {c.adjustedBasis != null && <> · basis {px(c.adjustedBasis)}</>}
+          {c.adjustedBasis != null && <> · basis {basisText(c.adjustedBasis)}</>}
           {c.needsAction.length > 0 && <span className="text-orange-300"> · {c.needsAction[0]}</span>}
         </div>
       </div>
