@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { WHEEL_CAMPAIGNS } from "@/lib/features";
 import { BackLink, PageHeader, Stat } from "@/components/ui";
 import { Amt, ShowAmounts } from "@/components/privacy";
 import { AccountSwitcher } from "@/components/AccountSwitcher";
@@ -13,6 +15,7 @@ export const dynamic = "force-dynamic";
 type View = "active" | "closed" | "action";
 
 export default async function WheelCampaignsPage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
+  if (!WHEEL_CAMPAIGNS) notFound(); // parked; see lib/features.ts
   const { view: v } = await searchParams;
   const view: View = v === "closed" || v === "action" ? v : "active";
   const snap = await getSnapshot();

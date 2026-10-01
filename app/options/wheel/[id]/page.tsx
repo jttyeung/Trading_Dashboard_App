@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { WHEEL_CAMPAIGNS } from "@/lib/features";
 import { BackLink, Card, PageHeader, SectionTitle } from "@/components/ui";
 import { Amt, ShowAmounts } from "@/components/privacy";
 import { Signed, StageChip, basisText, capturedText, legLabel, pct, px, shortDate } from "@/components/WheelCampaigns";
@@ -129,6 +131,7 @@ function NextStep({ c, quotes }: { c: Campaign; quotes: { dte: number; strike: n
 }
 
 export default async function CampaignPage({ params }: { params: Promise<{ id: string }> }) {
+  if (!WHEEL_CAMPAIGNS) notFound(); // parked; see lib/features.ts
   const { id: raw } = await params;
   const cid = decodeURIComponent(raw);
   const snap = await getSnapshot();
