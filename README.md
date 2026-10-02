@@ -36,7 +36,8 @@ built-in demo dataset, so you can explore the whole UI immediately.
   the daemon is unreachable. Hold any ticker anywhere in the app for 1.8 seconds to open it there
 - **Financials under the chart** — loaded with the same search: quarterly/annual revenue,
   net income and net margin, a revenue → net income waterfall, debt vs free cash flow vs cash,
-  and the last four quarters of EPS actual vs estimate. Served by `/api/financials`, which
+  the last four quarters of EPS actual vs estimate, and P/E over the chart's two years (each
+  close over the trailing-year EPS already filed that day, against its own 2-year median). Served by `/api/financials`, which
   proxies the daemon's `/financials` (the company's own SEC filings via EDGAR, EPS from
   Finnhub); the daemon needs `SEC_USER_AGENT` set. No Yahoo fallback: with the daemon down the
   panel says so. ETFs, indexes and 20-F filers show a "no SEC filings" note.
