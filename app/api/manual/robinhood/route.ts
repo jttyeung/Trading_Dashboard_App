@@ -11,7 +11,9 @@ import { fetchRobinhood, findRobinhood } from "@/lib/robinhood-link";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  return Response.json({ available: (await findRobinhood()) !== null });
+  // A page load is a deliberate look: skip a remembered miss so the button shows
+  // as soon as the Robinhood app is up, rather than ten minutes later.
+  return Response.json({ available: (await findRobinhood(true)) !== null });
 }
 
 export async function POST() {

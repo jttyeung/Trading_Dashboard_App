@@ -83,7 +83,9 @@ export async function findRobinhood(fresh = false): Promise<string | null> {
   const now = Date.now();
   if (cache && now - cache.at < (cache.url ? HIT_MS : MISS_MS) && !(fresh && !cache.url)) return cache.url;
   const all = candidates();
-  const results = await Promise.all(all.map((u) => read(u, 1500)));
+  // A refused connection returns at once; a live Robinhood app on a Pi can take a
+  // few seconds to answer a cold route, so the wait is for the answer, not the refusal.
+  const results = await Promise.all(all.map((u) => read(u, 6000)));
   const url = all[results.findIndex((r) => r !== null)] ?? null;
   cache = { url, at: now };
   return url;
