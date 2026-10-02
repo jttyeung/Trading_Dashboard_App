@@ -18,6 +18,7 @@ export interface QuantParams {
   closeAtPct: number; // close a put once this % of the credit is captured
   maxPerTicker: number; // of buying power (0.10 = 10%)
   tickerBand: number; // stretch allowed for one more contract (0.05 = 5%)
+  vixMargin: boolean; // size against the VIX-scaled margin allowance (0 under 20, 5% per 5 points, cap 35%)
 }
 
 /** Combo 87 v2 with 0.75Δ LEAPS: the backtest's best. */
@@ -30,10 +31,13 @@ export const STUDY_DEFAULTS: QuantParams = {
   closeAtPct: 50,
   maxPerTicker: 0.1,
   tickerBand: 0.05,
+  vixMargin: true,
 };
 
+type NumericKey = Exclude<keyof QuantParams, "vixMargin">;
+
 // Sane ranges, so a typo can't ask the bridge for 400% a month or a 900-day put.
-const RANGES: Record<keyof QuantParams, [number, number]> = {
+const RANGES: Record<NumericKey, [number, number]> = {
   targetYield: [0.005, 0.2],
   yieldDays: [7, 90],
   maxDelta: [0.05, 0.6],
@@ -46,7 +50,7 @@ const RANGES: Record<keyof QuantParams, [number, number]> = {
 
 export function validateQuantParams(raw: Partial<Record<keyof QuantParams, unknown>>): { params?: QuantParams; error?: string } {
   const out = { ...STUDY_DEFAULTS };
-  for (const key of Object.keys(RANGES) as (keyof QuantParams)[]) {
+  for (const key of Object.keys(RANGES) as NumericKey[]) {
     const v = raw[key];
     if (v === undefined || v === null || v === "") continue;
     const n = Number(v);
@@ -54,6 +58,7 @@ export function validateQuantParams(raw: Partial<Record<keyof QuantParams, unkno
     if (!Number.isFinite(n) || n < lo || n > hi) return { error: `${key} must be between ${lo} and ${hi}.` };
     out[key] = key === "yieldDays" || key === "expMin" || key === "expMax" || key === "closeAtPct" ? Math.round(n) : n;
   }
+  if (raw.vixMargin !== undefined && raw.vixMargin !== null) out.vixMargin = raw.vixMargin === true || raw.vixMargin === "true" || raw.vixMargin === 1;
   if (out.expMin > out.expMax) return { error: "The shortest expiry can't be after the longest." };
   return { params: out };
 }

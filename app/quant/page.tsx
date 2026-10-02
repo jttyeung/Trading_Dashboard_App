@@ -154,7 +154,12 @@ export default async function QuantPage({ searchParams }: { searchParams: Promis
   const { account, data } = await getSelectedAccount(snap);
   const scan = getQuantScan(example);
   const vix = getVixSnapshot(example)?.inputs.vix ?? null;
-  const cap = quantCapacity(data, vix);
+  // The rule's variables: the study's unless changed in Settings (the gear). The
+  // scan on file may predate a change; the trader keeps the study's rule regardless.
+  const settings = example ? { params: STUDY_DEFAULTS, custom: false } : readQuantSettings();
+  const P = settings.params;
+  // With the VIX margin allowance off, capacity is cash-secured only.
+  const cap = quantCapacity(data, P.vixMargin ? vix : null);
 
   // The Brief's screen (trend, VRP, IV rank, liquidity) scores the same names.
   // Where a pick is on the board, its score orders the list; the yield is the
@@ -178,11 +183,10 @@ export default async function QuantPage({ searchParams }: { searchParams: Promis
   const picks = (skipEarnings ? inBand.filter((r) => !r.erInWindow) : inBand).sort(byScore);
   const earningsSkipped = (skipEarnings ? inBand.filter((r) => r.erInWindow) : []).sort(byScore);
   const misses = scan ? scan.rows.filter((r) => !r.pick) : [];
-  // The rule's variables: the study's unless changed in Settings (the gear). The
-  // scan on file may predate a change; the trader keeps the study's rule regardless.
-  const settings = example ? { params: STUDY_DEFAULTS, custom: false } : readQuantSettings();
-  const P = settings.params;
-  const scanStale = !!scan && !example && JSON.stringify({ ...STUDY_DEFAULTS, ...scan.meta.params }) !== JSON.stringify(P);
+  // Settings that reach the bridge (the VIX toggle is this page's alone): stale when the scan on file used other values.
+  const bridgeKeys = ["targetYield", "yieldDays", "maxDelta", "expMin", "expMax", "closeAtPct", "maxPerTicker", "tickerBand"] as const;
+  const scanParams = (scan?.meta.params ?? {}) as Partial<Record<(typeof bridgeKeys)[number], number>>;
+  const scanStale = !!scan && !example && bridgeKeys.some((k) => scanParams[k] !== undefined && scanParams[k] !== P[k]);
   const fits = new Map(qualifying.map((r) => [r.sym, scan ? quantFit(r, data, cap, P) : null]));
   const asOf = scan ? new Date(scan.meta.asOf) : null;
   const view = { earnings, cap: band.key, sort: sortBy };
@@ -217,7 +221,7 @@ export default async function QuantPage({ searchParams }: { searchParams: Promis
             <li>· Sell the <span className="text-text">lowest-delta</span> put paying <span className="text-text">≥ {(P.targetYield * 100).toFixed(1).replace(/\.0$/, "")}% of the strike per {P.yieldDays} days</span> (at the mid), never above <span className="text-text">{P.maxDelta} delta</span>.</li>
             <li>· Any expiration <span className="text-text">{P?.expMin ?? 28}–{P?.expMax ?? 45} days</span> out; ties go to the higher yield. Skip the name if nothing pays.</li>
             <li>· <span className="text-text">Close at {P?.closeAtPct ?? 50}%</span> of the credit, even late in the put&apos;s life. Take assignment; buy a ~0.75Δ LEAPS on it.</li>
-            <li>· Up to <span className="text-text">{P ? Math.round(P.maxPerTicker * 100) : 10}% of buying power per name</span> (a {P ? Math.round((P.maxPerTicker + P.tickerBand) * 100) : 15}% stretch allocation lets one more contract on when a name is under its cap). Margin allowance scales with the VIX: 0 under 20, then 5% per 5 points, capped at 35%.</li>
+            <li>· Up to <span className="text-text">{P ? Math.round(P.maxPerTicker * 100) : 10}% of buying power per name</span> (a {P ? Math.round((P.maxPerTicker + P.tickerBand) * 100) : 15}% stretch allocation lets one more contract on when a name is under its cap). {P.vixMargin ? "Margin allowance scales with the VIX: 0 under 20, then 5% per 5 points, capped at 35%." : "VIX margin allowance off: cash-secured only (the study used the allowance)."}</li>
           </ul>
         </Card>
 
@@ -230,7 +234,7 @@ export default async function QuantPage({ searchParams }: { searchParams: Promis
             <div><span className="text-muted">Collateral</span> <Amt>{money0(cap.putObligations)}</Amt> <span className="text-muted">CSPs + spread risk</span></div>
             <div><span className="text-muted">Per-name cap</span> <Amt>{money0((P?.maxPerTicker ?? 0.1) * cap.buyingPower)}</Amt></div>
             <div className="col-span-2 sm:col-span-4 text-muted">
-              VIX {vix != null ? vix.toFixed(1) : "—"} → margin allowance {Math.round(cap.margin * 100)}% · buying power <Amt>{money0(cap.buyingPower)}</Amt>
+              VIX {vix != null ? vix.toFixed(1) : "—"} → margin allowance {P.vixMargin ? `${Math.round(cap.margin * 100)}%` : "off (Settings)"} · buying power <Amt>{money0(cap.buyingPower)}</Amt>
             </div>
           </div>
         </Card>

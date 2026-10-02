@@ -7,6 +7,7 @@ import { getVixSnapshot } from "@/lib/vix-data";
 import { getQuantScan } from "@/lib/quant";
 import { checkPortfolio, type QuantAction, type Urgency } from "@/lib/quant-portfolio";
 import { fmtMoney } from "@/lib/calc";
+import { readQuantSettings } from "@/lib/quant-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +50,9 @@ export default async function QuantPortfolioPage() {
   const { account, data } = await getSelectedAccount(snap);
   const vix = getVixSnapshot(example)?.inputs.vix ?? null;
   const scan = getQuantScan(example);
-  const check = checkPortfolio(data, vix, scan);
+  // The Quant scan's Settings toggle for the VIX margin allowance applies here too.
+  const vixMargin = example ? true : readQuantSettings().params.vixMargin;
+  const check = checkPortfolio(data, vixMargin ? vix : null, scan);
   const cap = check.capacity;
   const total = check.actions.length;
 
@@ -69,7 +72,7 @@ export default async function QuantPortfolioPage() {
           </div>
           <ul className="mt-2 space-y-1 text-xs text-muted">
             <li>· Close a short put at <span className="text-text">50% of its credit</span>, however much life is left.</li>
-            <li>· Every put <span className="text-text">cash-secured</span>; the margin allowance follows the VIX (0 under 20, 5% per 5 points, cap 35%).</li>
+            <li>· Every put <span className="text-text">cash-secured</span>; {vixMargin ? "the margin allowance follows the VIX (0 under 20, 5% per 5 points, cap 35%)." : "the VIX margin allowance is off (Quant scan → Settings), so cash only."}</li>
             <li>· No name over <span className="text-text">10% of buying power</span>; a 15% stretch allocation lets one more contract on when a name is under its cap.</li>
             <li>· On shares: sell a <span className="text-text">7–21 day call at or above cost</span>, the furthest strike still paying 0.5% of basis a week; hold with no call if none does.</li>
             <li>· On shares: hold a <span className="text-text">~0.75Δ LEAPS ~450 days out</span> per 100 shares; sell it when they&apos;re called away or inside 90 days. (0.75 beat 0.60 by about 2 points a year across every period tested.)</li>
@@ -85,7 +88,7 @@ export default async function QuantPortfolioPage() {
             <div><span className="text-muted">Collateral</span> <Amt>{fmtMoney(cap.putObligations)}</Amt> <span className="text-muted">CSPs + spread risk</span></div>
             <div><span className="text-muted">Committed</span> <Amt>{fmtMoney(cap.committedTotal)}</Amt> <span className="text-muted">({cap.totalValue ? Math.round((cap.committedTotal / cap.totalValue) * 100) : 0}%)</span></div>
             <div className="col-span-2 text-muted sm:col-span-4">
-              VIX {vix != null ? vix.toFixed(1) : "—"} → margin allowance {Math.round(cap.margin * 100)}% · buying power <Amt>{fmtMoney(cap.buyingPower)}</Amt> · per-name cap <Amt>{fmtMoney(0.1 * cap.buyingPower)}</Amt>
+              VIX {vix != null ? vix.toFixed(1) : "—"} → margin allowance {vixMargin ? `${Math.round(cap.margin * 100)}%` : "off"} · buying power <Amt>{fmtMoney(cap.buyingPower)}</Amt> · per-name cap <Amt>{fmtMoney(0.1 * cap.buyingPower)}</Amt>
             </div>
           </div>
         </Card>

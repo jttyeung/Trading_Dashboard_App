@@ -8,7 +8,8 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { QuantParams } from "@/lib/quant-settings";
 
-type Field = { key: keyof QuantParams; label: string; hint: string; scale: number; step: number; min: number; max: number };
+type NumericKey = Exclude<keyof QuantParams, "vixMargin">;
+type Field = { key: NumericKey; label: string; hint: string; scale: number; step: number; min: number; max: number };
 const FIELDS: Field[] = [
   { key: "targetYield", label: "Target yield", hint: "% of the strike per yield period", scale: 100, step: 0.5, min: 0.5, max: 20 },
   { key: "yieldDays", label: "Yield period", hint: "days the yield is scaled to", scale: 1, step: 1, min: 7, max: 90 },
@@ -23,12 +24,16 @@ const FIELDS: Field[] = [
 export function QuantSettings({ current, defaults, custom, demo = false }: { current: QuantParams; defaults: QuantParams; custom: boolean; demo?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [vals, setVals] = useState<Record<keyof QuantParams, string>>(() => toForm(current));
+  const [vals, setVals] = useState<Record<NumericKey, string>>(() => toForm(current));
+  const [vixMargin, setVixMargin] = useState<boolean>(current.vixMargin);
   const [busy, setBusy] = useState<"save" | "scan" | "reset" | null>(null);
   const [msg, setMsg] = useState("");
   const box = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => setVals(toForm(current)), [current]);
+  useEffect(() => {
+    setVals(toForm(current));
+    setVixMargin(current.vixMargin);
+  }, [current]);
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
@@ -38,11 +43,11 @@ export function QuantSettings({ current, defaults, custom, demo = false }: { cur
     return () => document.removeEventListener("mousedown", onDown);
   }, [open]);
 
-  function toForm(p: QuantParams): Record<keyof QuantParams, string> {
-    return Object.fromEntries(FIELDS.map((f) => [f.key, String(round(p[f.key] * f.scale))])) as Record<keyof QuantParams, string>;
+  function toForm(p: QuantParams): Record<NumericKey, string> {
+    return Object.fromEntries(FIELDS.map((f) => [f.key, String(round(p[f.key] * f.scale))])) as Record<NumericKey, string>;
   }
-  function fromForm(): Partial<Record<keyof QuantParams, number>> {
-    return Object.fromEntries(FIELDS.map((f) => [f.key, Number(vals[f.key]) / f.scale])) as Partial<Record<keyof QuantParams, number>>;
+  function fromForm(): Partial<Record<keyof QuantParams, number | boolean>> {
+    return { ...(Object.fromEntries(FIELDS.map((f) => [f.key, Number(vals[f.key]) / f.scale])) as Partial<Record<NumericKey, number>>), vixMargin };
   }
 
   async function send(body: Record<string, unknown>, kind: "save" | "scan" | "reset") {
@@ -110,6 +115,15 @@ export function QuantSettings({ current, defaults, custom, demo = false }: { cur
               </label>
             ))}
           </div>
+          <label className="mt-3 flex items-start gap-2 text-[11px]">
+            <input type="checkbox" checked={vixMargin} onChange={(e) => setVixMargin(e.target.checked)} className="mt-0.5" />
+            <span>
+              <span className="text-text">Follow the VIX margin allowance</span>
+              <span className="block text-[10px] text-muted">
+                Size against buying power that grows with the VIX: nothing under 20, 5% per 5 points, capped at 35%. Off, every account is cash-secured only. Study: on.
+              </span>
+            </span>
+          </label>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <button onClick={() => send({ params: fromForm() }, "save")} disabled={busy !== null} className="rounded-full bg-sky-500/15 px-3 py-1.5 text-xs font-medium text-sky-300 ring-1 ring-inset ring-sky-500/30 disabled:opacity-50">
               {busy === "save" ? "Saving…" : "Save"}
