@@ -67,7 +67,10 @@ export function OptionsTypeView({
   const [status, setStatus] = usePersistentState<Status>("options-status", initialStatus, statusFromUrl);
   const [cspFilter, setCspFilter] = useState<CspFilter | null>(initialCspFilter ?? null);
   const [cashBucket, setCashBucket] = useState<number | null>(null);
-  const [sort, setSort] = usePersistentState<Sort>("options-sort", type === "csp" ? { key: "yr", dir: "asc" } : { key: "value", dir: "desc" });
+  // CSPs open sorted by % of the premium captured, most first (the close-at-50%
+  // candidates at the top). The storage key moved so a sort saved under the old
+  // default (annualized, ascending) doesn't keep the new one from taking effect.
+  const [sort, setSort] = usePersistentState<Sort>("options-sort-v2", type === "csp" ? { key: "plpct", dir: "desc" } : { key: "value", dir: "desc" });
   const onSort = (key: string) => {
     setSort((s) => nextSort(s, key, type === "csp" ? CSP_DEFAULT_DIR : LEAP_DEFAULT_DIR));
   };
