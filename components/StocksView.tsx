@@ -193,7 +193,7 @@ export function StocksView({ equities, closed, initialStatus = "open", statusFro
                         <span className={`flex items-center gap-1 truncate font-semibold ${ccOpportunity ? "text-emerald-300" : ""}`}>
                           <span className="text-[9px] text-muted">{isOpen ? "▾" : "▸"}</span>
                           {e.symbol}
-                          <AccountTag label={e.account} />
+                          <AccountTag label={e.account} index={e.accountIndex} />
                           {ccOpportunity && (
                             <span
                               title="A covered call above your cost basis is available and none is written yet"

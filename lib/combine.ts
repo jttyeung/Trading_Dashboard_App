@@ -49,7 +49,7 @@ function mergeEquities(parts: Equity[][]): Equity[] {
       cur.bbSigma = cur.bbSigma ?? e.bbSigma;
       cur.priceHistory = cur.priceHistory ?? e.priceHistory;
       cur.dayChange = cur.dayChange ?? e.dayChange;
-      if (e.account && cur.account && !cur.account.split(" + ").includes(e.account)) cur.account = ` + `;
+      if (e.account && cur.account && !cur.account.split(" + ").includes(e.account)) cur.account = `${cur.account} + ${e.account}`;
     }
   }
   return [...bySymbol.values()].map((row) => {
@@ -100,7 +100,7 @@ export function combineAccountData(parts: AccountData[], labels: string[] = []):
   // Each position remembers which account it came from, so the merged view can
   // say so on the row. Shares of one symbol held in two accounts merge into one
   // row that names both.
-  const tag = <T extends { account?: string }>(xs: T[], i: number): T[] => (labels[i] ? xs.map((x) => ({ ...x, account: labels[i] }) as T) : xs);
+  const tag = <T extends { account?: string }>(xs: T[], i: number): T[] => (labels[i] ? xs.map((x) => ({ ...x, account: labels[i], accountIndex: i }) as T) : xs);
   return {
     summary: sumSummaries(parts.map((p) => p.summary)),
     equities: mergeEquities(parts.map((p, i) => tag(p.equities, i))),

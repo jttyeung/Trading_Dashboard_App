@@ -121,7 +121,7 @@ function SpreadRow({ sp, real, sim }: { sp: Spread; real?: Spread; sim?: boolean
         className={`${SPREAD_COLS} w-full px-3 py-2.5 text-left text-[11px] active:bg-surface-2`}
       >
         <div className="min-w-0">
-          <div className="flex items-center truncate font-semibold">{sp.symbol}<AccountTag label={sp.short.account} /></div>
+          <div className="flex items-center truncate font-semibold">{sp.symbol}<AccountTag label={sp.short.account} index={sp.short.accountIndex} /></div>
           <div className="truncate text-[10px] text-muted">
             ${sp.shortStrike}/${sp.longStrike} · ×{sp.qty}
           </div>

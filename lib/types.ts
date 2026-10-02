@@ -29,6 +29,7 @@ export interface Equity {
   avgCost: number; // average cost per share
   price: number; // latest close per share
   account?: string; // Combined View only: the account(s) these shares sit in (label; "A + B" when merged)
+  accountIndex?: number; // Combined View only: the account's position in the combined set, which picks its marker colour
   dayChange?: number | null; // per-share $ move today (vs prior close), for Top Movers
   coveredCalls?: CoveredCallQuote[]; // ~30Δ call premiums at 1–4 week tenors (holdings ≥100 sh)
   bbSigma?: number | null; // current price's σ from its 20-day mean (−2 = lower band)
@@ -106,6 +107,7 @@ export interface OptionPosition {
   openedAt?: string; // ISO date the position was opened (held positions only)
   erDate?: string | null; // next earnings date (ISO) for the underlying, if known
   account?: string; // Combined View only: the account this position came from (its label)
+  accountIndex?: number; // Combined View only: the account's position in the combined set, which picks its marker colour
 }
 
 export interface ValuePoint {
