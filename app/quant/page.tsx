@@ -7,6 +7,7 @@ import { readQuantSettings, STUDY_DEFAULTS } from "@/lib/quant-settings";
 import { getSnapshot } from "@/lib/snapshot";
 import { getSelectedAccount } from "@/lib/account";
 import { getVixSnapshot } from "@/lib/vix-data";
+import { assessVix } from "@/lib/vix";
 import { getQuantScan, quantCapacity, quantFit, type QuantFit, type QuantRow, type QuantScan } from "@/lib/quant";
 import { cspEarningsFlag, fmtMoney } from "@/lib/calc";
 import { getAmReport } from "@/lib/am-report";
@@ -153,13 +154,18 @@ export default async function QuantPage({ searchParams }: { searchParams: Promis
   const example = snap.meta.source === "example";
   const { account, data } = await getSelectedAccount(snap);
   const scan = getQuantScan(example);
-  const vix = getVixSnapshot(example)?.inputs.vix ?? null;
+  const vixSnap = getVixSnapshot(example);
+  const vix = vixSnap?.inputs.vix ?? null;
   // The rule's variables: the study's unless changed in Settings (the gear). The
   // scan on file may predate a change; the trader keeps the study's rule regardless.
   const settings = example ? { params: STUDY_DEFAULTS, custom: false } : readQuantSettings();
   const P = settings.params;
-  // With the VIX margin allowance off, capacity is cash-secured only.
-  const cap = quantCapacity(data, P.vixMargin ? vix : null);
+  // With the VIX margin allowance off, capacity is cash-secured only. With the VIX
+  // cash allocation on, the VIX page's reserve for today's band is held back.
+  const rawCap = quantCapacity(data, P.vixMargin ? vix : null);
+  const reservePct = P.vixCash && vixSnap ? assessVix(vixSnap).targetReservePct : 0;
+  const reserve = reservePct * rawCap.totalValue;
+  const cap = reserve > 0 ? { ...rawCap, freeCash: Math.max(0, rawCap.freeCash - reserve) } : rawCap;
 
   // The Brief's screen (trend, VRP, IV rank, liquidity) scores the same names.
   // Where a pick is on the board, its score orders the list; the yield is the
@@ -235,6 +241,11 @@ export default async function QuantPage({ searchParams }: { searchParams: Promis
             <div><span className="text-muted">Per-name cap</span> <Amt>{money0((P?.maxPerTicker ?? 0.1) * cap.buyingPower)}</Amt></div>
             <div className="col-span-2 sm:col-span-4 text-muted">
               VIX {vix != null ? vix.toFixed(1) : "—"} → margin allowance {P.vixMargin ? `${Math.round(cap.margin * 100)}%` : "off (Settings)"} · buying power <Amt>{money0(cap.buyingPower)}</Amt>
+              {reserve > 0 && (
+                <>
+                  {" "}· VIX cash reserve {Math.round(reservePct * 100)}% (<Amt>{money0(reserve)}</Amt>) held back
+                </>
+              )}
             </div>
           </div>
         </Card>

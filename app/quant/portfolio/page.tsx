@@ -8,6 +8,7 @@ import { getQuantScan } from "@/lib/quant";
 import { checkPortfolio, type QuantAction, type Urgency } from "@/lib/quant-portfolio";
 import { fmtMoney } from "@/lib/calc";
 import { readQuantSettings } from "@/lib/quant-settings";
+import { assessVix } from "@/lib/vix";
 
 export const dynamic = "force-dynamic";
 
@@ -48,11 +49,13 @@ export default async function QuantPortfolioPage() {
   const snap = await getSnapshot();
   const example = snap.meta.source === "example";
   const { account, data } = await getSelectedAccount(snap);
-  const vix = getVixSnapshot(example)?.inputs.vix ?? null;
+  const vixSnap = getVixSnapshot(example);
+  const vix = vixSnap?.inputs.vix ?? null;
   const scan = getQuantScan(example);
-  // The Quant scan's Settings toggle for the VIX margin allowance applies here too.
-  const vixMargin = example ? true : readQuantSettings().params.vixMargin;
-  const check = checkPortfolio(data, vixMargin ? vix : null, scan);
+  // The Quant scan's Settings toggles (VIX margin allowance, VIX cash allocation) apply here too.
+  const { vixMargin, vixCash } = example ? { vixMargin: true, vixCash: false } : readQuantSettings().params;
+  const reservePct = vixCash && vixSnap ? assessVix(vixSnap).targetReservePct : 0;
+  const check = checkPortfolio(data, vixMargin ? vix : null, scan, reservePct);
   const cap = check.capacity;
   const total = check.actions.length;
 
@@ -89,6 +92,7 @@ export default async function QuantPortfolioPage() {
             <div><span className="text-muted">Committed</span> <Amt>{fmtMoney(cap.committedTotal)}</Amt> <span className="text-muted">({cap.totalValue ? Math.round((cap.committedTotal / cap.totalValue) * 100) : 0}%)</span></div>
             <div className="col-span-2 text-muted sm:col-span-4">
               VIX {vix != null ? vix.toFixed(1) : "—"} → margin allowance {vixMargin ? `${Math.round(cap.margin * 100)}%` : "off"} · buying power <Amt>{fmtMoney(cap.buyingPower)}</Amt> · per-name cap <Amt>{fmtMoney(0.1 * cap.buyingPower)}</Amt>
+              {reservePct > 0 && <> · VIX cash reserve {Math.round(reservePct * 100)}% held back</>}
             </div>
           </div>
         </Card>

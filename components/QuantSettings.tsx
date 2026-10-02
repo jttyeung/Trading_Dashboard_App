@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { QuantParams } from "@/lib/quant-settings";
 
-type NumericKey = Exclude<keyof QuantParams, "vixMargin">;
+type NumericKey = Exclude<keyof QuantParams, "vixMargin" | "vixCash">;
 type Field = { key: NumericKey; label: string; hint: string; scale: number; step: number; min: number; max: number };
 const FIELDS: Field[] = [
   { key: "targetYield", label: "Target yield", hint: "% of the strike per yield period", scale: 100, step: 0.5, min: 0.5, max: 20 },
@@ -26,6 +26,7 @@ export function QuantSettings({ current, defaults, custom, demo = false }: { cur
   const [open, setOpen] = useState(false);
   const [vals, setVals] = useState<Record<NumericKey, string>>(() => toForm(current));
   const [vixMargin, setVixMargin] = useState<boolean>(current.vixMargin);
+  const [vixCash, setVixCash] = useState<boolean>(current.vixCash);
   const [busy, setBusy] = useState<"save" | "scan" | "reset" | null>(null);
   const [msg, setMsg] = useState("");
   const box = useRef<HTMLDivElement | null>(null);
@@ -33,6 +34,7 @@ export function QuantSettings({ current, defaults, custom, demo = false }: { cur
   useEffect(() => {
     setVals(toForm(current));
     setVixMargin(current.vixMargin);
+    setVixCash(current.vixCash);
   }, [current]);
   useEffect(() => {
     if (!open) return;
@@ -47,7 +49,7 @@ export function QuantSettings({ current, defaults, custom, demo = false }: { cur
     return Object.fromEntries(FIELDS.map((f) => [f.key, String(round(p[f.key] * f.scale))])) as Record<NumericKey, string>;
   }
   function fromForm(): Partial<Record<keyof QuantParams, number | boolean>> {
-    return { ...(Object.fromEntries(FIELDS.map((f) => [f.key, Number(vals[f.key]) / f.scale])) as Partial<Record<NumericKey, number>>), vixMargin };
+    return { ...(Object.fromEntries(FIELDS.map((f) => [f.key, Number(vals[f.key]) / f.scale])) as Partial<Record<NumericKey, number>>), vixMargin, vixCash };
   }
 
   async function send(body: Record<string, unknown>, kind: "save" | "scan" | "reset") {
@@ -121,6 +123,15 @@ export function QuantSettings({ current, defaults, custom, demo = false }: { cur
               <span className="text-text">Follow the VIX margin allowance</span>
               <span className="block text-[10px] text-muted">
                 Size against buying power that grows with the VIX: nothing under 20, 5% per 5 points, capped at 35%. Off, every account is cash-secured only. Study: on.
+              </span>
+            </span>
+          </label>
+          <label className="mt-2 flex items-start gap-2 text-[11px]">
+            <input type="checkbox" checked={vixCash} onChange={(e) => setVixCash(e.target.checked)} className="mt-0.5" />
+            <span>
+              <span className="text-text">Follow the VIX cash allocation</span>
+              <span className="block text-[10px] text-muted">
+                Hold back the VIX page&apos;s cash reserve (the band for today&apos;s VIX) from what the scan can deploy. Study: off, fully deployed whatever the VIX.
               </span>
             </span>
           </label>

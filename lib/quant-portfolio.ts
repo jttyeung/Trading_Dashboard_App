@@ -55,8 +55,11 @@ function bySymbol<T extends { symbol: string }>(xs: T[]): Map<string, T[]> {
   return m;
 }
 
-export function checkPortfolio(data: AccountData, vix: number | null, scan: QuantScan | null): PortfolioCheck {
-  const cap = quantCapacity(data, vix);
+export function checkPortfolio(data: AccountData, vix: number | null, scan: QuantScan | null, reservePct = 0): PortfolioCheck {
+  // reservePct: the VIX page's cash reserve held back from deployable cash (the
+  // Quant scan's "follow the VIX cash allocation" setting; 0 = the study's way).
+  const rawCap = quantCapacity(data, vix);
+  const cap = reservePct > 0 ? { ...rawCap, freeCash: Math.max(0, rawCap.freeCash - reservePct * rawCap.totalValue) } : rawCap;
   const actions: QuantAction[] = [];
   const compliant: string[] = [];
   // Cash-secured puts only: a spread's short leg is managed as a spread, and is

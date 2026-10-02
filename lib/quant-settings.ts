@@ -19,6 +19,7 @@ export interface QuantParams {
   maxPerTicker: number; // of buying power (0.10 = 10%)
   tickerBand: number; // stretch allowed for one more contract (0.05 = 5%)
   vixMargin: boolean; // size against the VIX-scaled margin allowance (0 under 20, 5% per 5 points, cap 35%)
+  vixCash: boolean; // hold back the VIX framework's cash reserve (the band on the VIX page) from deployable cash
 }
 
 /** Combo 87 v2 with 0.75Δ LEAPS: the backtest's best. */
@@ -32,9 +33,10 @@ export const STUDY_DEFAULTS: QuantParams = {
   maxPerTicker: 0.1,
   tickerBand: 0.05,
   vixMargin: true,
+  vixCash: false, // the study ran with VIX sizing off: fully deployed whatever the VIX
 };
 
-type NumericKey = Exclude<keyof QuantParams, "vixMargin">;
+type NumericKey = Exclude<keyof QuantParams, "vixMargin" | "vixCash">;
 
 // Sane ranges, so a typo can't ask the bridge for 400% a month or a 900-day put.
 const RANGES: Record<NumericKey, [number, number]> = {
@@ -58,7 +60,9 @@ export function validateQuantParams(raw: Partial<Record<keyof QuantParams, unkno
     if (!Number.isFinite(n) || n < lo || n > hi) return { error: `${key} must be between ${lo} and ${hi}.` };
     out[key] = key === "yieldDays" || key === "expMin" || key === "expMax" || key === "closeAtPct" ? Math.round(n) : n;
   }
-  if (raw.vixMargin !== undefined && raw.vixMargin !== null) out.vixMargin = raw.vixMargin === true || raw.vixMargin === "true" || raw.vixMargin === 1;
+  const flag = (v: unknown) => v === true || v === "true" || v === 1;
+  if (raw.vixMargin !== undefined && raw.vixMargin !== null) out.vixMargin = flag(raw.vixMargin);
+  if (raw.vixCash !== undefined && raw.vixCash !== null) out.vixCash = flag(raw.vixCash);
   if (out.expMin > out.expMax) return { error: "The shortest expiry can't be after the longest." };
   return { params: out };
 }
