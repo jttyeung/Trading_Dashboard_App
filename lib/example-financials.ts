@@ -67,6 +67,15 @@ export function exampleFinancials(symbol: string): Financials {
     return { period: p.end, year: p.fiscalYear, quarter: p.fiscalQuarter, estimate, actual: estimate * (i === 2 ? 0.8 : 1.05 + rand() * 0.1) };
   });
 
+  // Scaled off the same base price exampleChartData starts from, so the demo
+  // P/E lands in the twenties rather than at a random multiple.
+  const chartSeed = symbol.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+  const baseEps = (40 + (chartSeed % 200)) / 24;
+  const ttmEps = ["2024-03-31", "2024-06-30", ...QUARTER_ENDS].map((end, i) => {
+    const filed = new Date(Date.parse(`${end}T00:00:00Z`) + 35 * 864e5).toISOString().slice(0, 10);
+    return { end, filed, eps: Math.round(baseEps * (1 + i * 0.03 + (rand() - 0.5) * 0.08) * 100) / 100 };
+  });
+
   return {
     symbol,
     entityName: `${symbol} Example Corp`,
@@ -76,6 +85,7 @@ export function exampleFinancials(symbol: string): Financials {
     annual,
     waterfall: { label: last.label, end: last.end, revenue, costOfRevenue, grossProfit, operatingExpenses, operatingIncome, nonOperating, taxesAndOther, netIncome },
     eps,
+    ttmEps,
     nextEarnings: { date: "2026-10-28", hour: "amc" },
     concepts: {},
     fetchedAt: new Date().toISOString(),
