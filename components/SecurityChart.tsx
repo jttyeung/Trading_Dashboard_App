@@ -23,6 +23,8 @@ import {
 } from "lightweight-charts";
 import { Card } from "@/components/ui";
 import { fetchChart, type ChartData } from "@/lib/chart-api";
+import { fetchFinancials, type Financials } from "@/lib/financials";
+import { FinancialsPanel } from "@/components/FinancialsPanel";
 
 const UP_COLOR = "#34d399";
 const DOWN_COLOR = "#f87171";
@@ -52,6 +54,13 @@ export function SecurityChart({ watchlist, initialSymbol }: { watchlist: string[
   const [data, setData] = useState<ChartData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // Keyed by the symbol it answers, so a new search reads as loading until its
+  // own answer lands, without resetting state inside the effect.
+  const [financials, setFinancials] = useState<{
+    symbol: string;
+    data: Financials | { unavailable: string } | null;
+    error: string | null;
+  } | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -83,6 +92,25 @@ export function SecurityChart({ watchlist, initialSymbol }: { watchlist: string[
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSymbol]);
+
+  // Financials load alongside the chart, not after it: same trigger, separate
+  // request, so a slow first EDGAR download never holds up the candles and a
+  // ticker with no filings still charts.
+  useEffect(() => {
+    if (!activeSymbol) return;
+    let cancelled = false;
+    const symbol = activeSymbol;
+    fetchFinancials(symbol)
+      .then((data) => {
+        if (!cancelled) setFinancials({ symbol, data, error: null });
+      })
+      .catch((e) => {
+        if (!cancelled) setFinancials({ symbol, data: null, error: e instanceof Error ? e.message : String(e) });
       });
     return () => {
       cancelled = true;
@@ -331,6 +359,13 @@ export function SecurityChart({ watchlist, initialSymbol }: { watchlist: string[
           <div ref={containerRef} />
         </Card>
       )}
+
+      {activeSymbol &&
+        (financials?.symbol === activeSymbol ? (
+          <FinancialsPanel data={financials.data} error={financials.error} loading={false} />
+        ) : (
+          <FinancialsPanel data={null} error={null} loading />
+        ))}
 
       {!data && !loading && !error && (
         <Card className="mt-1 px-4 py-8 text-center text-sm text-muted">
