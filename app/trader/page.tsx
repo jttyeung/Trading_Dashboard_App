@@ -38,10 +38,11 @@ export default async function TraderPage() {
           <TraderRunButton />
         </div>
         <Card className="mt-3 px-4 py-3 text-[11px] leading-relaxed text-muted">
-          Stage 1: suggestions only. The trader checks puts for the 50% close every 15 minutes all session, and once a day in the{" "}
-          {m?.window ?? "11:00–12:30 ET"} window (the backtest traded at 11:00 ET) it re-runs the Quant scan and suggests every new put,
-          covered call and note the rules allow. <span className="text-emerald-300">Run now</span> does a full pass any time, any day.
-          Anything new goes to your phone and is logged here. Mark each one <span className="text-emerald-300">good</span> or{" "}
+          Stage 1: suggestions only. For every account{m?.accounts?.length ? ` (${m.accounts.join(", ")})` : ""} the trader checks puts
+          for the 50% close every 15 minutes all session, and at the top of each entry hour ({m?.window ?? "11:00–15:00 ET hourly"}) it
+          re-runs the Quant scan and suggests every new put, covered call and note the rules allow.{" "}
+          <span className="text-emerald-300">Run now</span> does a full pass any time, any day. Anything new goes to your phone, named
+          for its account, and is logged here. Mark each one <span className="text-emerald-300">good</span> or{" "}
           <span className="text-rose-300">bad</span> as you review, <span className="text-sky-300">placed it</span> if you traded it
           yourself, or <span className="text-text">skip</span> to stop the reminders. That record is what decides when the next stage —
           placing orders after your approval — is ready. Nothing here places a trade.

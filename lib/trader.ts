@@ -33,6 +33,8 @@ export interface Suggestion {
   pushedAt?: string;
   expiredAt?: string;
   accountId?: string;
+  /** the account's label, as the notification named it */
+  account?: string;
 }
 
 export interface SuggestionsFile {
@@ -43,8 +45,10 @@ export interface SuggestionsFile {
     ntfy: boolean;
     active: number;
     pushed: number;
-    /** e.g. "11:00-12:30 ET": when new puts, calls and notes are evaluated */
+    /** e.g. "11:00–15:00 ET hourly": when new puts, calls and notes are evaluated */
     window?: string;
+    slots?: number[];
+    accounts?: string[];
     /** the last day (ET) the entry half ran */
     entriesBuilt?: string | null;
     lastPass?: "entries" | "closes" | "run now";

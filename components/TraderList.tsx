@@ -52,6 +52,7 @@ export function TraderList({ initial }: { initial: Suggestion[] }) {
       <div className="flex items-baseline justify-between gap-3">
         <div className="min-w-0">
           <span className={`mr-1.5 inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium ring-1 ring-inset ${KIND_CLS[s.kind]}`}>{KIND_LABEL[s.kind]}</span>
+          {s.account && <span className="mr-1.5 inline-flex rounded bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium text-muted ring-1 ring-inset ring-border">{s.account}</span>}
           <span className="text-sm font-semibold" data-ticker={s.symbol !== "—" ? s.symbol : undefined}>{s.title}</span>
         </div>
         {s.amount != null && (
@@ -89,7 +90,7 @@ export function TraderList({ initial }: { initial: Suggestion[] }) {
 
   return (
     <>
-      {live.length === 0 && <Card className="px-4 py-4 text-center text-xs text-muted">Nothing suggested right now. Closes are checked every 15 minutes; new entries once a day in the entry window, or on Run now.</Card>}
+      {live.length === 0 && <Card className="px-4 py-4 text-center text-xs text-muted">Nothing suggested right now. Closes are checked every 15 minutes; new entries at the top of each entry hour, or on Run now.</Card>}
       <div className="space-y-2.5 tablet:grid tablet:grid-cols-2 tablet:gap-3 tablet:space-y-0">
         {live.map((s) => (
           <Row key={s.key} s={s} />
