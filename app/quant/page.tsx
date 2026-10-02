@@ -193,14 +193,14 @@ export default async function QuantPage({ searchParams }: { searchParams: Promis
         <PageHeader
           title="Quant CSP scan"
           subtitle={scan ? `${scan.meta.qualifying} of ${scan.meta.universe} approved names pay the target · ${asOf?.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}` : "No scan yet"}
-          right={
-            <div className="flex items-center gap-2">
-              <QuantSettings current={P} defaults={STUDY_DEFAULTS} custom={settings.custom} demo={example} />
-              <QuantScanButton demo={example} />
-              <BackLink />
-            </div>
-          }
+          right={<BackLink />}
         />
+
+        {/* Actions on their own row: three buttons beside the title squeezed it to one word a line on a phone. */}
+        <div className="mt-3 flex items-center justify-end gap-2">
+          <QuantSettings current={P} defaults={STUDY_DEFAULTS} custom={settings.custom} demo={example} />
+          <QuantScanButton demo={example} />
+        </div>
 
         {/* The rule, in one card, so nobody has to trust the list blind. */}
         <Card className="mt-3 px-4 py-3">
