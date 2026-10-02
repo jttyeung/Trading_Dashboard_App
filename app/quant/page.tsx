@@ -2,6 +2,8 @@ import Link from "next/link";
 import { BackLink, Card, PageHeader, Pill, SectionTitle } from "@/components/ui";
 import { Amt, ShowAmounts } from "@/components/privacy";
 import { QuantScanButton } from "@/components/QuantScanButton";
+import { QuantSettings } from "@/components/QuantSettings";
+import { readQuantSettings, STUDY_DEFAULTS } from "@/lib/quant-settings";
 import { getSnapshot } from "@/lib/snapshot";
 import { getSelectedAccount } from "@/lib/account";
 import { getVixSnapshot } from "@/lib/vix-data";
@@ -176,8 +178,12 @@ export default async function QuantPage({ searchParams }: { searchParams: Promis
   const picks = (skipEarnings ? inBand.filter((r) => !r.erInWindow) : inBand).sort(byScore);
   const earningsSkipped = (skipEarnings ? inBand.filter((r) => r.erInWindow) : []).sort(byScore);
   const misses = scan ? scan.rows.filter((r) => !r.pick) : [];
-  const fits = new Map(qualifying.map((r) => [r.sym, scan ? quantFit(r, data, cap, scan.meta.params) : null]));
-  const P = scan?.meta.params;
+  // The rule's variables: the study's unless changed in Settings (the gear). The
+  // scan on file may predate a change; the trader keeps the study's rule regardless.
+  const settings = example ? { params: STUDY_DEFAULTS, custom: false } : readQuantSettings();
+  const P = settings.params;
+  const scanStale = !!scan && !example && JSON.stringify({ ...STUDY_DEFAULTS, ...scan.meta.params }) !== JSON.stringify(P);
+  const fits = new Map(qualifying.map((r) => [r.sym, scan ? quantFit(r, data, cap, P) : null]));
   const asOf = scan ? new Date(scan.meta.asOf) : null;
   const view = { earnings, cap: band.key, sort: sortBy };
 
@@ -189,6 +195,7 @@ export default async function QuantPage({ searchParams }: { searchParams: Promis
           subtitle={scan ? `${scan.meta.qualifying} of ${scan.meta.universe} approved names pay the target · ${asOf?.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}` : "No scan yet"}
           right={
             <div className="flex items-center gap-2">
+              <QuantSettings current={P} defaults={STUDY_DEFAULTS} custom={settings.custom} demo={example} />
               <QuantScanButton demo={example} />
               <BackLink />
             </div>
@@ -197,12 +204,17 @@ export default async function QuantPage({ searchParams }: { searchParams: Promis
 
         {/* The rule, in one card, so nobody has to trust the list blind. */}
         <Card className="mt-3 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <Pill className="shrink-0 whitespace-nowrap bg-emerald-500/10 text-emerald-300 ring-emerald-500/20">The rule</Pill>
-            <span className="text-[11px] text-muted">from the wheel backtests, 2022–2026 + 2023 hold-out</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <Pill className={`shrink-0 whitespace-nowrap ${settings.custom ? "bg-amber-500/10 text-amber-300 ring-amber-500/20" : "bg-emerald-500/10 text-emerald-300 ring-emerald-500/20"}`}>
+              {settings.custom ? "Your rule" : "The rule"}
+            </Pill>
+            <span className="text-[11px] text-muted">
+              {settings.custom ? "changed from the study's values in Settings; the trader keeps the study's rule" : "from the wheel backtests, 2022–2026 + 2023 hold-out"}
+            </span>
+            {scanStale && <span className="text-[11px] text-amber-300">· the scan on file used other values — press Scan now</span>}
           </div>
           <ul className="mt-2 space-y-1 text-xs text-muted">
-            <li>· Sell the <span className="text-text">lowest-delta</span> put paying <span className="text-text">≥ {P ? (P.targetYield * 100).toFixed(0) : 4}% of the strike per {P?.yieldDays ?? 30} days</span> (at the mid), never above <span className="text-text">{P?.maxDelta ?? 0.35} delta</span>.</li>
+            <li>· Sell the <span className="text-text">lowest-delta</span> put paying <span className="text-text">≥ {(P.targetYield * 100).toFixed(1).replace(/\.0$/, "")}% of the strike per {P.yieldDays} days</span> (at the mid), never above <span className="text-text">{P.maxDelta} delta</span>.</li>
             <li>· Any expiration <span className="text-text">{P?.expMin ?? 28}–{P?.expMax ?? 45} days</span> out; ties go to the higher yield. Skip the name if nothing pays.</li>
             <li>· <span className="text-text">Close at {P?.closeAtPct ?? 50}%</span> of the credit, even late in the put&apos;s life. Take assignment; buy a ~0.75Δ LEAPS on it.</li>
             <li>· Up to <span className="text-text">{P ? Math.round(P.maxPerTicker * 100) : 10}% of buying power per name</span> (a {P ? Math.round((P.maxPerTicker + P.tickerBand) * 100) : 15}% stretch allocation lets one more contract on when a name is under its cap). Margin allowance scales with the VIX: 0 under 20, then 5% per 5 points, capped at 35%.</li>
