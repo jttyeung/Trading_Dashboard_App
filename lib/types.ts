@@ -777,6 +777,11 @@ export interface Alert {
   // delta <=0.15, target strike at a real support level) -- see
   // internal/agents/tracker/roll_up.go's rollUpConviction.
   rollUpConviction: number;
+  // Which account(s) hold the contract, by nickname, never by number --
+  // comma-separated when the same contract is held in several (see
+  // internal/agents/tracker/accounts.go). "" from an alerts.json written
+  // before the field existed.
+  accountLabel: string;
   evaluatedAt: string;
 }
 
