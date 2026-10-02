@@ -462,6 +462,7 @@ export const exampleAlertsFile: AlertsFile = {
       rollToDelta: null,
       rollToNetCredit: null,
       rollUpConviction: 0,
+      accountLabel: "Brokerage",
       evaluatedAt: NOW_ISO,
     },
     {
@@ -485,6 +486,7 @@ export const exampleAlertsFile: AlertsFile = {
       rollToDelta: 0.42,
       rollToNetCredit: 41.82,
       rollUpConviction: 0,
+      accountLabel: "Roth IRA",
       evaluatedAt: NOW_ISO,
     },
     {
@@ -508,6 +510,7 @@ export const exampleAlertsFile: AlertsFile = {
       rollToDelta: null,
       rollToNetCredit: null,
       rollUpConviction: 0,
+      accountLabel: "Rollover IRA",
       evaluatedAt: NOW_ISO,
     },
     {
@@ -534,6 +537,7 @@ export const exampleAlertsFile: AlertsFile = {
       rollToDelta: 0.33,
       rollToNetCredit: 0.61,
       rollUpConviction: 3,
+      accountLabel: "HSA, Roth IRA",
       evaluatedAt: NOW_ISO,
     },
   ],
