@@ -101,6 +101,23 @@ export function upsertAccount(input: { id?: string; label: string; cash: number 
   return acct;
 }
 
+/** Create-or-update under a fixed id (an import that must land in the same account every time). */
+export function ensureAccount(id: string, label: string, cash: number): ManualAccount {
+  const doc = readManualFile();
+  const now = new Date().toISOString();
+  let acct = doc.accounts.find((a) => a.id === id);
+  if (acct) {
+    acct.label = label;
+    acct.cash = cash;
+    acct.updatedAt = now;
+  } else {
+    acct = { id, label, cash, positions: [], updatedAt: now };
+    doc.accounts.push(acct);
+  }
+  writeManualFile(doc);
+  return acct;
+}
+
 /** Set an account's cash balance (from a form edit or an import's cash row). */
 export function setAccountCash(id: string, cash: number): ManualAccount | null {
   const doc = readManualFile();
