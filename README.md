@@ -34,6 +34,12 @@ built-in demo dataset, so you can explore the whole UI immediately.
   daemon's chart API first (Schwab bars, live walls for any ticker; `CHART_API_URL`, default
   `http://localhost:8092`) and falls back to Yahoo Finance with walls for held names only when
   the daemon is unreachable. Hold any ticker anywhere in the app for 1.8 seconds to open it there
+- **Financials under the chart** — loaded with the same search: quarterly/annual revenue,
+  net income and net margin, a revenue → net income waterfall, debt vs free cash flow vs cash,
+  and the last four quarters of EPS actual vs estimate. Served by `/api/financials`, which
+  proxies the daemon's `/financials` (the company's own SEC filings via EDGAR, EPS from
+  Finnhub); the daemon needs `SEC_USER_AGENT` set. No Yahoo fallback: with the daemon down the
+  panel says so. ETFs, indexes and 20-F filers show a "no SEC filings" note.
 - **Portfolio risk** — theta ceiling, sector concentration against a per-sector cap, beta vs
   QQQ, and an open-P&L floor, all across every account. Sector buckets (with the tickers behind
   each) come from the daemon's `data/portfolio-risk.json`; sectors are the wheel watchlist
