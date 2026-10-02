@@ -10,9 +10,9 @@
 // Dependency-free SVG like components/charts.tsx. Each chart uses a fixed
 // viewBox scaled uniformly (no preserveAspectRatio="none"), so SVG text stays
 // undistorted and positions can be shared with the HTML tooltip as percentages.
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Card } from "@/components/ui";
-import type { Financials, FinancialPeriod } from "@/lib/financials";
+import { peSeries, type Financials, type FinancialPeriod, type PEPoint } from "@/lib/financials";
 
 // Categorical slots 1-3 of the dataviz reference palette, dark steps, checked
 // with its validator against --surface (#121826): all pairs pass CVD and
@@ -463,9 +463,110 @@ function Eps({ eps }: { eps: NonNullable<Financials["eps"]> }) {
   );
 }
 
-export function FinancialsPanel({ data, error, loading }: { data: Financials | { unavailable: string } | null; error: string | null; loading: boolean }) {
+function fmtX(v: number | null | undefined): string {
+  return v == null ? "—" : `${v.toFixed(1)}×`;
+}
+
+function fmtMonth(iso: string): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  return `${d.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" })} '${String(d.getUTCFullYear()).slice(2)}`;
+}
+
+// Daily P/E over the chart's own two years of closes. One line on its own
+// axis, a dashed line at its median over the same window (the screening
+// checklist judges P/E against the stock's own history, not a flat ceiling).
+// Median, not mean: one impairment quarter sends GAAP P/E into the hundreds
+// for a year (GLW late 2024: ~300× on $0.18 TTM EPS), which pulled its mean
+// to 106× while it spent most of the window near 75×,
+// and a crosshair tooltip. The axis is capped at 3× the median so a quarter
+// of near-zero earnings (P/E in the thousands) doesn't flatten the rest.
+function PERatio({ points }: { points: PEPoint[] }) {
+  const [hover, setHover] = useState<number | null>(null);
+  const vals = points.map((p) => p.pe).filter((v): v is number => v != null);
+  if (vals.length === 0) {
+    return <p className="px-1 py-6 text-center text-[11px] text-muted">No P/E: trailing earnings were zero or negative over this window.</p>;
+  }
+  const sorted = [...vals].sort((a, b) => a - b);
+  const median = sorted[Math.floor(sorted.length / 2)];
+  const rawMax = sorted[sorted.length - 1];
+  const cap = median * 3;
+  const capped = rawMax > cap;
+  const { ticks, y } = niceScale([capped ? cap : rawMax, sorted[0]], false);
+  const top = ticks[ticks.length - 1];
+  const yc = (v: number) => y(Math.min(v, top));
+  const n = points.length;
+  const x = (i: number) => PAD.left + (PLOT_W * i) / Math.max(n - 1, 1);
+
+  let d = "";
+  points.forEach((p, i) => {
+    if (p.pe == null) return;
+    d += `${d && points[i - 1]?.pe != null ? "L" : "M"}${x(i).toFixed(1)},${yc(p.pe).toFixed(1)}`;
+  });
+  const labelIdx = [0, 1, 2, 3].map((k) => Math.round(((n - 1) * k) / 3));
+  const h = hover != null ? points[hover] : null;
+  const xPct = hover != null ? (x(hover) / W) * 100 : 0;
+
+  return (
+    <div className="relative">
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        className="w-full touch-none"
+        role="img"
+        aria-label="Price to earnings ratio over time"
+        onPointerMove={(e) => {
+          const r = e.currentTarget.getBoundingClientRect();
+          const sx = ((e.clientX - r.left) / r.width) * W;
+          setHover(Math.max(0, Math.min(n - 1, Math.round(((sx - PAD.left) / PLOT_W) * (n - 1)))));
+        }}
+        onPointerLeave={() => setHover(null)}
+      >
+        <Axis ticks={ticks} y={y} fmt={(v) => `${v.toFixed(0)}×`} />
+        <line x1={PAD.left} x2={W - PAD.right} y1={y(median)} y2={y(median)} stroke={AXIS} strokeWidth={1} strokeDasharray="3 3" />
+        <path d={d} fill="none" stroke={BLUE} strokeWidth={2} strokeLinejoin="round" />
+        {labelIdx.map((i) => (
+          <text key={i} x={x(i)} y={H - 5} textAnchor={i === 0 ? "start" : i === n - 1 ? "end" : "middle"} fontSize={8.5} fill={AXIS}>
+            {fmtMonth(points[i].date)}
+          </text>
+        ))}
+        {h && (
+          <g>
+            <line x1={x(hover!)} x2={x(hover!)} y1={PAD.top} y2={PAD.top + PLOT_H} stroke={AXIS} strokeWidth={0.6} />
+            {h.pe != null && <circle cx={x(hover!)} cy={yc(h.pe)} r={4} fill={BLUE} stroke="#121826" strokeWidth={2} />}
+          </g>
+        )}
+      </svg>
+      {h && (
+        <div
+          className="pointer-events-none absolute top-1 z-10 min-w-[130px] rounded-md border border-border bg-surface-2 px-2 py-1.5 text-[11px] shadow-lg"
+          style={xPct > 50 ? { right: `${100 - xPct + 3}%` } : { left: `${xPct + 3}%` }}
+        >
+          <div className="mb-0.5 font-medium text-text">{h.date}</div>
+          <Row color={BLUE} label="P/E" value={h.pe == null ? "n/a" : fmtX(h.pe)} />
+          <Row label="Close" value={`$${h.close.toFixed(2)}`} />
+          <Row label="TTM EPS" value={fmtEps(h.ttmEps)} />
+        </div>
+      )}
+      {capped && <p className="px-1 text-[10px] text-muted">Axis capped at {fmtX(top)}; peak was {fmtX(rawMax)}.</p>}
+    </div>
+  );
+}
+
+export function FinancialsPanel({
+  data,
+  error,
+  loading,
+  prices,
+}: {
+  data: Financials | { unavailable: string } | null;
+  error: string | null;
+  loading: boolean;
+  // The chart's own daily closes, so P/E uses the exact prices drawn above.
+  prices: { dates: string[]; close: number[] } | null;
+}) {
   const [perfFreq, setPerfFreq] = useState<"annual" | "quarterly">("quarterly");
   const [debtFreq, setDebtFreq] = useState<"annual" | "quarterly">("quarterly");
+  const ttm = data && "ttmEps" in data ? data.ttmEps : null;
+  const pe = useMemo(() => (prices && ttm?.length ? peSeries(prices.dates, prices.close, ttm) : null), [prices, ttm]);
 
   if (loading && !data) {
     return <Card className="mt-3 px-4 py-6 text-center text-xs text-muted">Loading financials…</Card>;
@@ -478,6 +579,12 @@ export function FinancialsPanel({ data, error, loading }: { data: Financials | {
     return <Card className="mt-3 px-4 py-4 text-xs text-muted">Financials: {data.unavailable}</Card>;
   }
 
+  const latestPE = pe ? [...pe].reverse().find((p) => p.ttmEps != null) : undefined;
+  const peVals = pe?.map((p) => p.pe).filter((v): v is number => v != null) ?? [];
+  const peMedian = peVals.length ? [...peVals].sort((a, b) => a - b)[Math.floor(peVals.length / 2)] : null;
+  const peNote = latestPE
+    ? `Now ${latestPE.pe == null ? "n/a" : fmtX(latestPE.pe)} · 2y median ${fmtX(peMedian)} (dashed) · TTM EPS ${fmtEps(latestPE.ttmEps)}`
+    : "Daily close ÷ trailing-year EPS as filed";
   const pick = (f: "annual" | "quarterly") => (f === "annual" ? data.annual : data.quarterly) ?? [];
   const next = data.nextEarnings
     ? `Next earnings ${data.nextEarnings.date}${data.nextEarnings.hour ? ` (${data.nextEarnings.hour})` : ""}`
@@ -497,6 +604,9 @@ export function FinancialsPanel({ data, error, loading }: { data: Financials | {
           <Legend items={[{ label: "Total", color: BLUE }, { label: "Adds", color: AQUA }, { label: "Subtracts", color: ORANGE }]} />
         </Panel>
         <Debt periods={pick(debtFreq)} freq={debtFreq} setFreq={setDebtFreq} />
+        <Panel title="P/E ratio" note={peNote}>
+          {pe ? <PERatio points={pe} /> : <p className="px-1 py-6 text-center text-[11px] text-muted">{prices ? "No EPS in this company's filings." : "Waiting for the chart's prices…"}</p>}
+        </Panel>
         <Panel title="Earnings per share" note={next ?? "Last four quarters · no forward estimates on the free data tier"}>
           {data.eps && data.eps.length > 0 ? <Eps eps={data.eps} /> : <Empty />}
           <Legend items={[{ label: "Actual (beat)", color: AQUA }, { label: "Actual (miss)", color: ORANGE }, { label: "Estimate", color: AXIS, ring: true }]} />
