@@ -98,6 +98,13 @@ export function SecurityChart({ watchlist, initialSymbol }: { watchlist: string[
     };
   }, [activeSymbol]);
 
+  // Only once the chart in hand is for the same ticker: right after a new
+  // search, `data` still holds the previous symbol's closes.
+  const chartPrices = useMemo(
+    () => (data && data.symbol === activeSymbol ? { dates: data.dates, close: data.close } : null),
+    [data, activeSymbol],
+  );
+
   // Financials load alongside the chart, not after it: same trigger, separate
   // request, so a slow first EDGAR download never holds up the candles and a
   // ticker with no filings still charts.
@@ -362,9 +369,9 @@ export function SecurityChart({ watchlist, initialSymbol }: { watchlist: string[
 
       {activeSymbol &&
         (financials?.symbol === activeSymbol ? (
-          <FinancialsPanel data={financials.data} error={financials.error} loading={false} />
+          <FinancialsPanel data={financials.data} error={financials.error} loading={false} prices={chartPrices} />
         ) : (
-          <FinancialsPanel data={null} error={null} loading />
+          <FinancialsPanel data={null} error={null} loading prices={null} />
         ))}
 
       {!data && !loading && !error && (
