@@ -232,10 +232,10 @@ export function AlertsPanel({ alerts }: { alerts: Alert[] }) {
                 >
                   ✓
                 </button>
-                <div className="flex flex-1 items-center gap-2">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
                   <span className="text-sm font-semibold">{a.ticker}</span>
-                  <span className="text-[11px] text-muted">
-                    ${a.strike} {a.putCall} · {a.dte}d
+                  <span className="truncate text-[11px] text-muted" title={a.accountLabel || undefined}>
+                    ${a.strike} {a.putCall} · {a.dte}d{a.accountLabel && ` · ${a.accountLabel}`}
                   </span>
                 </div>
                 {a.action === "roll_up" && <ConvictionDots conviction={a.rollUpConviction} />}
