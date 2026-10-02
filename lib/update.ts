@@ -5,8 +5,11 @@
 //   pulls both images.
 //
 //   * NOTICING. The image carries the commit it was built from (BUILD_SHA, set by
-//     the publish workflow). Every five hours the app asks GitHub for the most recent
-//     successful publish on main and compares. Anonymous, read-only, one request.
+//     the publish workflow). Every five hours the app asks the registry (GHCR) what
+//     build the "latest" image carries and compares. Anonymous, read-only, and not
+//     subject to GitHub's 60-requests-an-hour API limit, which a home address shared
+//     by several machines used to run into. GitHub's API is only asked for the list
+//     of changes, once, when something new has been published.
 //
 //   * APPLYING. A container cannot replace itself, so the dashboard only drops a
 //     marker file into its own data/ folder. The `updater` service in the release
@@ -59,29 +62,70 @@ function explain(r: Response): string {
   return `GitHub answered ${r.status}`;
 }
 
+// The published image, asked directly. The registry has no 60-an-hour limit, and
+// the image carries the commit it was built from (ENV BUILD_SHA, set by the
+// publish workflow), so four small requests say whether "latest" is this build:
+// token → the latest tag's index → one platform's manifest → its config blob.
+const REGISTRY = "https://ghcr.io";
+const IMAGE = "justintimefordinner-lang/portfolio-dashboard";
+const ACCEPT = [
+  "application/vnd.oci.image.index.v1+json",
+  "application/vnd.docker.distribution.manifest.list.v2+json",
+  "application/vnd.oci.image.manifest.v1+json",
+  "application/vnd.docker.distribution.manifest.v2+json",
+].join(", ");
+
+async function latestPublished(): Promise<{ sha: string; createdAt: string | null }> {
+  const tokenRes = await fetch(`${REGISTRY}/token?scope=repository:${IMAGE}:pull`, { cache: "no-store" });
+  if (!tokenRes.ok) throw new Error(`registry answered ${tokenRes.status}`);
+  const token = ((await tokenRes.json()) as { token?: string }).token;
+  if (!token) throw new Error("registry gave no token");
+  const get = async (p: string) => {
+    const r = await fetch(`${REGISTRY}/v2/${IMAGE}/${p}`, { headers: { Authorization: `Bearer ${token}`, Accept: ACCEPT }, cache: "no-store" });
+    if (!r.ok) throw new Error(`registry answered ${r.status}`);
+    return r.json() as Promise<Record<string, unknown>>;
+  };
+  let manifest = await get("manifests/latest");
+  const list = manifest.manifests as { digest: string; platform?: { os?: string; architecture?: string } }[] | undefined;
+  if (Array.isArray(list) && list.length) {
+    const pick = list.find((m) => m.platform?.architecture === "arm64" && m.platform?.os === "linux") ?? list.find((m) => m.platform?.os !== "unknown") ?? list[0];
+    manifest = await get(`manifests/${pick.digest}`);
+  }
+  const configDigest = (manifest.config as { digest?: string } | undefined)?.digest;
+  if (!configDigest) throw new Error("image has no config");
+  const cfg = await get(`blobs/${configDigest}`);
+  const env = ((cfg.config as { Env?: string[] } | undefined)?.Env ?? []).find((e) => e.startsWith("BUILD_SHA="));
+  const sha = env ? env.slice("BUILD_SHA=".length).trim() : "";
+  if (!sha) throw new Error("published image carries no build id");
+  return { sha, createdAt: typeof cfg.created === "string" ? cfg.created : null };
+}
+
 export async function checkForUpdate(force = false): Promise<UpdateCheck> {
   const base: UpdateCheck = { enabled: !!BUILD_SHA, current: BUILD_SHA.slice(0, 7), latest: null, available: false, publishedAt: null, changes: [], checkedAt: null, error: null };
   if (!BUILD_SHA) return base;
   if (!force && cache && Date.now() - cache.at < cache.ttl) return cache.value;
   const out = { ...base, checkedAt: new Date().toISOString() };
   try {
-    // The newest build that actually published, not merely the newest commit —
-    // the image lands a few minutes after the push.
-    const runs = await gh("/actions/workflows/publish.yml/runs?branch=main&status=success&per_page=1");
-    if (!runs.ok) throw new Error(explain(runs));
-    const run = ((await runs.json()) as { workflow_runs?: { head_sha: string; updated_at: string }[] }).workflow_runs?.[0];
-    if (!run) throw new Error("no published build found");
-    out.latest = run.head_sha.slice(0, 7);
-    out.publishedAt = run.updated_at;
-    out.available = run.head_sha !== BUILD_SHA;
+    const latest = await latestPublished();
+    out.latest = latest.sha.slice(0, 7);
+    out.publishedAt = latest.createdAt;
+    out.available = latest.sha !== BUILD_SHA;
     if (out.available) {
-      const cmp = await gh(`/compare/${BUILD_SHA}...${run.head_sha}`);
-      if (cmp.ok) {
-        const commits = ((await cmp.json()) as { commits?: { commit: { message: string } }[] }).commits ?? [];
-        out.changes = commits
-          .map((c) => c.commit.message.split("\n")[0].trim())
-          .filter((m) => m && !/^merge /i.test(m))
-          .reverse();
+      // The list of what changed is a nicety from GitHub's API: one request, only
+      // when there is something new, and skipped without complaint when it fails.
+      try {
+        const cmp = await gh(`/compare/${BUILD_SHA}...${latest.sha}`);
+        if (cmp.ok) {
+          const commits = ((await cmp.json()) as { commits?: { commit: { message: string } }[] }).commits ?? [];
+          out.changes = commits
+            .map((c) => c.commit.message.split("\n")[0].trim())
+            .filter((m) => m && !/^merge /i.test(m))
+            .reverse();
+        } else if (!explain(cmp).startsWith("GitHub answered")) {
+          out.changes = ["(change list unavailable: " + explain(cmp) + ")"];
+        }
+      } catch {
+        // offline for the nicety only
       }
     }
   } catch (e) {
