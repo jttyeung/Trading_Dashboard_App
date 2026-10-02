@@ -3,6 +3,7 @@ import { BackLink, Card, PageHeader } from "@/components/ui";
 import { ShowAmounts } from "@/components/privacy";
 import { TraderList } from "@/components/TraderList";
 import { TraderRunButton } from "@/components/TraderRunButton";
+import { PaperTrades } from "@/components/PaperTrades";
 import { readPaper, readSuggestions, traderPresent } from "@/lib/trader";
 import { Amt } from "@/components/privacy";
 
@@ -75,25 +76,7 @@ export default async function TraderPage() {
               <span>{pm.trades} trades</span>
               {!pm.priced && <span className="text-amber-300">not priced by the bridge yet</span>}
             </div>
-            {paper!.trades.length > 0 && (
-              <ul className="mt-2 space-y-0.5 text-[11px] text-muted">
-                {paper!.trades
-                  .slice(-8)
-                  .reverse()
-                  .map((t, i) => (
-                    <li key={i} className="flex justify-between gap-3">
-                      <span className="min-w-0 truncate">
-                        <span className="text-text/80">{new Date(t.at).toLocaleDateString([], { month: "short", day: "numeric" })}</span> · {t.text}
-                      </span>
-                      {t.amount != null && (
-                        <span className="shrink-0 tabular">
-                          <Amt>{signed(t.amount)}</Amt>
-                        </span>
-                      )}
-                    </li>
-                  ))}
-              </ul>
-            )}
+            <PaperTrades trades={paper!.trades} />
           </Card>
         )}
         <div className="mt-3">
