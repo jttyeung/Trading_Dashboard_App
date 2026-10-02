@@ -64,6 +64,7 @@ export function QuantSettings({ current, defaults, custom, demo = false }: { cur
 
   return (
     <div ref={box} className="relative">
+      {open && <div className="fixed inset-0 z-40 bg-black/40" aria-hidden="true" />}
       <button
         onClick={() => setOpen((v) => !v)}
         disabled={demo}
@@ -80,8 +81,15 @@ export function QuantSettings({ current, defaults, custom, demo = false }: { cur
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-30 mt-2 w-[min(92vw,22rem)] rounded-2xl border border-border bg-surface p-3 shadow-xl">
-          <div className="text-[10px] font-semibold uppercase tracking-wide text-muted">Scan variables</div>
+        // Anchored to the viewport, not the button: a panel hung off a button near
+        // the screen edge ran off the side on a phone. Backdrop tap closes it.
+        <div className="fixed inset-x-3 top-20 z-50 mx-auto max-h-[80vh] max-w-md overflow-y-auto rounded-2xl border border-border bg-surface p-3 shadow-xl">
+          <div className="flex items-center justify-between">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-muted">Scan variables</div>
+            <button onClick={() => setOpen(false)} aria-label="Close" className="text-xs text-muted">
+              ✕
+            </button>
+          </div>
           <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2">
             {FIELDS.map((f) => (
               <label key={f.key} className="block">
