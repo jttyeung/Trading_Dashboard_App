@@ -20,7 +20,7 @@ function WarnIcon() {
   );
 }
 
-export function CostBasisAlert({ unresolved }: { unresolved: UnresolvedStock[] }) {
+export function CostBasisAlert({ unresolved, broker }: { unresolved: UnresolvedStock[]; broker?: "schwab" | "etrade" }) {
   const [open, setOpen] = useState(false);
   const n = unresolved.length;
   if (n === 0) return null;
@@ -54,7 +54,7 @@ export function CostBasisAlert({ unresolved }: { unresolved: UnresolvedStock[] }
                   ✕
                 </button>
               </div>
-              <StockCostBasis unresolved={unresolved} />
+              <StockCostBasis unresolved={unresolved} broker={broker} />
             </div>
           </div>,
           document.body,
