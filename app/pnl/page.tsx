@@ -12,6 +12,7 @@ import { getBenchmark } from "@/lib/benchmark";
 import { optionPnl, equityPnl, daysBetween } from "@/lib/calc";
 import { PnlView, type BucketInput } from "@/components/PnlView";
 import { BuildHistory } from "@/components/BuildHistory";
+import { BRIDGE } from "@/lib/features";
 import { CostBasisAlert } from "@/components/CostBasisAlert";
 import { ReconcileSchwab } from "@/components/ReconcileSchwab";
 import type { AppClosed } from "@/lib/reconcile";
@@ -139,7 +140,9 @@ export default async function PnlPage() {
             <div className="flex items-center gap-2">
               {hasHistory && <ReconcileSchwab records={appClosed} accounts={reconcileAccounts} unresolved={unresolved} entered={reconcileEntered} />}
               <CostBasisAlert unresolved={unresolved} />
-              <BuildHistory hasHistory={hasHistory} />
+              {/* The bridge's on-demand history rebuild; OptionsEvaluator syncs
+                  transactions every cycle, so there's nothing to ask for. */}
+              {BRIDGE && <BuildHistory hasHistory={hasHistory} />}
             </div>
           }
         />
