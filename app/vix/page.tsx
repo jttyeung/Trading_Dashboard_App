@@ -3,7 +3,7 @@ import { ShowAmounts } from "@/components/privacy";
 import { AccountSwitcher } from "@/components/AccountSwitcher";
 import { PortfolioFit } from "@/components/PortfolioFit";
 import { PostureStats } from "@/components/PostureStats";
-import { VixIndicators } from "@/components/VixIndicators";
+import { MesCard, VixIndicators } from "@/components/VixIndicators";
 import { getMesQuote } from "@/lib/mes-data";
 import { getRefreshStatus } from "@/lib/refresh-status";
 import { DataRefresh } from "@/components/DataRefresh";
@@ -201,6 +201,11 @@ function VixBody({
           totalValue={totalValue}
           optionsBuyingPower={optionsBuyingPower}
         />
+      </div>
+
+      {/* S&P futures — the overnight drift, open by default, right above the call to action. */}
+      <div className="mt-3">
+        <MesCard mes={mes} />
       </div>
 
       {/* Action */}

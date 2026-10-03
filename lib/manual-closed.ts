@@ -74,6 +74,7 @@ export function closeCsp(o: ManualOption, input: CloseInput, accountLabel: strin
     id: `manual:${o.id}`,
     symbol: o.symbol,
     name: `${o.symbol} · ${accountLabel}`,
+    accountId,
     strike: o.strike,
     expiration: o.expiration,
     openedAt: o.openedAt ?? input.closedAt,
@@ -89,7 +90,6 @@ export function closeCsp(o: ManualOption, input: CloseInput, accountLabel: strin
     returnOnCollateral: r4(roc),
     annualized: annualize(roc, days),
     washSaleWarning: null,
-    accountId,
   };
   appendClosed("csp-closed.json", rec);
   return rec;
@@ -108,6 +108,7 @@ export function closeCoveredCall(o: ManualOption, input: CloseInput, accountLabe
     id: `manual:${o.id}`,
     symbol: o.symbol,
     name: `${o.symbol} · ${accountLabel}`,
+    accountId,
     strike: o.strike,
     expiration: o.expiration,
     openedAt: o.openedAt ?? input.closedAt,
@@ -122,7 +123,6 @@ export function closeCoveredCall(o: ManualOption, input: CloseInput, accountLabe
     returnOnNotional: r4(ret),
     annualized: annualize(ret, days),
     washSaleWarning: null,
-    accountId,
   };
   appendClosed("covered-closed.json", rec);
   return rec;
@@ -140,6 +140,7 @@ export function closeLongOption(o: ManualOption, input: CloseInput, accountLabel
     id: `manual:${o.id}`,
     symbol: o.symbol,
     name: `${o.symbol} · ${accountLabel}`,
+    accountId,
     optionType: o.optionType,
     strike: o.strike,
     expiration: o.expiration,
@@ -155,7 +156,6 @@ export function closeLongOption(o: ManualOption, input: CloseInput, accountLabel
     returnPct: r4(ret),
     annualized: annualize(ret, days),
     washSaleWarning: null,
-    accountId,
   };
   appendClosed("leaps-closed.json", rec);
   return rec;

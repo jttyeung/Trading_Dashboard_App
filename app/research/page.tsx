@@ -4,6 +4,8 @@ import { ResearchView } from "@/components/ResearchView";
 import { getResearch } from "@/lib/research";
 import { getSnapshot } from "@/lib/snapshot";
 import type { Holding } from "@/lib/research-types";
+import { readSuggestions, traderPresent } from "@/lib/trader";
+import { QUANT, TRADER } from "@/lib/features";
 
 export const dynamic = "force-dynamic";
 
@@ -80,6 +82,9 @@ export default async function ResearchPage({
   // names. No separate curated list; edit the sheet to change what's
   // screened here.
   const universe = data ? Object.keys(data.tickers).sort((a, b) => a.localeCompare(b)) : [];
+  // Only installs running the optional trader service have its file; everyone else never sees the card.
+  const trader = TRADER && traderPresent() ? readSuggestions() : null;
+  const traderOpen = trader?.suggestions.filter((s) => s.status === "new").length ?? 0;
 
   return (
     <main className="px-4">
@@ -105,6 +110,48 @@ export default async function ResearchPage({
           <span className="shrink-0 text-sm font-medium text-violet-300">Open ›</span>
         </Card>
       </Link>
+
+      {QUANT && (
+        <>
+        {/* Quant scan — the wheel study's 4%-target put rule over the approved list. */}
+        <Link href="/quant" className="mt-2 block active:opacity-80">
+          <Card className="flex items-center justify-between gap-3 bg-emerald-500/5 px-4 py-3 ring-1 ring-inset ring-emerald-500/25">
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-emerald-200">Quant CSP scan</div>
+              <div className="text-[11px] text-muted">Backtested rule · lowest-delta put paying ≥4% per 30 days · every approved name</div>
+            </div>
+            <span className="shrink-0 text-sm font-medium text-emerald-300">Open ›</span>
+          </Card>
+        </Link>
+
+        {/* Quant portfolio check — the same study's management rules against what is held. */}
+        <Link href="/quant/portfolio" className="mt-2 block active:opacity-80">
+          <Card className="flex items-center justify-between gap-3 bg-sky-500/5 px-4 py-3 ring-1 ring-inset ring-sky-500/25">
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-sky-200">Quant portfolio check</div>
+              <div className="text-[11px] text-muted">Your positions against the rules · close at 50% · cash-secured · 10% per name · calls and LEAPS on shares</div>
+            </div>
+            <span className="shrink-0 text-sm font-medium text-sky-300">Open ›</span>
+          </Card>
+        </Link>
+        </>
+      )}
+
+      {/* Trader — only when the trader service is installed (its suggestions file exists). */}
+      {trader && (
+        <Link href="/trader" className="mt-2 block active:opacity-80">
+          <Card className="flex items-center justify-between gap-3 bg-amber-500/5 px-4 py-3 ring-1 ring-inset ring-amber-500/25">
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-amber-200">Trader</div>
+              <div className="text-[11px] text-muted">
+                {traderOpen === 0 ? "No open suggestions" : `${traderOpen} open suggestion${traderOpen === 1 ? "" : "s"}`} · rules applied once a day
+                in the entry window · Run now any time
+              </div>
+            </div>
+            <span className="shrink-0 text-sm font-medium text-amber-300">Open ›</span>
+          </Card>
+        </Link>
+      )}
 
       <ResearchView data={data} symbols={universe} holdings={holdings} initialVehicle={initialVehicle} />
 
