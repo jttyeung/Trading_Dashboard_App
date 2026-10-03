@@ -4,14 +4,17 @@
 import { demoBlocked } from "@/lib/demo";
 import { requestQuantScan } from "@/lib/bridge-files";
 import { readQuantSettings, resetQuantSettings, STUDY_DEFAULTS, validateQuantParams, writeQuantSettings, type QuantParams } from "@/lib/quant-settings";
+import { QUANT } from "@/lib/features";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  if (!QUANT) return new Response(null, { status: 404 }); // parked; see lib/features.ts
   return Response.json({ ok: true, ...readQuantSettings(), defaults: STUDY_DEFAULTS });
 }
 
 export async function POST(req: Request) {
+  if (!QUANT) return new Response(null, { status: 404 }); // parked; see lib/features.ts
   const blocked = demoBlocked();
   if (blocked) return blocked;
   let body: { params?: Partial<Record<keyof QuantParams, unknown>>; reset?: boolean; scan?: boolean };
