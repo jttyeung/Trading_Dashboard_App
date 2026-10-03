@@ -1,17 +1,19 @@
 "use client";
 
-// Insider activity and 5%+ holders under the chart. Insider trades are
-// open-market purchases and sales only (Form 4 codes P and S): grants, option
-// exercises and tax withholding aren't decisions to buy or sell, and they were
-// most of the raw filings (GLW: 328 of 362 rows in a year). Purchases are the
-// stronger signal; a sale can be a pre-scheduled 10b5-1 plan, which the data
-// doesn't flag. Holders are SEC Schedule 13G filers; one whose latest filing is
-// over a year old may have changed since, so it's marked rather than hidden.
+// Insider activity under the chart. Trades are open-market purchases and sales
+// only (Form 4 codes P and S): grants, option exercises and tax withholding
+// aren't decisions to buy or sell, and they were most of the raw filings (GLW:
+// 328 of 362 rows in a year). Each trade carries the insider's role and title
+// and whether it was made under a pre-arranged 10b5-1 plan, all from the Form 4
+// itself. A planned sale was scheduled months ahead, so discretionary trades,
+// and purchases above all, are the ones that say something.
 import { Card } from "@/components/ui";
 import { AQUA, AXIS, H, ORANGE, PAD, W, Axis, Legend, Panel, Row, barPath, fmtMoney, niceScale, useColumns } from "@/components/mini-charts";
-import type { Ownership } from "@/lib/ownership";
+import type { InsiderRole, InsiderTrade, Ownership } from "@/lib/ownership";
 
-const STALE_DAYS = 365;
+// Planned (10b5-1) sales: the same hue as discretionary sales, lighter, so a
+// sold bar reads as one quantity split into its two parts.
+const ORANGE_PLANNED = "rgba(217, 89, 38, 0.4)";
 
 function monthLabel(ym: string): string {
   return new Date(`${ym}-01T00:00:00Z`).toLocaleDateString("en-US", { month: "short", timeZone: "UTC" });
@@ -27,6 +29,66 @@ function fmtShares(n: number): string {
 function fmtDate(iso: string): string {
   if (!iso) return "—";
   return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+}
+
+function PlanTag({ t }: { t: InsiderTrade }) {
+  if (t.planned == null) return null;
+  return t.planned ? (
+    <span className="rounded bg-surface-2 px-1 text-[9px] text-muted">10b5-1 plan</span>
+  ) : (
+    <span className="rounded bg-amber-400/15 px-1 text-[9px] text-amber-300">discretionary</span>
+  );
+}
+
+// One row per role group: bought on its own bar, sold split into
+// discretionary (solid) and planned (light), all on one scale so groups compare.
+function ByRole({ roles }: { roles: InsiderRole[] }) {
+  const max = Math.max(1, ...roles.flatMap((r) => [r.buyValue, r.sellValue]));
+  const w = (v: number) => `${(v / max) * 100}%`;
+  return (
+    <ul className="space-y-2 px-1 text-[11px]">
+      {roles.map((r) => {
+        const discretionary = r.sellValue - r.plannedSellValue;
+        const people = r.sellers.length + r.buyers.length;
+        return (
+          <li key={r.role}>
+            <div className="mb-0.5 flex items-baseline justify-between gap-2">
+              <span className="font-medium text-text">{r.role}</span>
+              <span className="truncate text-[10px] text-muted">
+                {people} {people === 1 ? "person" : "people"}
+              </span>
+            </div>
+            {r.buyValue > 0 && (
+              <div className="flex items-center gap-1.5">
+                <div className="h-2.5 flex-1">
+                  <div className="h-full rounded-r" style={{ width: w(r.buyValue), backgroundColor: AQUA }} />
+                </div>
+                <span className="tabular w-28 shrink-0 text-right text-muted">Bought {fmtMoney(r.buyValue)}</span>
+              </div>
+            )}
+            {r.sellValue > 0 && (
+              <div className="flex items-center gap-1.5">
+                <div className="flex h-2.5 flex-1">
+                  <div className="h-full" style={{ width: w(discretionary), backgroundColor: ORANGE }} />
+                  <div className="h-full rounded-r" style={{ width: w(r.plannedSellValue), backgroundColor: ORANGE_PLANNED }} />
+                </div>
+                <span className="tabular w-28 shrink-0 text-right text-muted">Sold {fmtMoney(r.sellValue)}</span>
+              </div>
+            )}
+            {r.sellValue > 0 && (
+              <div className="text-[10px] text-muted">
+                {r.plannedSellValue === 0
+                  ? "all discretionary"
+                  : discretionary <= 0.005 * r.sellValue
+                    ? "all under 10b5-1 plans"
+                    : `${fmtMoney(discretionary)} discretionary · ${fmtMoney(r.plannedSellValue)} planned`}
+              </div>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
 }
 
 // Buys above zero, sells below, one column per month.
@@ -75,14 +137,12 @@ export function InsiderPanel({ data, error, loading }: { data: Ownership | null;
   }
   if (!data) return null;
 
-  // Staleness is judged against when the data was fetched, not the render clock.
-  const now = Date.parse(data.fetchedAt);
   const anyTrades = data.trades.length > 0;
   return (
     <Card className="mt-3 px-3 py-3">
       <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 px-1">
-        <h2 className="text-sm font-semibold">Insiders &amp; major holders</h2>
-        <span className="text-[10px] text-muted">Open-market trades only · Form 4 &amp; SEC 13G</span>
+        <h2 className="text-sm font-semibold">Insider activity</h2>
+        <span className="text-[10px] text-muted">Open-market trades only · SEC Form 4</span>
       </div>
       <div className="grid gap-2">
         <Panel title="Insider buying vs selling" note="Last 12 months · grants, exercises and tax withholding excluded">
@@ -113,15 +173,26 @@ export function InsiderPanel({ data, error, loading }: { data: Ownership | null;
           )}
         </Panel>
 
+        {data.roles.length > 0 && (
+          <Panel title="By role" note="Last 12 months · who traded, and how much selling was planned">
+            <ByRole roles={data.roles} />
+            <Legend items={[{ label: "Bought", color: AQUA }, { label: "Sold, discretionary", color: ORANGE }, { label: "Sold, 10b5-1 plan", color: ORANGE_PLANNED }]} />
+          </Panel>
+        )}
+
         {anyTrades && (
-          <Panel title="Recent insider trades" note="Sales can be pre-scheduled (10b5-1); purchases are the stronger signal">
+          <Panel title="Recent insider trades" note="Purchases and discretionary sales are the stronger signals">
             <ul className="divide-y divide-border/60 px-1 text-[11px]">
               {data.trades.slice(0, 8).map((t, i) => (
                 <li key={`${t.date}-${t.name}-${i}`} className="flex items-center justify-between gap-2 py-1.5">
                   <div className="min-w-0">
-                    <div className="truncate text-text">{t.name}</div>
-                    <div className="text-[10px] text-muted">
-                      {fmtDate(t.date)} · {fmtShares(t.shares)} sh @ ${t.price.toFixed(2)}
+                    <div className="flex items-center gap-1">
+                      <span className="truncate text-text">{t.name}</span>
+                      {t.role && <span className="shrink-0 rounded bg-violet-400/15 px-1 text-[9px] text-violet-300">{t.role}</span>}
+                    </div>
+                    {t.title && <div className="truncate text-[10px] text-muted">{t.title}</div>}
+                    <div className="flex items-center gap-1 text-[10px] text-muted">
+                      {fmtDate(t.date)} · {fmtShares(t.shares)} sh @ ${t.price.toFixed(2)} <PlanTag t={t} />
                     </div>
                   </div>
                   <div className="shrink-0 text-right">
@@ -136,30 +207,6 @@ export function InsiderPanel({ data, error, loading }: { data: Ownership | null;
             </ul>
           </Panel>
         )}
-
-        <Panel title="5%+ holders" note="Latest Schedule 13G per holder">
-          {data.holders.length === 0 ? (
-            <p className="px-1 py-4 text-center text-[11px] text-muted">No 5%+ holder filings on record.</p>
-          ) : (
-            <ul className="divide-y divide-border/60 px-1 text-[11px]">
-              {data.holders.map((h) => {
-                const stale = now - Date.parse(`${h.filed}T00:00:00Z`) > STALE_DAYS * 864e5;
-                return (
-                  <li key={h.name} className="flex items-center justify-between gap-2 py-1.5">
-                    <div className="min-w-0">
-                      <div className="truncate text-text">{h.name}</div>
-                      <div className="text-[10px] text-muted">
-                        {fmtShares(h.shares)} sh · {h.asOf ? `as of ${fmtDate(h.asOf)}` : `filed ${fmtDate(h.filed)}`}
-                        {stale && <span className="text-amber-300"> · last filed over a year ago, may be out of date</span>}
-                      </div>
-                    </div>
-                    <span className="tabular shrink-0 text-text">{h.percent.toFixed(2)}%</span>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </Panel>
       </div>
     </Card>
   );

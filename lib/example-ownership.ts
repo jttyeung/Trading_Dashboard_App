@@ -1,9 +1,14 @@
 // Synthetic insider activity for example mode: made-up names, seeded off the
-// ticker, with a couple of buys among the sales and one stale holder so every
+// ticker, with a director's buys among planned and discretionary sales so every
 // state the panel draws shows up. No real filer appears here.
-import type { InsiderMonth, InsiderTrade, InsiderWindow, Ownership } from "./ownership";
+import type { InsiderMonth, InsiderRole, InsiderRoleGroup, InsiderTrade, InsiderWindow, Ownership } from "./ownership";
 
-const NAMES = ["Example Officer A", "Example Director B", "Example Officer C", "Example Director D"];
+const PEOPLE: { name: string; role: InsiderRoleGroup; title: string; planned: boolean }[] = [
+  { name: "Example Officer A", role: "C-suite", title: "Chief Executive Officer", planned: true },
+  { name: "Example Director B", role: "Director", title: "Director", planned: false },
+  { name: "Example Officer C", role: "Other officer", title: "SVP, General Counsel", planned: false },
+  { name: "Example Officer D", role: "C-suite", title: "EVP & Chief Financial Officer", planned: true },
+];
 
 export function exampleOwnership(symbol: string): Ownership {
   let s = symbol.split("").reduce((a, c) => a * 31 + c.charCodeAt(0), 11) % 2147483647 || 1;
@@ -18,7 +23,11 @@ export function exampleOwnership(symbol: string): Ownership {
     const shares = Math.round((buy ? 2000 : 8000) * (0.5 + rand()));
     const p = Math.round(price * (0.85 + rand() * 0.3) * 100) / 100;
     const date = d.toISOString().slice(0, 10);
-    trades.push({ name: NAMES[i % NAMES.length], date, filed: date, buy, shares, price: p, value: shares * p, sharesAfter: Math.round(shares * (3 + rand() * 10)) });
+    const who = PEOPLE[i % PEOPLE.length];
+    trades.push({
+      name: who.name, date, filed: date, buy, shares, price: p, value: shares * p, sharesAfter: Math.round(shares * (3 + rand() * 10)),
+      role: who.role, title: who.title, planned: buy ? false : who.planned,
+    });
   }
   trades.sort((a, b) => b.date.localeCompare(a.date));
 
@@ -49,15 +58,28 @@ export function exampleOwnership(symbol: string): Ownership {
     };
   });
 
+  const order: InsiderRoleGroup[] = ["C-suite", "Other officer", "Director", "10% owner", "Other"];
+  const roles: InsiderRole[] = order
+    .map((role) => {
+      const ts = trades.filter((t) => t.role === role);
+      const sells = ts.filter((t) => !t.buy);
+      return {
+        role,
+        buyValue: ts.filter((t) => t.buy).reduce((a, t) => a + t.value, 0),
+        sellValue: sells.reduce((a, t) => a + t.value, 0),
+        plannedSellValue: sells.filter((t) => t.planned).reduce((a, t) => a + t.value, 0),
+        buyers: [...new Set(ts.filter((t) => t.buy).map((t) => t.name))],
+        sellers: [...new Set(sells.map((t) => t.name))],
+      };
+    })
+    .filter((r) => r.buyValue || r.sellValue);
+
   return {
     symbol,
     trades,
     windows,
     months,
-    holders: [
-      { name: "Example Index Fund Manager", percent: 8.1, shares: 61_000_000, asOf: "2026-03-31", filed: "2026-04-29", form: "SCHEDULE 13G" },
-      { name: "Example Asset Manager", percent: 6.4, shares: 48_000_000, asOf: "", filed: "2024-02-12", form: "SC 13G/A" },
-    ],
+    roles,
     fetchedAt: now.toISOString(),
   };
 }
