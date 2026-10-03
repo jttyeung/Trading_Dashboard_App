@@ -3,12 +3,14 @@
 // file and gets a 404, the same as the page.
 import { demoBlocked } from "@/lib/demo";
 import { saveFeedback, traderPresent, type SuggestionStatus } from "@/lib/trader";
+import { TRADER } from "@/lib/features";
 
 export const dynamic = "force-dynamic";
 
 const STATUSES = new Set<SuggestionStatus>(["new", "good", "bad", "done", "skip"]);
 
 export async function POST(req: Request) {
+  if (!TRADER) return new Response(null, { status: 404 }); // parked; see lib/features.ts
   const blocked = demoBlocked();
   if (blocked) return blocked;
   if (!traderPresent()) return Response.json({ ok: false, error: "The trader isn't set up." }, { status: 404 });

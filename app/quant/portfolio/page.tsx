@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+import { QUANT } from "@/lib/features";
 import Link from "next/link";
 import { BackLink, Card, PageHeader, Pill, SectionTitle } from "@/components/ui";
 import { Amt, ShowAmounts } from "@/components/privacy";
@@ -46,6 +48,7 @@ function ActionCard({ a }: { a: QuantAction }) {
 }
 
 export default async function QuantPortfolioPage() {
+  if (!QUANT) notFound(); // parked; see lib/features.ts
   const snap = await getSnapshot();
   const example = snap.meta.source === "example";
   const { account, data } = await getSelectedAccount(snap);
