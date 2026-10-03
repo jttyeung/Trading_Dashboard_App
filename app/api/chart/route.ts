@@ -20,6 +20,7 @@
 //
 // GET /api/chart?symbol=GLW → ChartData (lib/chart-indicators.ts) or { error }.
 import { isExampleMode } from "@/lib/example-mode";
+import { BRIDGE } from "@/lib/features";
 import { exampleChartData } from "@/lib/example";
 import { getSnapshot } from "@/lib/snapshot";
 import { buildChartData, type ChartData } from "@/lib/chart-indicators";
@@ -127,7 +128,7 @@ export async function GET(req: Request) {
   // Not cached: the daemon computes on demand and the whole point of asking
   // it is a fresh chain read for the walls. Only the Yahoo fallback below is
   // cached, for its rate limit.
-  const fromDaemon = await fetchDaemonChart(symbol);
+  const fromDaemon = BRIDGE ? null : await fetchDaemonChart(symbol);
   if (fromDaemon) return Response.json(fromDaemon);
 
   const hit = cache.get(symbol);
