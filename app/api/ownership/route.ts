@@ -1,4 +1,4 @@
-// Insider activity and 5%+ holders for the chart page, proxied from
+// Insider activity for the chart page, proxied from
 // OptionsEvaluator's chart API (CHART_API_URL) like /api/financials, so the
 // browser never reaches the daemon's port itself. Example mode returns a
 // synthetic fixture.
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 const TICKER_RE = /^[A-Z][A-Z0-9.\-]{0,9}$/;
 const CHART_API_URL = (process.env.CHART_API_URL ?? "http://localhost:8092").replace(/\/+$/, "");
-// A cold ticker reads the SEC filing index plus up to ~15 small 13G documents.
+// A cold ticker reads the SEC filing index plus up to 40 small Form 4s, paced at 8/sec.
 const DAEMON_TIMEOUT_MS = 25_000;
 
 export async function GET(req: Request) {
