@@ -1,6 +1,7 @@
 import { BackLink, PageHeader } from "@/components/ui";
 import { ShowAmounts } from "@/components/privacy";
 import { SecurityChart } from "@/components/SecurityChart";
+import { OptionsVolumeLeaders } from "@/components/OptionsVolumeLeaders";
 import { getSnapshot } from "@/lib/snapshot";
 import { getResearch } from "@/lib/research";
 
@@ -32,6 +33,11 @@ export default async function ChartPage({ searchParams }: { searchParams: Promis
           right={<BackLink />}
         />
         <SecurityChart watchlist={watchlist} initialSymbol={initial} />
+        {/* Below the search and chart, so a charted ticker stays at the top;
+            each row links back up here with its ticker charted. */}
+        <div className="mt-3">
+          <OptionsVolumeLeaders />
+        </div>
         {/* The same chart is one long-press away from anywhere in the app — worth
             saying here, where people come looking for a chart on purpose. */}
         <p className="mt-4 px-1 text-[11px] leading-relaxed text-muted">
