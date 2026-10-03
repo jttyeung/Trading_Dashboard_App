@@ -139,7 +139,7 @@ export default async function PnlPage() {
           right={
             <div className="flex items-center gap-2">
               {hasHistory && <ReconcileSchwab records={appClosed} accounts={reconcileAccounts} unresolved={unresolved} entered={reconcileEntered} />}
-              <CostBasisAlert unresolved={unresolved} />
+              <CostBasisAlert unresolved={unresolved} broker={BRIDGE ? "schwab" : "etrade"} />
               {/* The bridge's on-demand history rebuild; OptionsEvaluator syncs
                   transactions every cycle, so there's nothing to ask for. */}
               {BRIDGE && <BuildHistory hasHistory={hasHistory} />}
