@@ -45,6 +45,11 @@ built-in demo dataset, so you can explore the whole UI immediately.
   last 3/6/12 months (Form 4 via the daemon's `/ownership`; grants, option exercises and tax
   withholding excluded), a monthly bought-vs-sold chart, recent trades, and current 5%+ holders
   from SEC 13G filings, with a note on any holder whose latest filing is over a year old.
+- **Options volume leaders** — on Chart a Ticker: the watchlist's 20 most active option names in
+  the latest session, puts left / calls right, by premium or contracts, with each name's biggest
+  contracts and a ×-usual tag against its own recent volume. From the daemon's `/options-volume`,
+  which the options agent fills from the chains it already pulls. Activity, not direction: chains
+  don't say who bought or sold.
 - **Portfolio risk** — theta ceiling, sector concentration against a per-sector cap, beta vs
   QQQ, and an open-P&L floor, all across every account. Sector buckets (with the tickers behind
   each) come from the daemon's `data/portfolio-risk.json`; sectors are the wheel watchlist
