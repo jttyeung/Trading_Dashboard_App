@@ -320,3 +320,24 @@ export function updateManualStockSale(id: string, patch: { costPerShare: number;
   writeManualStockSales(list);
   return true;
 }
+
+// ── Quant CSP scan: write-only trigger + one-way status read ──
+const QUANT_SCAN_MARKER = path.join(TASK_INBOX_DIR, "quant_scan");
+const QUANT_STATUS_PATH = path.join(process.cwd(), "data", "quant-status.json");
+
+/** Drop the "run the quant scan now" marker for the bridge. Write-only. */
+export function requestQuantScan(): void {
+  fs.mkdirSync(TASK_INBOX_DIR, { recursive: true });
+  fs.writeFileSync(QUANT_SCAN_MARKER, "");
+}
+
+/** Read the bridge-written scan status from the app's OWN data/ folder. */
+export function readQuantStatus(): ReportStatus {
+  const fallback: ReportStatus = { status: "idle", error: null, updatedAt: null };
+  try {
+    const raw = fs.readFileSync(QUANT_STATUS_PATH, "utf8");
+    return { ...fallback, ...(JSON.parse(raw) as Partial<ReportStatus>) };
+  } catch {
+    return fallback;
+  }
+}

@@ -10,7 +10,7 @@
 // from the file's headers and values, and — when something it needs is
 // missing but the file has unused columns — asks whether one of those is it,
 // before showing a preview of what will be imported.
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { etDateString } from "@/lib/market-hours";
 import type { ManualAccount, ManualOption, ManualPosition } from "@/lib/manual-positions";
@@ -112,6 +112,16 @@ export function ManualPositions({ initial }: { initial: ManualAccount[] }) {
         what you paid — and the bridge prices them from Schwab market data every cycle. They show up as their own
         account everywhere positions do.
       </p>
+
+      <RobinhoodImport
+        hasAccount={accounts.some((a) => a.id.startsWith("manual-robinhood"))}
+        onImported={(list, note) => {
+          setErr("");
+          list.forEach(sync);
+          setMsg(note);
+        }}
+        onError={setErr}
+      />
 
       {/* Account picker — only once there is something to pick between. With no
           accounts yet the only entry would be "New…", a dropdown that goes nowhere. */}
@@ -217,6 +227,57 @@ export function ManualPositions({ initial }: { initial: ManualAccount[] }) {
           }}
         />
       )}
+    </div>
+  );
+}
+
+// Only rendered when a Robinhood dashboard answers on this machine (the server
+// probes port 3001 once and caches the answer), so installs without one never
+// see it. Each press replaces the "Robinhood" account with what Robinhood holds now.
+function RobinhoodImport({
+  hasAccount,
+  onImported,
+  onError,
+}: {
+  hasAccount: boolean;
+  onImported: (accounts: ManualAccount[], note: string) => void;
+  onError: (e: string) => void;
+}) {
+  const [available, setAvailable] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    fetch("/api/manual/robinhood")
+      .then((r) => r.json())
+      .then((b: { available?: boolean }) => live && setAvailable(b.available === true))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  if (!available) return null;
+
+  async function run() {
+    if (hasAccount && !window.confirm("Replace the Robinhood account's positions with what Robinhood holds now?")) return;
+    setBusy(true);
+    const r = await fetch("/api/manual/robinhood", { method: "POST" })
+      .then((res) => res.json() as Promise<{ ok: boolean; error?: string; accounts?: ManualAccount[]; skipped?: string[] }>)
+      .catch(() => ({ ok: false, error: "Could not reach the server." }) as { ok: boolean; error?: string; accounts?: ManualAccount[]; skipped?: string[] });
+    setBusy(false);
+    if (!r.ok || !r.accounts) return onError(r.error ?? "Import failed.");
+    const n = r.accounts.reduce((s, a) => s + a.positions.length, 0);
+    const skipped = r.skipped?.length ? ` Skipped ${r.skipped.length}: ${r.skipped.slice(0, 2).join(" ")}` : "";
+    onImported(r.accounts, `Imported ${n} ${n === 1 ? "position" : "positions"} from Robinhood. Priced on the bridge's next cycle.${skipped}`);
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-surface-2/50 px-3 py-2">
+      <span className="text-xs text-muted">Robinhood dashboard found on this machine.</span>
+      <button onClick={run} disabled={busy} className={`${btnPrimary} ml-auto`}>
+        {busy ? "Importing…" : hasAccount ? "Re-import Robinhood holdings" : "Import Robinhood holdings"}
+      </button>
     </div>
   );
 }

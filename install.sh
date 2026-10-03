@@ -63,6 +63,7 @@ On a Pi, 'curl -fsSL https://get.docker.com | sh' installs both."
   # ── settings ────────────────────────────────────────────────────────────
   if [ -f .env ]; then
     say "Keeping your existing .env"
+    grep -q "^STACK_DIR=" .env || printf '\n# Where this stack lives (the updater mounts it at the same path).\nSTACK_DIR=%s\n' "$DIR" >> .env
   else
     say "Writing settings (.env)"
     # Fall back sensibly on machines where these aren't available.
@@ -88,12 +89,16 @@ DASHBOARD_PORT=3000
 # Tracks the newest build. To pin to a specific release instead, use the
 # version number WITHOUT the leading v — for example IMAGE_TAG=2.0.0
 IMAGE_TAG=latest
+
+# Where this stack lives. The updater container mounts it at the same path so
+# "Update now" in Settings can run compose for this project.
+STACK_DIR=$DIR
 ENV
   fi
 
   # ── start ───────────────────────────────────────────────────────────────
   say "Pulling images and starting (about a minute)"
-  docker compose pull
+  docker compose pull --ignore-pull-failures
   docker compose up -d
 
   # An existing .env may not have DASHBOARD_PORT at all; that's fine.
@@ -114,7 +119,7 @@ ENV
    Installed in:  $DIR
    Check on it:   cd $DIR && docker compose ps
    Read the logs: cd $DIR && docker compose logs -f
-   Update later:  cd $DIR && docker compose pull && docker compose up -d
+   Update later:  cd $DIR && docker compose pull --ignore-pull-failures && docker compose up -d
   ────────────────────────────────────────────────────────────
 
 DONE
