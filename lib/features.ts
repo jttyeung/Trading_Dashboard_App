@@ -15,3 +15,16 @@ export const WHEEL_CAMPAIGNS = (process.env.WHEEL_CAMPAIGNS || "").trim() === "1
 //                       OptionsEvaluator doesn't produce yet.
 export const QUANT = (process.env.QUANT || "").trim() === "1";
 export const TRADER = (process.env.TRADER || "").trim() === "1";
+//
+//   BRIDGE=1            this dashboard is fed by the upstream Python bridge
+//                       (justintimefordinner-lang/Schwab_Bridge_Public)
+//                       instead of OptionsEvaluator. Hides what only
+//                       OptionsEvaluator serves, so nothing shows empty or
+//                       "can't reach the daemon": the desktop, overview,
+//                       paper-bot, benchmark, risk and connections pages;
+//                       its cards on Home, P&L, VIX and Chart; and every
+//                       call to its localhost APIs (8091–8096). Data files
+//                       both backends write (snapshot, vix, research,
+//                       am_report, *-closed) render either way.
+export const BRIDGE = (process.env.BRIDGE || "").trim() === "1";
+export const OPTIONSEVAL = !BRIDGE;
