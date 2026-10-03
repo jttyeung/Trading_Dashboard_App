@@ -25,6 +25,7 @@ import { etDateString } from "@/lib/market-hours";
 import { getVixSnapshot } from "@/lib/vix-data";
 import { getFomc } from "@/lib/fomc-data";
 import { FomcCard } from "@/components/FomcCard";
+import { OPTIONSEVAL } from "@/lib/features";
 import { getBtcQuote, fmtBtc } from "@/lib/btc-data";
 import { getRefreshStatus } from "@/lib/refresh-status";
 import { DataRefresh } from "@/components/DataRefresh";
@@ -275,18 +276,24 @@ export default async function HomePage() {
         />
       </div>
 
-      <MonthlyGoalCard
-        portfolioValue={monthlyGoal.portfolioValueBaseline}
-        realizedThisMonth={monthlyGoal.realizedThisMonth}
-        defaultTargetPercent={monthlyGoal.targetPercent}
-        asOfDate={monthlyGoal.asOfDate}
-        daysInMonth={monthlyGoal.daysInMonth}
-        history={monthlyGoal.history}
-      />
+      {/* Monthly goal and tracker alerts are OptionsEvaluator's (their data
+          and their write-back APIs); see lib/features.ts BRIDGE. */}
+      {OPTIONSEVAL && (
+        <>
+          <MonthlyGoalCard
+            portfolioValue={monthlyGoal.portfolioValueBaseline}
+            realizedThisMonth={monthlyGoal.realizedThisMonth}
+            defaultTargetPercent={monthlyGoal.targetPercent}
+            asOfDate={monthlyGoal.asOfDate}
+            daysInMonth={monthlyGoal.daysInMonth}
+            history={monthlyGoal.history}
+          />
 
-      {/* Active tracker alerts — what needs attention right now, ahead of the
-          static quick-access cards below. */}
-      <AlertsPanel alerts={alerts} />
+          {/* Active tracker alerts — what needs attention right now, ahead of the
+              static quick-access cards below. */}
+          <AlertsPanel alerts={alerts} />
+        </>
+      )}
 
       {/* Quick access — CSPs are the core strategy, so surface them up top. */}
       <Link href="/options/csp" className="mt-3 block active:opacity-80">
@@ -301,32 +308,37 @@ export default async function HomePage() {
         </Card>
       </Link>
 
-      {/* Portfolio risk — sector concentration + theta bands + beta + open P&L,
-          judged across every account. The subtitle names the heaviest sector so a
-          breach reads from Home. */}
-      <Link href="/risk" className="mt-2 block active:opacity-80">
-        <Card className={`flex items-center justify-between gap-3 px-4 py-3 ring-1 ring-inset ${sectorsOver > 0 ? "bg-rose-500/5 ring-rose-500/25" : "bg-violet-500/5 ring-violet-500/25"}`}>
-          <div className="min-w-0">
-            <div className={`text-sm font-semibold ${sectorsOver > 0 ? "text-rose-200" : "text-violet-200"}`}>Portfolio risk</div>
-            <div className="truncate text-[11px] text-muted">
-              {topSector
-                ? `${topSector.sector} ${(topSector.pct * 100).toFixed(0)}% of portfolio · cap ${(risk.maxSectorAllocationPct * 100).toFixed(0)}%${sectorsOver > 0 ? ` · ${sectorsOver} over` : ""}`
-                : "Sector concentration & theta bands"}
+      {/* Risk and benchmark pages read files only OptionsEvaluator writes. */}
+      {OPTIONSEVAL && (
+        <>
+        {/* Portfolio risk — sector concentration + theta bands + beta + open P&L,
+            judged across every account. The subtitle names the heaviest sector so a
+            breach reads from Home. */}
+        <Link href="/risk" className="mt-2 block active:opacity-80">
+          <Card className={`flex items-center justify-between gap-3 px-4 py-3 ring-1 ring-inset ${sectorsOver > 0 ? "bg-rose-500/5 ring-rose-500/25" : "bg-violet-500/5 ring-violet-500/25"}`}>
+            <div className="min-w-0">
+              <div className={`text-sm font-semibold ${sectorsOver > 0 ? "text-rose-200" : "text-violet-200"}`}>Portfolio risk</div>
+              <div className="truncate text-[11px] text-muted">
+                {topSector
+                  ? `${topSector.sector} ${(topSector.pct * 100).toFixed(0)}% of portfolio · cap ${(risk.maxSectorAllocationPct * 100).toFixed(0)}%${sectorsOver > 0 ? ` · ${sectorsOver} over` : ""}`
+                  : "Sector concentration & theta bands"}
+              </div>
             </div>
-          </div>
-          <span className={`shrink-0 text-sm font-medium ${sectorsOver > 0 ? "text-rose-300" : "text-violet-300"}`}>View ›</span>
-        </Card>
-      </Link>
+            <span className={`shrink-0 text-sm font-medium ${sectorsOver > 0 ? "text-rose-300" : "text-violet-300"}`}>View ›</span>
+          </Card>
+        </Link>
 
-      <Link href="/benchmark" className="mt-2 block active:opacity-80">
-        <Card className="flex items-center justify-between gap-3 bg-teal-500/5 px-4 py-3 ring-1 ring-inset ring-teal-500/25">
-          <div className="min-w-0">
-            <div className="text-sm font-semibold text-teal-200">Performance vs. benchmarks</div>
-            <div className="text-[11px] text-muted">Previous holdings, S&amp;P 500, and QQQ.</div>
-          </div>
-          <span className="shrink-0 text-sm font-medium text-teal-300">View ›</span>
-        </Card>
-      </Link>
+        <Link href="/benchmark" className="mt-2 block active:opacity-80">
+          <Card className="flex items-center justify-between gap-3 bg-teal-500/5 px-4 py-3 ring-1 ring-inset ring-teal-500/25">
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-teal-200">Performance vs. benchmarks</div>
+              <div className="text-[11px] text-muted">Previous holdings, S&amp;P 500, and QQQ.</div>
+            </div>
+            <span className="shrink-0 text-sm font-medium text-teal-300">View ›</span>
+          </Card>
+        </Link>
+        </>
+      )}
 
       </div>
       <div>
