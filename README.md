@@ -41,10 +41,11 @@ built-in demo dataset, so you can explore the whole UI immediately.
   proxies the daemon's `/financials` (the company's own SEC filings via EDGAR, EPS from
   Finnhub); the daemon needs `SEC_USER_AGENT` set. No Yahoo fallback: with the daemon down the
   panel says so. ETFs, indexes and 20-F filers show a "no SEC filings" note.
-- **Insiders & major holders under the chart** — insiders' open-market buys and sells over the
-  last 3/6/12 months (Form 4 via the daemon's `/ownership`; grants, option exercises and tax
-  withholding excluded), a monthly bought-vs-sold chart, recent trades, and current 5%+ holders
-  from SEC 13G filings, with a note on any holder whose latest filing is over a year old.
+- **Insider activity under the chart** — insiders' open-market buys and sells over the last
+  3/6/12 months (Form 4 via the daemon's `/ownership`; grants, option exercises and tax withholding
+  excluded), a monthly bought-vs-sold chart, a by-role breakdown (C-suite / other officers /
+  directors / 10% owners) splitting each group's selling into discretionary and 10b5-1-planned, and
+  recent trades tagged with the insider's title and plan status, all read from the Form 4s.
 - **Options volume leaders** — on Chart a Ticker: the watchlist's 20 most active option names in
   the latest session, puts left / calls right, by premium or contracts, with each name's biggest
   contracts and a ×-usual tag against its own recent volume. From the daemon's `/options-volume`,
