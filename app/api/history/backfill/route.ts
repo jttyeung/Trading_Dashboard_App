@@ -4,12 +4,19 @@
 // own data/ folder (read via /api/history/status).
 import { demoBlocked } from "@/lib/demo";
 import { requestHistoryBackfill } from "@/lib/bridge-files";
+import { BRIDGE } from "@/lib/features";
+import { startHistorySync } from "@/lib/history-sync";
 
 export const dynamic = "force-dynamic";
 
 export async function POST() {
   const blocked = demoBlocked();
   if (blocked) return blocked;
+  // On OptionsEvaluator the daemon runs the sync itself (lib/history-sync.ts).
+  if (!BRIDGE) {
+    const r = await startHistorySync();
+    return Response.json(r, { status: r.ok ? 200 : 502 });
+  }
   try {
     requestHistoryBackfill();
   } catch {

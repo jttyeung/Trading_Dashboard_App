@@ -48,7 +48,13 @@ const BREAKDOWN: { key: string; label: string }[] = [
   { key: "stock", label: "Stocks" },
 ];
 
-export function BuildHistory({ hasHistory }: { hasHistory: boolean }) {
+// backend: the bridge rebuilds ~2 years of Schwab history on request (slow,
+// pauses its other updates, so it asks first); OptionsEvaluator syncs new
+// Schwab and E*TRADE transactions and rewrites the closed-trade files in
+// seconds, so it just runs. Same routes and status shape either way; the
+// routes pick the backend (lib/features.ts BRIDGE).
+export function BuildHistory({ hasHistory, backend = "bridge" }: { hasHistory: boolean; backend?: "bridge" | "optionseval" }) {
+  const oe = backend === "optionseval";
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [modal, setModal] = useState<Modal>("none");
@@ -92,11 +98,15 @@ export function BuildHistory({ hasHistory }: { hasHistory: boolean }) {
       } else if (Date.now() - startedAt.current > TIMEOUT_MS) {
         stopPolling();
         setBusy(false);
-        setErrMsg("Still working after a while — make sure the bridge service is running.");
+        setErrMsg(
+          oe
+            ? "Still working after a while — make sure the OptionsEvaluator daemon is running."
+            : "Still working after a while — make sure the bridge service is running.",
+        );
         setModal("error");
       }
     }, 3000);
-  }, [router, stopPolling]);
+  }, [oe, router, stopPolling]);
 
   // Resume the UI if a rebuild is already running (e.g. navigated away and back).
   useEffect(() => {
@@ -150,7 +160,7 @@ export function BuildHistory({ hasHistory }: { hasHistory: boolean }) {
       setModal("running"); // reopen progress if they tap again mid-build
       return;
     }
-    if (hasHistory) setModal("confirm");
+    if (hasHistory && !oe) setModal("confirm");
     else void doStart();
   }
 
@@ -160,11 +170,11 @@ export function BuildHistory({ hasHistory }: { hasHistory: boolean }) {
     <>
       <button
         onClick={handleClick}
-        title="Build your trade history from Schwab"
+        title={oe ? "Sync closed trades from Schwab and E*TRADE now" : "Build your trade history from Schwab"}
         className="flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1.5 text-xs font-medium text-muted ring-1 ring-inset ring-border transition-colors active:bg-surface"
       >
         <ClockIcon />
-        <span>{busy ? "Building…" : "Build history"}</span>
+        <span>{busy ? (oe ? "Syncing…" : "Building…") : "Build history"}</span>
       </button>
 
       {modal !== "none" &&
@@ -205,10 +215,11 @@ export function BuildHistory({ hasHistory }: { hasHistory: boolean }) {
 
               {modal === "running" && (
                 <>
-                  <div className="text-sm font-semibold text-text">Building trade history…</div>
+                  <div className="text-sm font-semibold text-text">{oe ? "Syncing trade history…" : "Building trade history…"}</div>
                   <p className="mt-1.5 text-xs leading-relaxed text-muted">
-                    Pulling your closed trades from Schwab (up to ~2 years). This can take a minute — you can
-                    close this and keep using the app; we&apos;ll pop back up when it&apos;s done.
+                    {oe
+                      ? "Pulling new Schwab and E*TRADE transactions and rebuilding your closed trades, including any cost basis you've entered. Usually a few seconds."
+                      : "Pulling your closed trades from Schwab (up to ~2 years). This can take a minute — you can close this and keep using the app; we'll pop back up when it's done."}
                   </p>
                   <div className="mt-4">
                     <button
@@ -223,12 +234,12 @@ export function BuildHistory({ hasHistory }: { hasHistory: boolean }) {
 
               {modal === "done" && (
                 <>
-                  <div className="text-sm font-semibold text-emerald-300">✓ Trade history built</div>
+                  <div className="text-sm font-semibold text-emerald-300">{oe ? "✓ Trade history up to date" : "✓ Trade history built"}</div>
                   <p className="mt-1.5 text-xs text-muted">
                     {total != null ? (
                       <>
-                        Imported <span className="font-semibold text-text">{total}</span> closed round-trip
-                        {total === 1 ? "" : "s"}.
+                        {oe ? "On file:" : "Imported"} <span className="font-semibold text-text">{total}</span> closed
+                        round-trip{total === 1 ? "" : "s"}.
                       </>
                     ) : (
                       "Your realized history is ready."
