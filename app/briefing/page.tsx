@@ -7,6 +7,7 @@ import { computeHoldings, underweightTickers } from "@/lib/holdings";
 import { getRefreshStatus } from "@/lib/refresh-status";
 import { DataRefresh } from "@/components/DataRefresh";
 import { BriefingRefresh } from "@/components/BriefingRefresh";
+import { BRIDGE } from "@/lib/features";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,10 @@ export default async function BriefingPage() {
             "Run am_report.py to build the report"
           )
         }
-        right={report ? <BriefingRefresh /> : undefined}
+        // The bridge rebuilds the brief on request; OptionsEvaluator rebuilds
+        // it hourly in the session, and an on-demand run would re-fetch every
+        // watchlist chain, so the button only shows on the bridge.
+        right={report && BRIDGE ? <BriefingRefresh /> : undefined}
       />
       {report ? (
         <AmReportView report={report} underweight={underweight} book={book} />
