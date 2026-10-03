@@ -2,6 +2,8 @@
 // positions table, not the mobile phone-frame app. app/layout.tsx already
 // skips the phone-frame chrome for any /desktop path (see proxy.ts) — this
 // page just needs to render its own content, full width.
+import { notFound } from "next/navigation";
+import { BRIDGE } from "@/lib/features";
 import { getSnapshot } from "@/lib/snapshot";
 import { getAlerts } from "@/lib/alerts";
 import { accountLabel } from "@/lib/account-shared";
@@ -10,6 +12,7 @@ import { PositionsTable } from "@/components/desktop/PositionsTable";
 export const dynamic = "force-dynamic";
 
 export default async function DesktopPage() {
+  if (BRIDGE) notFound(); // OptionsEvaluator-only; see lib/features.ts
   const snap = await getSnapshot();
   const alerts = (await getAlerts()).alerts;
   // Built from every REAL account (never the "combined" bucket) and tagged

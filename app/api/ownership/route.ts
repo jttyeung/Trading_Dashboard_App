@@ -5,6 +5,7 @@
 //
 // GET /api/ownership?symbol=GLW → Ownership (lib/ownership.ts) or { error }.
 import { isExampleMode } from "@/lib/example-mode";
+import { BRIDGE } from "@/lib/features";
 import { exampleOwnership } from "@/lib/example-ownership";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,7 @@ const CHART_API_URL = (process.env.CHART_API_URL ?? "http://localhost:8092").rep
 const DAEMON_TIMEOUT_MS = 25_000;
 
 export async function GET(req: Request) {
+  if (BRIDGE) return new Response(null, { status: 404 }); // OptionsEvaluator-only; see lib/features.ts
   const symbol = (new URL(req.url).searchParams.get("symbol") ?? "").trim().toUpperCase();
   if (!TICKER_RE.test(symbol)) {
     return Response.json({ error: "Enter a ticker like GLW or BRK.B." }, { status: 400 });

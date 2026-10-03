@@ -2,6 +2,7 @@ import { BackLink, PageHeader } from "@/components/ui";
 import { ShowAmounts } from "@/components/privacy";
 import { SecurityChart } from "@/components/SecurityChart";
 import { OptionsVolumeLeaders } from "@/components/OptionsVolumeLeaders";
+import { OPTIONSEVAL } from "@/lib/features";
 import { getSnapshot } from "@/lib/snapshot";
 import { getResearch } from "@/lib/research";
 
@@ -32,12 +33,14 @@ export default async function ChartPage({ searchParams }: { searchParams: Promis
           subtitle="2-year daily · Bollinger · SMA 50/200 · MACD · RSI · walls for held names"
           right={<BackLink />}
         />
-        <SecurityChart watchlist={watchlist} initialSymbol={initial} />
+        <SecurityChart watchlist={watchlist} initialSymbol={initial} insights={OPTIONSEVAL} />
         {/* Below the search and chart, so a charted ticker stays at the top;
             each row links back up here with its ticker charted. */}
-        <div className="mt-3">
-          <OptionsVolumeLeaders />
-        </div>
+        {OPTIONSEVAL && (
+          <div className="mt-3">
+            <OptionsVolumeLeaders />
+          </div>
+        )}
         {/* The same chart is one long-press away from anywhere in the app — worth
             saying here, where people come looking for a chart on purpose. */}
         <p className="mt-4 px-1 text-[11px] leading-relaxed text-muted">

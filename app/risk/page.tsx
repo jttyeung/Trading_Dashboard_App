@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+import { BRIDGE } from "@/lib/features";
 import { BackLink, PageHeader } from "@/components/ui";
 import { ShowAmounts } from "@/components/privacy";
 import { PortfolioRiskView } from "@/components/PortfolioRiskView";
@@ -8,6 +10,7 @@ import { DataRefresh } from "@/components/DataRefresh";
 export const dynamic = "force-dynamic";
 
 export default async function RiskPage() {
+  if (BRIDGE) notFound(); // OptionsEvaluator-only; see lib/features.ts
   const risk = await getPortfolioRisk();
 
   return (

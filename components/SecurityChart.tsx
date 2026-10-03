@@ -50,7 +50,17 @@ function toTime(dateStr: string): UTCTimestamp {
   return (Date.parse(dateStr + "T00:00:00Z") / 1000) as UTCTimestamp;
 }
 
-export function SecurityChart({ watchlist, initialSymbol }: { watchlist: string[]; initialSymbol?: string }) {
+// insights: the financials and insider panels, served by OptionsEvaluator's
+// chartapi; off when the dashboard runs on the upstream bridge (lib/features.ts).
+export function SecurityChart({
+  watchlist,
+  initialSymbol,
+  insights = true,
+}: {
+  watchlist: string[];
+  initialSymbol?: string;
+  insights?: boolean;
+}) {
   const [symbolInput, setSymbolInput] = useState(initialSymbol ?? "");
   const [activeSymbol, setActiveSymbol] = useState<string | null>(initialSymbol ?? null);
   const [data, setData] = useState<ChartData | null>(null);
@@ -113,7 +123,7 @@ export function SecurityChart({ watchlist, initialSymbol }: { watchlist: string[
   // request, so a slow first EDGAR download never holds up the candles and a
   // ticker with no filings still charts.
   useEffect(() => {
-    if (!activeSymbol) return;
+    if (!activeSymbol || !insights) return;
     let cancelled = false;
     const symbol = activeSymbol;
     fetchFinancials(symbol)
@@ -126,11 +136,11 @@ export function SecurityChart({ watchlist, initialSymbol }: { watchlist: string[
     return () => {
       cancelled = true;
     };
-  }, [activeSymbol]);
+  }, [activeSymbol, insights]);
 
   // Insider activity loads the same way, on its own request.
   useEffect(() => {
-    if (!activeSymbol) return;
+    if (!activeSymbol || !insights) return;
     let cancelled = false;
     const symbol = activeSymbol;
     fetchOwnership(symbol)
@@ -143,7 +153,7 @@ export function SecurityChart({ watchlist, initialSymbol }: { watchlist: string[
     return () => {
       cancelled = true;
     };
-  }, [activeSymbol]);
+  }, [activeSymbol, insights]);
 
   useEffect(() => {
     if (!data || !containerRef.current) return;
@@ -388,13 +398,15 @@ export function SecurityChart({ watchlist, initialSymbol }: { watchlist: string[
         </Card>
       )}
 
-      {activeSymbol &&
+      {insights &&
+        activeSymbol &&
         (financials?.symbol === activeSymbol ? (
           <FinancialsPanel data={financials.data} error={financials.error} loading={false} prices={chartPrices} />
         ) : (
           <FinancialsPanel data={null} error={null} loading prices={null} />
         ))}
-      {activeSymbol &&
+      {insights &&
+        activeSymbol &&
         (ownership?.symbol === activeSymbol ? (
           <InsiderPanel data={ownership.data} error={ownership.error} loading={false} />
         ) : (
