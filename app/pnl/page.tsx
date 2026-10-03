@@ -148,8 +148,14 @@ export default async function PnlPage() {
         />
         {!hasHistory && (
           <p className="mt-3 rounded-xl border border-border bg-surface px-4 py-3 text-center text-xs text-muted">
-            No closed trades yet — tap <span className="font-medium text-text">Build history</span> above to
-            pull your realized trades from Schwab.
+            {BRIDGE ? (
+              <>
+                No closed trades yet — tap <span className="font-medium text-text">Build history</span> above to
+                pull your realized trades from Schwab.
+              </>
+            ) : (
+              "No closed trades in this account yet."
+            )}
           </p>
         )}
         <ManualStockEntry sales={manualSales} />
