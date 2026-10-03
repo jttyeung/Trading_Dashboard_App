@@ -41,6 +41,10 @@ built-in demo dataset, so you can explore the whole UI immediately.
   proxies the daemon's `/financials` (the company's own SEC filings via EDGAR, EPS from
   Finnhub); the daemon needs `SEC_USER_AGENT` set. No Yahoo fallback: with the daemon down the
   panel says so. ETFs, indexes and 20-F filers show a "no SEC filings" note.
+- **Insiders & major holders under the chart** — insiders' open-market buys and sells over the
+  last 3/6/12 months (Form 4 via the daemon's `/ownership`; grants, option exercises and tax
+  withholding excluded), a monthly bought-vs-sold chart, recent trades, and current 5%+ holders
+  from SEC 13G filings, with a note on any holder whose latest filing is over a year old.
 - **Portfolio risk** — theta ceiling, sector concentration against a per-sector cap, beta vs
   QQQ, and an open-P&L floor, all across every account. Sector buckets (with the tickers behind
   each) come from the daemon's `data/portfolio-risk.json`; sectors are the wheel watchlist
