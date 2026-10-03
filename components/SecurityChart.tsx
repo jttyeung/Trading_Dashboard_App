@@ -25,6 +25,8 @@ import { Card } from "@/components/ui";
 import { fetchChart, type ChartData } from "@/lib/chart-api";
 import { fetchFinancials, type Financials } from "@/lib/financials";
 import { FinancialsPanel } from "@/components/FinancialsPanel";
+import { fetchOwnership, type Ownership } from "@/lib/ownership";
+import { InsiderPanel } from "@/components/InsiderPanel";
 
 const UP_COLOR = "#34d399";
 const DOWN_COLOR = "#f87171";
@@ -98,6 +100,8 @@ export function SecurityChart({ watchlist, initialSymbol }: { watchlist: string[
     };
   }, [activeSymbol]);
 
+  const [ownership, setOwnership] = useState<{ symbol: string; data: Ownership | null; error: string | null } | null>(null);
+
   // Only once the chart in hand is for the same ticker: right after a new
   // search, `data` still holds the previous symbol's closes.
   const chartPrices = useMemo(
@@ -118,6 +122,23 @@ export function SecurityChart({ watchlist, initialSymbol }: { watchlist: string[
       })
       .catch((e) => {
         if (!cancelled) setFinancials({ symbol, data: null, error: e instanceof Error ? e.message : String(e) });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSymbol]);
+
+  // Insider activity loads the same way, on its own request.
+  useEffect(() => {
+    if (!activeSymbol) return;
+    let cancelled = false;
+    const symbol = activeSymbol;
+    fetchOwnership(symbol)
+      .then((data) => {
+        if (!cancelled) setOwnership({ symbol, data, error: null });
+      })
+      .catch((e) => {
+        if (!cancelled) setOwnership({ symbol, data: null, error: e instanceof Error ? e.message : String(e) });
       });
     return () => {
       cancelled = true;
@@ -372,6 +393,12 @@ export function SecurityChart({ watchlist, initialSymbol }: { watchlist: string[
           <FinancialsPanel data={financials.data} error={financials.error} loading={false} prices={chartPrices} />
         ) : (
           <FinancialsPanel data={null} error={null} loading prices={null} />
+        ))}
+      {activeSymbol &&
+        (ownership?.symbol === activeSymbol ? (
+          <InsiderPanel data={ownership.data} error={ownership.error} loading={false} />
+        ) : (
+          <InsiderPanel data={null} error={null} loading />
         ))}
 
       {!data && !loading && !error && (
