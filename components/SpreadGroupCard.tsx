@@ -1,5 +1,7 @@
 "use client";
 
+import { AccountTag } from "@/components/AccountTag";
+
 // One open-spreads group: a sortable table of complete verticals (legs combined)
 // plus a credit ledger. Mirrors the CSP table — collateral becomes the spread's
 // capital at risk, and Yr% is the annualized return on the remaining spread value
@@ -119,7 +121,7 @@ function SpreadRow({ sp, real, sim }: { sp: Spread; real?: Spread; sim?: boolean
         className={`${SPREAD_COLS} w-full px-3 py-2.5 text-left text-[11px] active:bg-surface-2`}
       >
         <div className="min-w-0">
-          <div className="truncate font-semibold">{sp.symbol}</div>
+          <div className="flex items-center truncate font-semibold">{sp.symbol}<AccountTag label={sp.short.account} index={sp.short.accountIndex} /></div>
           <div className="truncate text-[10px] text-muted">
             ${sp.shortStrike}/${sp.longStrike} · ×{sp.qty}
           </div>
@@ -171,8 +173,9 @@ function SpreadDetail({ sp }: { sp: Spread }) {
       : sp.dte > 0
         ? openingYield * (360 / sp.dte)
         : 0;
-  const typeLabel =
-    sp.optionType === "put" ? "Bull put (credit) spread" : "Bear call (credit) spread";
+  const typeLabel = sp.isCredit
+    ? sp.optionType === "put" ? "Bull put (credit) spread" : "Bear call (credit) spread"
+    : sp.optionType === "put" ? "Bear put (debit) spread" : "Bull call (debit) spread";
 
   return (
     <div className="border-t border-border bg-surface-2/40 px-4 py-3">
@@ -182,8 +185,8 @@ function SpreadDetail({ sp }: { sp: Spread }) {
         <Row k="Opened" v={sp.openedAt ? `${sp.openedAt} (${daysHeld}d ago)` : "—"} />
         <Row k="Expires" v={`${sp.expiration} (${sp.dte} DTE${termDays ? ` · ${termDays}d term` : ""} · ~${months}mo)`} />
         <Row
-          k="Net credit"
-          v={<><Amt>{fmtMoney(sp.maxProfit)}</Amt> <span className="text-muted">(${sp.netCredit.toFixed(2)}/sh)</span></>}
+          k={sp.isCredit ? "Net credit" : "Net debit"}
+          v={<><Amt>{fmtMoney(sp.isCredit ? sp.maxProfit : sp.maxLoss)}</Amt> <span className="text-muted">(${Math.abs(sp.netCredit).toFixed(2)}/sh)</span></>}
         />
         <Row k="Width" v={`$${sp.width.toFixed(2)} wide`} />
         <Row k="Max profit" v={<span className="text-emerald-400"><Amt>{fmtMoney(sp.maxProfit)}</Amt></span>} />
