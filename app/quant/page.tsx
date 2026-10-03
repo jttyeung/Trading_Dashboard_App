@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+import { QUANT } from "@/lib/features";
 import Link from "next/link";
 import { BackLink, Card, PageHeader, Pill, SectionTitle } from "@/components/ui";
 import { Amt, ShowAmounts } from "@/components/privacy";
@@ -145,6 +147,7 @@ function qs(base: { earnings?: string; cap?: string; sort?: string }, patch: Par
 }
 
 export default async function QuantPage({ searchParams }: { searchParams: Promise<{ earnings?: string; cap?: string; sort?: string }> }) {
+  if (!QUANT) notFound(); // parked; see lib/features.ts
   // Earnings filter: on unless ?earnings=show. A report inside the put's life is the
   // one thing the study never tested, so those names are set aside, not hidden.
   const params = await searchParams;

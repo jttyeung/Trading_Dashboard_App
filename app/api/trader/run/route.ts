@@ -5,6 +5,7 @@
 // which the button polls. Only answers when the trader is present.
 import { demoBlocked } from "@/lib/demo";
 import { readSuggestions, requestRun, runPending, traderPresent } from "@/lib/trader";
+import { TRADER } from "@/lib/features";
 
 export const dynamic = "force-dynamic";
 
@@ -14,11 +15,13 @@ function state() {
 }
 
 export async function GET() {
+  if (!TRADER) return new Response(null, { status: 404 }); // parked; see lib/features.ts
   if (!traderPresent()) return Response.json({ ok: false, error: "The trader isn't set up." }, { status: 404 });
   return Response.json({ ok: true, ...state() });
 }
 
 export async function POST() {
+  if (!TRADER) return new Response(null, { status: 404 }); // parked; see lib/features.ts
   const blocked = demoBlocked();
   if (blocked) return blocked;
   if (!traderPresent()) return Response.json({ ok: false, error: "The trader isn't set up." }, { status: 404 });

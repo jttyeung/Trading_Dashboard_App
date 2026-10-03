@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { TRADER } from "@/lib/features";
 import { BackLink, Card, PageHeader } from "@/components/ui";
 import { ShowAmounts } from "@/components/privacy";
 import { TraderList } from "@/components/TraderList";
@@ -15,6 +16,7 @@ export const dynamic = "force-dynamic";
 // Only installs running the trader service have this page: it keys off the
 // file that service writes. Everyone else gets the app's 404.
 export default async function TraderPage() {
+  if (!TRADER) notFound(); // parked; see lib/features.ts
   if (!traderPresent()) notFound();
   const doc = readSuggestions();
   const m = doc?.meta;
