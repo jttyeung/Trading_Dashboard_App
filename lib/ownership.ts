@@ -1,8 +1,11 @@
-// Insider activity and 5%+ holders under the chart (components/InsiderPanel.tsx).
-// Mirrors OptionsEvaluator's internal/chartapi OwnershipResponse: insiders'
-// open-market trades from Form 4 (via Finnhub), kept to real purchases and
-// sales (grants, option exercises and tax withholding dropped), and current
-// 5%+ holders from SEC Schedule 13G filings.
+// Insider activity under the chart (components/InsiderPanel.tsx). Mirrors
+// OptionsEvaluator's internal/chartapi OwnershipResponse: insiders' open-market
+// trades from Form 4 (via Finnhub), kept to real purchases and sales (grants,
+// option exercises and tax withholding dropped), each tagged from the Form 4
+// itself with the insider's role, title and whether it was a pre-planned
+// 10b5-1 trade.
+
+export type InsiderRoleGroup = "C-suite" | "Other officer" | "Director" | "10% owner" | "Other";
 
 export interface InsiderTrade {
   name: string;
@@ -13,6 +16,18 @@ export interface InsiderTrade {
   price: number;
   value: number;
   sharesAfter: number;
+  role: InsiderRoleGroup | ""; // "" when the Form 4 couldn't be read
+  title: string; // the filing's own words, e.g. "Chairman, CEO and President"
+  planned: boolean | null; // 10b5-1 trading plan; null when unknown
+}
+
+export interface InsiderRole {
+  role: InsiderRoleGroup;
+  buyValue: number;
+  sellValue: number;
+  plannedSellValue: number; // part of sellValue under 10b5-1 plans
+  buyers: string[];
+  sellers: string[];
 }
 
 export interface InsiderWindow {
@@ -31,21 +46,12 @@ export interface InsiderMonth {
   sellValue: number;
 }
 
-export interface Holder {
-  name: string;
-  percent: number;
-  shares: number;
-  asOf: string; // event date the filing reports; "" when an older filing's text didn't say
-  filed: string;
-  form: string;
-}
-
 export interface Ownership {
   symbol: string;
   trades: InsiderTrade[]; // newest first, last 12 months
   windows: InsiderWindow[]; // 3, 6, 12 months
   months: InsiderMonth[]; // oldest first, 12
-  holders: Holder[];
+  roles: InsiderRole[]; // last 12 months, most senior first
   fetchedAt: string;
 }
 
