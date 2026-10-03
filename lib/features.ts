@@ -26,8 +26,10 @@ export const TRADER = (process.env.TRADER || "").trim() === "1";
 //                       call to its localhost APIs (8091–8096). Data files
 //                       both backends write (snapshot, vix, research,
 //                       am_report, *-closed) render either way. The reverse
-//                       too: the Brief's Refresh and P&L's Build history
-//                       buttons queue work only the bridge picks up, so they
-//                       show only with BRIDGE=1.
+//                       too: the Brief's Refresh button queues work only the
+//                       bridge picks up, so it shows only with BRIDGE=1. P&L's
+//                       Build history works on both: the bridge via its
+//                       task_inbox, OptionsEvaluator via the daemon's
+//                       /history-sync (lib/history-sync.ts).
 export const BRIDGE = (process.env.BRIDGE || "").trim() === "1";
 export const OPTIONSEVAL = !BRIDGE;
