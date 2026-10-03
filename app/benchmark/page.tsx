@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+import { BRIDGE } from "@/lib/features";
 import { BackLink, PageHeader } from "@/components/ui";
 import { ShowAmounts } from "@/components/privacy";
 import { BenchmarkView } from "@/components/BenchmarkView";
@@ -6,6 +8,7 @@ import { getBenchmark } from "@/lib/benchmark";
 export const dynamic = "force-dynamic";
 
 export default async function BenchmarkPage() {
+  if (BRIDGE) notFound(); // OptionsEvaluator-only; see lib/features.ts
   const benchmark = await getBenchmark();
 
   return (

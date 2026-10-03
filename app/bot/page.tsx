@@ -2,6 +2,8 @@
 // Trade Suggestion Engine, logged into a review queue for approval
 // feedback before ever going live. See app/layout.tsx (proxy.ts) for why
 // /bot renders full-width instead of the phone-frame shell.
+import { notFound } from "next/navigation";
+import { BRIDGE } from "@/lib/features";
 import { getGeneralBot } from "@/lib/bot";
 import { BotTable } from "@/components/bot/BotTable";
 import { isExampleMode } from "@/lib/example-mode";
@@ -9,6 +11,7 @@ import { isExampleMode } from "@/lib/example-mode";
 export const dynamic = "force-dynamic";
 
 export default async function GeneralBotPage() {
+  if (BRIDGE) notFound(); // OptionsEvaluator-only; see lib/features.ts
   const [snap, exampleMode] = await Promise.all([getGeneralBot(), isExampleMode()]);
 
   return (

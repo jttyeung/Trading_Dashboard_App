@@ -3,6 +3,8 @@
 // price with near-zero assignment odds) — same review-queue idea as
 // /bot, just the conservative delta band. See app/layout.tsx (proxy.ts)
 // for why this renders full-width instead of the phone-frame shell.
+import { notFound } from "next/navigation";
+import { BRIDGE } from "@/lib/features";
 import { get20DeltaSafeBot } from "@/lib/bot";
 import { BotTable } from "@/components/bot/BotTable";
 import { isExampleMode } from "@/lib/example-mode";
@@ -10,6 +12,7 @@ import { isExampleMode } from "@/lib/example-mode";
 export const dynamic = "force-dynamic";
 
 export default async function DeltaSafeBotPage() {
+  if (BRIDGE) notFound(); // OptionsEvaluator-only; see lib/features.ts
   const [snap, exampleMode] = await Promise.all([get20DeltaSafeBot(), isExampleMode()]);
 
   return (

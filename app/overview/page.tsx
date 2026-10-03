@@ -5,6 +5,8 @@
 // everything once server-side, same "fetch once, pass down" convention
 // as the rest of this app, so switching tabs client-side is instant
 // with no re-fetch.
+import { notFound } from "next/navigation";
+import { BRIDGE } from "@/lib/features";
 import { getSnapshot } from "@/lib/snapshot";
 import { getAlerts } from "@/lib/alerts";
 import { getGeneralBot, get20DeltaSafeBot, getAggressiveBot } from "@/lib/bot";
@@ -20,6 +22,7 @@ import { OverviewShell } from "@/components/overview/OverviewShell";
 export const dynamic = "force-dynamic";
 
 export default async function OverviewPage() {
+  if (BRIDGE) notFound(); // OptionsEvaluator-only; see lib/features.ts
   const snap = await getSnapshot();
   const alerts = (await getAlerts()).alerts;
   const [generalBot, safeBot, aggressiveBot, strategyPerf, scoreFactors, myTrades, cspPicks, risk, exampleMode] =
