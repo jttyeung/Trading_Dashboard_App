@@ -25,6 +25,9 @@ export const TRADER = (process.env.TRADER || "").trim() === "1";
 //                       its cards on Home, P&L, VIX and Chart; and every
 //                       call to its localhost APIs (8091–8096). Data files
 //                       both backends write (snapshot, vix, research,
-//                       am_report, *-closed) render either way.
+//                       am_report, *-closed) render either way. The reverse
+//                       too: the Brief's Refresh and P&L's Build history
+//                       buttons queue work only the bridge picks up, so they
+//                       show only with BRIDGE=1.
 export const BRIDGE = (process.env.BRIDGE || "").trim() === "1";
 export const OPTIONSEVAL = !BRIDGE;
