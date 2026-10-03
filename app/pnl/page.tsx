@@ -140,22 +140,16 @@ export default async function PnlPage() {
             <div className="flex items-center gap-2">
               {hasHistory && <ReconcileSchwab records={appClosed} accounts={reconcileAccounts} unresolved={unresolved} entered={reconcileEntered} />}
               <CostBasisAlert unresolved={unresolved} broker={BRIDGE ? "schwab" : "etrade"} />
-              {/* The bridge's on-demand history rebuild; OptionsEvaluator syncs
-                  transactions every cycle, so there's nothing to ask for. */}
-              {BRIDGE && <BuildHistory hasHistory={hasHistory} />}
+              {/* The bridge rebuilds from Schwab on request; OptionsEvaluator
+                  syncs Schwab and E*TRADE now (lib/history-sync.ts). */}
+              <BuildHistory hasHistory={hasHistory} backend={BRIDGE ? "bridge" : "optionseval"} />
             </div>
           }
         />
         {!hasHistory && (
           <p className="mt-3 rounded-xl border border-border bg-surface px-4 py-3 text-center text-xs text-muted">
-            {BRIDGE ? (
-              <>
-                No closed trades yet — tap <span className="font-medium text-text">Build history</span> above to
-                pull your realized trades from Schwab.
-              </>
-            ) : (
-              "No closed trades in this account yet."
-            )}
+            No closed trades yet — tap <span className="font-medium text-text">Build history</span> above to
+            pull your realized trades from {BRIDGE ? "Schwab" : "Schwab and E*TRADE"}.
           </p>
         )}
         <ManualStockEntry sales={manualSales} />
