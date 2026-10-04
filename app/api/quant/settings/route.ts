@@ -1,10 +1,12 @@
 // The Quant scan's variables. GET → current values and the study's defaults.
-// POST {params} saves them (and with scan:true asks the bridge to re-scan);
+// POST {params} saves them (and with scan:true asks the bridge, or on
+// OptionsEvaluator the daemon, to re-scan);
 // POST {reset:true} deletes the file so the study's rule is back.
 import { demoBlocked } from "@/lib/demo";
 import { requestQuantScan } from "@/lib/bridge-files";
 import { readQuantSettings, resetQuantSettings, STUDY_DEFAULTS, validateQuantParams, writeQuantSettings, type QuantParams } from "@/lib/quant-settings";
-import { QUANT } from "@/lib/features";
+import { BRIDGE, QUANT } from "@/lib/features";
+import { startQuantScan } from "@/lib/quant-scan-api";
 
 export const dynamic = "force-dynamic";
 
@@ -31,9 +33,11 @@ export async function POST(req: Request) {
       if (!params) return Response.json({ ok: false, error }, { status: 400 });
       writeQuantSettings(params);
     }
-    if (body.scan) requestQuantScan();
+    if (body.scan && BRIDGE) requestQuantScan();
   } catch {
     return Response.json({ ok: false, error: "Could not save." }, { status: 500 });
   }
+  // On OptionsEvaluator the daemon rescans (and reads the saved settings) itself.
+  if (body.scan && !BRIDGE) await startQuantScan();
   return Response.json({ ok: true, ...readQuantSettings(), defaults: STUDY_DEFAULTS });
 }
