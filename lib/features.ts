@@ -8,11 +8,13 @@ export const WHEEL_CAMPAIGNS = (process.env.WHEEL_CAMPAIGNS || "").trim() === "1
 //
 //   QUANT=1             the Quant CSP scan and Quant portfolio check (/quant,
 //                       /quant/portfolio, /api/quant/*) and their Research cards.
+//                       quant-scan.json comes from the bridge or, on
+//                       OptionsEvaluator, its STRAT-013 quant scan agent (Scan
+//                       now via lib/quant-scan-api.ts).
 //   TRADER=1            the Trader page (/trader, /api/trader/*) and its card.
-//                       Both parked 2026-10-03 on this fork: they read files only
-//                       the upstream Python bridge / trader service writes
-//                       (quant-scan.json, trade-suggestions.json), which
-//                       OptionsEvaluator doesn't produce yet.
+//                       Parked 2026-10-03 on this fork: it reads files only the
+//                       upstream trader service writes (trade-suggestions.json),
+//                       which OptionsEvaluator doesn't produce yet.
 export const QUANT = (process.env.QUANT || "").trim() === "1";
 export const TRADER = (process.env.TRADER || "").trim() === "1";
 //
