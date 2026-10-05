@@ -14,7 +14,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { dataDirs } from "./data-dirs";
 import { getSnapshot } from "./snapshot";
-import { COMBINED_ID, getCombineIds, getSelectedAccountId } from "./account";
+import { COMBINED_ID, combinableAccounts, getCombineIds, getSelectedAccountId } from "./account";
 import { readManualFile } from "./manual-positions";
 import type { Snapshot } from "./types";
 
@@ -42,10 +42,22 @@ function manualLabel(name: string | undefined): string {
   return parts.length > 1 ? parts.slice(1).join(" · ") : "";
 }
 
+/** The account ids whose records belong to the selected view. A source's own "all"
+ *  entry (OptionsEvaluator's "combined", the default) is an id no record carries,
+ *  so it stands for every real account — paper ones stay out, as they do of All
+ *  Accounts' totals in mergeSnapshots. */
+async function viewIds(snap: Snapshot, selected: string): Promise<string[]> {
+  if (selected === COMBINED_ID) return getCombineIds(snap);
+  if (snap.accounts.find((a) => a.id === selected)?.type === "all") {
+    return combinableAccounts(snap).filter((a) => a.type !== "paper").map((a) => a.id);
+  }
+  return [selected];
+}
+
 export async function readClosedForView<T extends Taggable>(name: string, empty: ClosedDoc<T>): Promise<ClosedDoc<T>> {
   const snap = await getSnapshot();
   const selected = await getSelectedAccountId(snap);
-  const view = new Set(selected === COMBINED_ID ? await getCombineIds(snap) : [selected]);
+  const view = new Set(await viewIds(snap, selected));
   const viewHasBroker = [...view].some((id) => !id.startsWith("manual-"));
   const manualIds = new Map(readManualFile().accounts.map((a) => [a.label, a.id] as const));
 
