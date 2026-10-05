@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import { BRIDGE } from "@/lib/features";
 import { getSnapshot } from "@/lib/snapshot";
 import { getAlerts } from "@/lib/alerts";
-import { accountLabel } from "@/lib/account-shared";
+import { accountLabel, realAccounts } from "@/lib/account-shared";
 import { PositionsTable } from "@/components/desktop/PositionsTable";
 
 export const dynamic = "force-dynamic";
@@ -21,8 +21,9 @@ export default async function DesktopPage() {
   // there's no way to recover "which account is this from" once a position
   // is already inside "combined." Summing the real accounts ourselves here
   // gives the same overall picture plus a real Source column, no backend change.
-  const realAccounts = snap.accounts.filter((a) => a.type !== "all");
-  const options = realAccounts.flatMap((a) =>
+  // Auto Trader paper accounts stay out: they're simulated, and have their
+  // own tab on /overview and their own /autotrader page.
+  const options = realAccounts(snap.accounts).flatMap((a) =>
     snap.data[a.id].options.map((o) => ({ ...o, sourceLabel: accountLabel(a) })),
   );
 
