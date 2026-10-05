@@ -183,6 +183,18 @@ function sortValue(r: Row, k: SortKey): number | string {
   }
 }
 
+type SortSpec = { key: SortKey; dir: 1 | -1 };
+const DEFAULT_SORT: SortSpec[] = [{ key: "dte", dir: 1 }];
+
+function compareBy(a: Row, b: Row, k: SortKey): number {
+  const av = sortValue(a, k);
+  const bv = sortValue(b, k);
+  if (typeof av === "string") return av.localeCompare(String(bv));
+  // Two missing values (both ±Infinity) subtract to NaN; treat them as a tie so
+  // the next key in the chain gets to decide.
+  return av === bv ? 0 : av - (bv as number);
+}
+
 // 0–7 / 8–21 mirror the app's own DTE-management framing (the 21-DTE window).
 function dteBucket(dte: number | null): { key: string; label: string; order: number } {
   if (dte == null) return { key: "stock", label: "No expiry", order: 5 };
@@ -262,8 +274,10 @@ export function PositionsTable({
   multiAccount: boolean;
 }) {
   const [groupBy, setGroupBy] = usePersistentState<GroupBy>("positions-group", "ticker");
-  const [sortKey, setSortKey] = usePersistentState<SortKey>("positions-sort", "dte");
-  const [sortDir, setSortDir] = usePersistentState<1 | -1>("positions-dir", 1);
+  // Ordered sort chain: the first entry is primary, each later one breaks ties
+  // left by the ones before it. A new storage key, not "positions-sort": that
+  // one held a bare SortKey string, which a restored Back would hand us as-is.
+  const [sorts, setSorts] = usePersistentState<SortSpec[]>("positions-sorts", DEFAULT_SORT);
   const [collapsed, setCollapsed] = usePersistentState<string[]>("positions-collapsed", []);
 
   const rows = useMemo(() => [...options.map(optionRow), ...equities.map(stockRow)], [options, equities]);
@@ -287,26 +301,35 @@ export function PositionsTable({
     list.sort((a, b) => (a.order !== b.order ? a.order - b.order : a.label.localeCompare(b.label)));
     for (const g of list) {
       g.rows.sort((a, b) => {
-        const av = sortValue(a, sortKey);
-        const bv = sortValue(b, sortKey);
-        const cmp = typeof av === "string" ? av.localeCompare(String(bv)) : av - (bv as number);
-        return cmp * sortDir || a.symbol.localeCompare(b.symbol);
+        for (const s of sorts) {
+          const cmp = compareBy(a, b, s.key) * s.dir;
+          if (cmp) return cmp;
+        }
+        return a.symbol.localeCompare(b.symbol);
       });
     }
     return list;
-  }, [rows, groupBy, sortKey, sortDir]);
+  }, [rows, groupBy, sorts]);
 
   const total = useMemo(() => sumRows(rows), [rows]);
   const collapsedSet = new Set(collapsed);
   const allCollapsed = groupBy !== "none" && groups.length > 0 && groups.every((g) => collapsedSet.has(g.key));
 
-  const toggleSort = (k: SortKey) => {
-    if (k === sortKey) setSortDir((d) => (d === 1 ? -1 : 1));
-    else {
-      setSortKey(k);
-      setSortDir(1);
-    }
+  const flip = (k: SortKey) =>
+    setSorts((prev) => prev.map((s) => (s.key === k ? { ...s, dir: s.dir === 1 ? -1 : 1 } : s)));
+  // Plain click keeps the old single-column behavior (flip the primary, or sort
+  // by this column alone). Shift-click builds the chain on desktop; the toolbar
+  // strip below does the same on a tablet, which has no Shift.
+  const clickHeader = (k: SortKey, additive: boolean) => {
+    if (sorts.some((s) => s.key === k) && (additive || sorts[0].key === k)) flip(k);
+    else if (additive) addSort(k);
+    else setSorts([{ key: k, dir: 1 }]);
   };
+  const addSort = (k: SortKey) => setSorts((prev) => [...prev.filter((s) => s.key !== k), { key: k, dir: 1 }]);
+  const removeSort = (k: SortKey) =>
+    setSorts((prev) => (prev.length > 1 ? prev.filter((s) => s.key !== k) : prev));
+  const labelOf = (k: SortKey) => COLUMNS.find((c) => c.key === k)?.label ?? k;
+  const unsorted = columns.filter((c) => !sorts.some((s) => s.key === c.key));
   const toggleGroup = (key: string) =>
     setCollapsed((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
 
@@ -387,23 +410,68 @@ export function PositionsTable({
         </div>
       </div>
 
+      {/* Sort chain — the touch path to a multi-column sort (desktop can also
+          Shift-click headers). Tap a chip to flip it; × drops it. */}
+      <div className="flex flex-wrap items-center gap-1.5 border-b border-border px-3 py-2 text-[11px]">
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">Sort</span>
+        {sorts.map((s, i) => (
+          <span key={s.key} className="inline-flex items-center rounded-lg border border-border bg-surface-2 font-medium">
+            <button onClick={() => flip(s.key)} className="flex items-center gap-1 px-2 py-0.5 hover:text-text" title="Flip direction">
+              {sorts.length > 1 && <span className="text-[9px] text-muted">{i + 1}</span>}
+              {labelOf(s.key)}
+              <span className="text-[8px]">{s.dir === 1 ? "▲" : "▼"}</span>
+            </button>
+            {sorts.length > 1 && (
+              <button onClick={() => removeSort(s.key)} className="border-l border-border px-1.5 py-0.5 text-muted hover:text-text" aria-label={`Remove ${labelOf(s.key)} from sort`}>
+                ×
+              </button>
+            )}
+          </span>
+        ))}
+        {unsorted.length > 0 && (
+          <select
+            value=""
+            onChange={(e) => e.target.value && addSort(e.target.value as SortKey)}
+            className="rounded-lg border border-border bg-surface-2 px-1.5 py-0.5 text-[11px] text-muted"
+            aria-label="Add a sort column"
+          >
+            <option value="">+ then by…</option>
+            {unsorted.map((c) => (
+              <option key={c.key} value={c.key}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        )}
+        {sorts.length > 1 && (
+          <button onClick={() => setSorts([sorts[0]])} className="ml-1 text-muted hover:text-text">
+            Clear extras
+          </button>
+        )}
+      </div>
+
       {/* Table — wider than the canvas at every column, so it scrolls sideways
           inside this card while the page itself never does. */}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1060px] border-collapse text-[11px]">
           <thead>
             <tr className="border-b border-border text-[10px] uppercase tracking-wide text-muted">
-              {columns.map((c) => (
-                <th key={c.key} className={`whitespace-nowrap px-2 py-2 font-medium ${c.right ? "text-right" : "text-left"}`} title={c.title}>
-                  <button
-                    onClick={() => toggleSort(c.key)}
-                    className={`inline-flex items-center gap-0.5 hover:text-text ${c.right ? "w-full justify-end" : ""} ${sortKey === c.key ? "text-text" : ""}`}
-                  >
-                    {c.label}
-                    <span className="text-[8px]">{sortKey === c.key ? (sortDir === 1 ? "▲" : "▼") : ""}</span>
-                  </button>
-                </th>
-              ))}
+              {columns.map((c) => {
+                const rank = sorts.findIndex((s) => s.key === c.key);
+                const spec = sorts[rank];
+                return (
+                  <th key={c.key} className={`whitespace-nowrap px-2 py-2 font-medium ${c.right ? "text-right" : "text-left"}`} title={c.title}>
+                    <button
+                      onClick={(e) => clickHeader(c.key, e.shiftKey)}
+                      className={`inline-flex select-none items-center gap-0.5 hover:text-text ${c.right ? "w-full justify-end" : ""} ${spec ? "text-text" : ""}`}
+                    >
+                      {c.label}
+                      <span className="text-[8px]">{spec ? (spec.dir === 1 ? "▲" : "▼") : ""}</span>
+                      {spec && sorts.length > 1 && <sup className="text-[8px] text-muted">{rank + 1}</sup>}
+                    </button>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
@@ -490,7 +558,8 @@ export function PositionsTable({
       <p className="border-t border-border px-3 py-2 text-[10px] leading-relaxed text-muted">
         Options and stocks together. Short contracts show a negative quantity and a negative value (the cost to buy
         back). RoR and APY apply to cash-secured puts and covered calls: credit ÷ collateral, annualized over the
-        original term; APY left annualizes what remains over the days left. Hold a ticker to chart it.
+        original term; APY left annualizes what remains over the days left. Shift-click a header (or use &ldquo;then by&rdquo;) to
+        break ties with another column. Hold a ticker to chart it.
       </p>
     </div>
   );
