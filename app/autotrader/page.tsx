@@ -23,6 +23,7 @@ const pct = (v: number | null, digits = 1) => (v == null ? "—" : `${v >= 0 ? "
 const plain = (v: number | null) => (v == null ? "—" : `${Math.round(v * 100)}%`);
 const tone = (v: number | null) => (v == null ? "text-muted" : v >= 0 ? "text-emerald-300" : "text-rose-300");
 const short = (label: string) => label.replace("Auto Trader · ", "");
+const count = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 // The log in the Trader page's PaperTrades shape (oldest first; it reverses).
 function toPaperTrades(a: AutotraderAccount): PaperTrade[] {
@@ -105,9 +106,9 @@ export default async function AutotraderPage() {
           <AutotraderChart series={accounts.map((a) => ({ key: a.key, label: short(a.label), points: a.series }))} spy={report.spy} />
         </Card>
 
-        <div className="mt-3 grid gap-3 lg:grid-cols-2">
+        <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
           {accounts.map((a) => (
-            <Card key={a.id} className="px-4 py-3">
+            <Card key={a.id} className="min-w-0 px-4 py-3">
               <div className="flex items-baseline justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-sm font-semibold">{a.label} · paper</div>
@@ -132,9 +133,9 @@ export default async function AutotraderPage() {
                 <span>
                   open <Amt>{signed(a.unrealized)}</Amt>
                 </span>
-                <span>{a.open.puts} puts</span>
-                <span>{a.open.calls} calls</span>
-                <span>{a.open.shareLots} share lots</span>
+                <span>{count(a.open.puts, "put")}</span>
+                <span>{count(a.open.calls, "call")}</span>
+                <span>{count(a.open.shareLots, "share lot")}</span>
                 {a.key === "quant" && <span>{a.open.leaps} LEAPS</span>}
                 {a.avgDaysHeld != null && <span>puts held {a.avgDaysHeld} days on average</span>}
               </div>
