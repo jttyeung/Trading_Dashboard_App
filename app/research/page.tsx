@@ -6,6 +6,7 @@ import { getSnapshot } from "@/lib/snapshot";
 import type { Holding } from "@/lib/research-types";
 import { readSuggestions, traderPresent } from "@/lib/trader";
 import { QUANT, TRADER } from "@/lib/features";
+import { readAutotraderReport } from "@/lib/autotrader";
 
 export const dynamic = "force-dynamic";
 
@@ -85,6 +86,9 @@ export default async function ResearchPage({
   // Only installs running the optional trader service have its file; everyone else never sees the card.
   const trader = TRADER && traderPresent() ? readSuggestions() : null;
   const traderOpen = trader?.suggestions.filter((s) => s.status === "new").length ?? 0;
+  // OptionsEvaluator's four paper accounts, once its export has written them.
+  const autotrader = readAutotraderReport();
+  const leader = autotrader ? [...autotrader.accounts].sort((a, b) => b.returnPct - a.returnPct)[0] : null;
 
   return (
     <main className="px-4">
@@ -149,6 +153,22 @@ export default async function ResearchPage({
               </div>
             </div>
             <span className="shrink-0 text-sm font-medium text-amber-300">Open ›</span>
+          </Card>
+        </Link>
+      )}
+
+      {/* Auto Trader — OptionsEvaluator's four paper accounts, one per put strategy. */}
+      {autotrader && leader && (
+        <Link href="/autotrader" className="mt-2 block active:opacity-80">
+          <Card className="flex items-center justify-between gap-3 bg-violet-500/5 px-4 py-3 ring-1 ring-inset ring-violet-500/25">
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-violet-200">Auto Trader</div>
+              <div className="text-[11px] text-muted">
+                {autotrader.accounts.length} paper strategies vs SPY · leading: {leader.label.replace("Auto Trader · ", "")}{" "}
+                {`${leader.returnPct >= 0 ? "+" : "−"}${Math.abs(leader.returnPct * 100).toFixed(2)}%`}
+              </div>
+            </div>
+            <span className="shrink-0 text-sm font-medium text-violet-300">Open ›</span>
           </Card>
         </Link>
       )}
