@@ -4,6 +4,18 @@ import type { Account } from "./types";
 
 export const ACCOUNT_COOKIE = "account";
 
+/** Real-money accounts, each once: every account but a source's blended "all"
+ *  entry (it repeats the others' positions) and OptionsEvaluator's Auto Trader
+ *  "paper" accounts (simulated; they have their own tab and page). */
+export function realAccounts(accounts: Account[]): Account[] {
+  return accounts.filter((a) => a.type !== "all" && a.type !== "paper");
+}
+
+/** OptionsEvaluator's Auto Trader paper accounts (data/autotrader/). */
+export function paperAccounts(accounts: Account[]): Account[] {
+  return accounts.filter((a) => a.type === "paper");
+}
+
 // Combined view: Settings → Combine views picks which accounts to merge, stored
 // as a comma-separated id list in this cookie. Selecting COMBINED_ID in the
 // account switcher (or from Settings) then renders every account-scoped page

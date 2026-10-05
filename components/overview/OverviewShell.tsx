@@ -15,7 +15,7 @@ import { MyTradesScorecard, BotScorecard } from "@/components/desktop/ScorecardD
 import type { CspPicksFile, MyTradesFile, PerformanceRow, PortfolioRiskFile, ScoreFactorsFile } from "@/lib/types";
 import { ThetaTurnoverPanel } from "@/components/desktop/ThetaTurnoverPanel";
 
-type Tab = "desktop" | "trades" | "bot-safe" | "bot" | "bot-aggressive" | "scorecard" | "calculator" | "chart" | "watchlist" | "connections";
+type Tab = "desktop" | "trades" | "bot-safe" | "bot" | "bot-aggressive" | "scorecard" | "autotrader" | "calculator" | "chart" | "watchlist" | "connections";
 
 // Order: Desktop, 20 Delta Safe, Wheel Bot, Aggressive Bot, Watchlist,
 // Chart — Watchlist moved just above Chart per the account holder's own
@@ -91,6 +91,19 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
     ),
   },
   {
+    // Auto Trader: OptionsEvaluator's four paper accounts trading on their own.
+    // Their positions live here, never in Positions above (simulated money);
+    // shown only once the daemon has written them.
+    key: "autotrader",
+    label: "Auto Trader",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="5" y="8" width="14" height="11" rx="2" />
+        <path d="M12 4v4M9 13h.01M15 13h.01M9 16h6" />
+      </svg>
+    ),
+  },
+  {
     key: "calculator",
     label: "Calculator",
     icon: (
@@ -124,7 +137,7 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
 
 const TAB_KEY = "overviewActiveTab";
 
-const ALL_TABS: Tab[] = ["desktop", "trades", "bot", "bot-safe", "bot-aggressive", "scorecard", "calculator", "chart", "watchlist", "connections"];
+const ALL_TABS: Tab[] = ["desktop", "trades", "bot", "bot-safe", "bot-aggressive", "scorecard", "autotrader", "calculator", "chart", "watchlist", "connections"];
 
 // loadTab: a ?tab= query param wins (a bookmarkable deep link to one tab),
 // else the last tab used on this device.
@@ -192,6 +205,11 @@ const HEADINGS: Record<Tab, { title: string; subtitle: string }> = {
     title: "Watchlist Board",
     subtitle: "Theta turnover first — short premium expiring in the next 10 days with the daily theta it takes with it, beside the suggestion engine's own current CSP / safe / aggressive picks at 50%+ ARR, 0.30 delta or under, and IV Rank 50+ once a name's rank has finished building, one per underlying, thin-on-both-windows dropped, VRP first (rich/rich → rich/fair → fair/rich → fair/fair, then one-thin combos) then ARR — then every active watchlist ticker with a lever showing where its mark sits on Bollinger Bands, RSI, and IV Rank, plus VRP (IV over a 20/60/120-day blended realized vol — rich ≥1.20×, thin ≤0.90×) and the Brief's S/A/B wheel tier tallied from that VRP, the 20-day SMA, and the gamma walls; a row lights up green when IVR ≥ 50 and VRP is rich, the starting filter for a CSP — add or remove tickers by hand; a manual addition is marked ᴹ and survives the sheet sync.",
   },
+  autotrader: {
+    title: "Auto Trader",
+    subtitle:
+      "Open positions of the four paper accounts — General, Safe, Aggressive and Quant — each trading its own put strategy from $250k with no approval step. Simulated; kept out of Positions and All Accounts.",
+  },
   connections: {
     title: "Connections",
     subtitle: "Re-authorize Schwab or E*TRADE when a session dies — the same steps as the CLI, done from a browser.",
@@ -206,6 +224,8 @@ const HEADINGS: Record<Tab, { title: string; subtitle: string }> = {
 // re-fetch or navigation.
 export function OverviewShell({
   options,
+  paperOptions,
+  hasAutotrader,
   alerts,
   generalBot,
   safeBot,
@@ -218,6 +238,8 @@ export function OverviewShell({
   exampleMode,
 }: {
   options: SourcedOption[];
+  paperOptions: SourcedOption[];
+  hasAutotrader: boolean;
   alerts: Alert[];
   generalBot: BotSnapshot;
   safeBot: BotSnapshot;
@@ -274,7 +296,7 @@ export function OverviewShell({
           the header-box treatment below instead (see globals.css's
           --header-box). */}
       <nav className="sticky top-0 flex h-[100dvh] w-16 shrink-0 flex-col items-center gap-1 border-r border-border bg-surface py-4">
-        {TABS.map((t) => (
+        {TABS.filter((t) => t.key !== "autotrader" || hasAutotrader).map((t) => (
           <button
             key={t.key}
             onClick={() => selectTab(t.key)}
@@ -350,6 +372,19 @@ export function OverviewShell({
         </div>
         {tab === "trades" && <MyTradesScorecard myTrades={myTrades} />}
         {tab === "scorecard" && <BotScorecard rows={scoreRows} scoreFactors={scoreFactors} />}
+        {tab === "autotrader" && (
+          <>
+            <p className="mb-3 text-sm text-muted">
+              Returns, the comparison against SPY and every trade with its rule are on the{" "}
+              <a href="/autotrader" className="text-accent underline">
+                Auto Trader page
+              </a>
+              .
+            </p>
+            {/* No tracker alerts: those are for real positions, and a paper put on the same contract would wear them. */}
+            <PositionsTable options={paperOptions} alerts={[]} />
+          </>
+        )}
         {/* Always mounted (just hidden), unlike the desktop/trades/scorecard tabs above --
             this panel does its own live fetch plus in-flight add/remove
             state that a conditional mount/unmount would otherwise discard
