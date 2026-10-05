@@ -6,7 +6,7 @@
 export interface Account {
   id: string; // opaque, one-way-hash-derived id (schwab.MaskAccountNumber) — never a real digit of the account number
   mask: string; // last 4 chars of a hash-derived id, e.g. "••••9c1d" — not real account digits
-  type: string; // "margin" | "cash"
+  type: string; // "margin" | "cash" | "all" (a source's blended entry) | "paper" (OptionsEvaluator's Auto Trader accounts, never in All Accounts)
   brokerageType: string; // "individual"
   nickname?: string;
   isDefault: boolean;
