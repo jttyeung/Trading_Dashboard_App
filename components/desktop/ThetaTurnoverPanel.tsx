@@ -200,7 +200,7 @@ export function ThetaTurnoverPanel({
         <div className="px-4 py-2">
           <div
             className="mb-1 flex items-baseline justify-between text-[10px] uppercase tracking-wide text-muted"
-            title={`The suggest engine's current CSP / safe / aggressive picks at ${MIN_ARR_PCT}%+ ARR, Δ ≤ ${MAX_DELTA} and IV Rank ≥ ${MIN_IVR} (OTU RULE-005; a still-building IVR is not excluded), one per underlying, thin-on-both dropped, ordered rich/rich → rich/fair → fair/rich → fair/fair, then one-thin combos, then ARR`}
+            title={`The suggest engine's current CSP / safe / aggressive picks at ${MIN_ARR_PCT}%+ ARR, Δ ≤ ${MAX_DELTA} and IV Rank ≥ ${MIN_IVR} (a still-building IVR is not excluded), one per underlying, thin-on-both dropped, ordered rich/rich → rich/fair → fair/rich → fair/fair, then one-thin combos, then ARR`}
           >
             <span>On offer · engine picks ≥ {MIN_ARR_PCT}% ARR · Δ ≤ {MAX_DELTA} · IVR ≥ {MIN_IVR}, VRP first</span>
             {picks.meta.suggestedAt && <span className="normal-case tracking-normal">as of {picks.meta.suggestedAt.slice(0, 16)}</span>}
