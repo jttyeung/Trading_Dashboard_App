@@ -116,7 +116,7 @@ export function AutotraderChart({ series, spy }: { series: ChartSeries[]; spy: P
           </span>
         ))}
       </div>
-      <div className="pl-10 pr-20">
+      <div className="pl-10 pr-24">
         <div className="relative">
           <div ref={box} className="relative touch-none" onPointerMove={onMove} onPointerDown={onMove} onPointerLeave={() => setHover(null)}>
             <svg
@@ -207,7 +207,7 @@ export function AutotraderChart({ series, spy }: { series: ChartSeries[]; spy: P
           {ends.map((e) => (
             <div
               key={e.key}
-              className="pointer-events-none absolute -right-20 flex w-[4.75rem] -translate-y-1/2 items-center gap-1 whitespace-nowrap text-[10px] text-muted"
+              className="pointer-events-none absolute -right-24 flex w-[5.75rem] -translate-y-1/2 items-center gap-1 whitespace-nowrap text-[10px] text-muted"
               style={{ top: `${e.top}%` }}
             >
               <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: e.color }} />
