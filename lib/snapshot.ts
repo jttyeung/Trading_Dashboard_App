@@ -49,7 +49,10 @@ function mergeSnapshots(parts: Snapshot[]): Snapshot {
       seen.add(a.id);
       merged.accounts.push(a);
       if (a.type === "all") combinedId = a.id;
-      if (!partHasCombined) {
+      // Paper accounts (OptionsEvaluator's Auto Trader, data/autotrader/)
+      // are browsable on their own but never money: they stay out of All
+      // Accounts' totals and holdings.
+      if (!partHasCombined && a.type !== "paper") {
         const accountData = s.data[a.id];
         if (accountData) {
           addSummary(extra, accountData.summary);

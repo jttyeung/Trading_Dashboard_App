@@ -32,6 +32,8 @@ export function bridges(): BridgeInfo[] {
     if (dir === DATA_DIR) continue; // the base dir is the primary bridge
     // data/manual is written by the bridge for hand-entered positions, not a login.
     if (path.basename(dir) === "manual") continue;
+    // data/autotrader is OptionsEvaluator's paper accounts, not a login.
+    if (path.basename(dir) === "autotrader") continue;
     // Only a real extra-login bridge output dir counts (has a status or snapshot
     // file) — a stray subfolder never becomes a phantom connection card.
     if (!fs.existsSync(path.join(dir, "schwab-auth.json")) && !fs.existsSync(path.join(dir, "snapshot.json"))) {
