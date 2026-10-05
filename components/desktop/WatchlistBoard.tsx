@@ -22,6 +22,7 @@ import {
   type WatchlistRow,
 } from "@/lib/watchlist-api";
 import { exampleWatchlistBoard } from "@/lib/example";
+import { SortMark, SortStrip, sortChainActions, type SortSpec } from "@/components/SortChain";
 import { VRP_STYLE } from "@/lib/am-report-types";
 
 function Lever({
@@ -328,28 +329,67 @@ function compareNullable(av: number | null, bv: number | null, dir: 1 | -1): num
 
 type SortKey = "tier" | "ticker" | "bb" | "walls" | "chg" | "ytd" | "beta" | "rsi" | "ivr" | "vrp";
 
+const SORT_COLUMNS: { key: SortKey; label: string }[] = [
+  { key: "tier", label: "Tier" },
+  { key: "ticker", label: "Ticker" },
+  { key: "walls", label: "Price vs Walls" },
+  { key: "chg", label: "Chg %" },
+  { key: "ytd", label: "YTD %" },
+  { key: "beta", label: "Beta" },
+  { key: "bb", label: "BB" },
+  { key: "rsi", label: "RSI" },
+  { key: "ivr", label: "IVR" },
+  { key: "vrp", label: "VRP" },
+];
+
+function compareBy(a: WatchlistRow, b: WatchlistRow, key: SortKey, dir: 1 | -1): number {
+  switch (key) {
+    case "tier":
+      // First click reads S→A→B (the direction anyone sorting by tier
+      // actually wants), so the rank comparison runs inverted; untiered
+      // rows still land last either way via compareNullable.
+      return compareNullable(TIER_RANK[a.tier], TIER_RANK[b.tier], dir === 1 ? -1 : 1);
+    case "ticker":
+      return a.ticker.localeCompare(b.ticker) * dir;
+    case "bb":
+      return compareNullable(bbPosition(a), bbPosition(b), dir);
+    case "walls":
+      return compareNullable(wallsPosition(a), wallsPosition(b), dir);
+    case "chg":
+      return compareNullable(a.dayChangePct, b.dayChangePct, dir);
+    case "ytd":
+      return compareNullable(a.ytdPct, b.ytdPct, dir);
+    case "beta":
+      return compareNullable(a.beta, b.beta, dir);
+    case "rsi":
+      return compareNullable(a.rsi14, b.rsi14, dir);
+    case "ivr":
+      return compareNullable(a.ivRank, b.ivRank, dir);
+    case "vrp":
+      return compareNullable(a.vrpRatio, b.vrpRatio, dir);
+  }
+}
+
 function SortHeader({
   label,
   sortKeyName,
-  active,
-  dir,
+  sorts,
   onClick,
   align = "left",
 }: {
   label: string;
   sortKeyName: SortKey;
-  active: SortKey;
-  dir: 1 | -1;
-  onClick: (key: SortKey) => void;
+  sorts: SortSpec<SortKey>[];
+  onClick: (key: SortKey, additive: boolean) => void;
   align?: "left" | "right";
 }) {
   return (
     <button
-      onClick={() => onClick(sortKeyName)}
-      className={`flex items-center gap-1 hover:text-text ${align === "right" ? "w-full justify-end" : ""}`}
+      onClick={(e) => onClick(sortKeyName, e.shiftKey)}
+      className={`flex select-none items-center gap-1 hover:text-text ${align === "right" ? "w-full justify-end" : ""}`}
     >
       {label}
-      <span className="text-[9px]">{active === sortKeyName ? (dir === 1 ? "▲" : "▼") : "↕"}</span>
+      <SortMark sorts={sorts} k={sortKeyName} idle="↕" />
     </button>
   );
 }
@@ -361,48 +401,20 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
   const [newTicker, setNewTicker] = useState("");
   const [adding, setAdding] = useState(false);
   const [busyTicker, setBusyTicker] = useState<string | null>(null);
-  const [sortKey, setSortKey] = useState<SortKey>("ticker");
-  const [sortDir, setSortDir] = useState<1 | -1>(1);
-
-  function toggleSort(key: SortKey) {
-    if (key === sortKey) setSortDir((d) => (d === 1 ? -1 : 1));
-    else {
-      setSortKey(key);
-      setSortDir(1);
-    }
-  }
+  const [sorts, setSorts] = useState<SortSpec<SortKey>[]>([{ key: "ticker", dir: 1 }]);
+  const { clickHeader } = sortChainActions(sorts, setSorts);
 
   const sorted = useMemo(() => {
     const list = [...rows];
     list.sort((a, b) => {
-      switch (sortKey) {
-        case "tier":
-          // First click reads S→A→B (the direction anyone sorting by tier
-          // actually wants), so the rank comparison runs inverted; untiered
-          // rows still land last either way via compareNullable.
-          return compareNullable(TIER_RANK[a.tier], TIER_RANK[b.tier], sortDir === 1 ? -1 : 1);
-        case "ticker":
-          return a.ticker.localeCompare(b.ticker) * sortDir;
-        case "bb":
-          return compareNullable(bbPosition(a), bbPosition(b), sortDir);
-        case "walls":
-          return compareNullable(wallsPosition(a), wallsPosition(b), sortDir);
-        case "chg":
-          return compareNullable(a.dayChangePct, b.dayChangePct, sortDir);
-        case "ytd":
-          return compareNullable(a.ytdPct, b.ytdPct, sortDir);
-        case "beta":
-          return compareNullable(a.beta, b.beta, sortDir);
-        case "rsi":
-          return compareNullable(a.rsi14, b.rsi14, sortDir);
-        case "ivr":
-          return compareNullable(a.ivRank, b.ivRank, sortDir);
-        case "vrp":
-          return compareNullable(a.vrpRatio, b.vrpRatio, sortDir);
+      for (const s of sorts) {
+        const cmp = compareBy(a, b, s.key, s.dir);
+        if (cmp) return cmp;
       }
+      return a.ticker.localeCompare(b.ticker);
     });
     return list;
-  }, [rows, sortKey, sortDir]);
+  }, [rows, sorts]);
 
   useEffect(() => {
     if (exampleMode) {
@@ -494,47 +506,50 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
         {error && <span className="text-xs text-rose-400">{error}</span>}
       </div>
 
+      {/* Multi-column sort: the touch path (desktop can also Shift-click headers). */}
+      <SortStrip sorts={sorts} setSorts={setSorts} columns={SORT_COLUMNS} className="px-1 pb-1" />
+
       <Card className="mt-1 w-full overflow-x-auto">
         <table className="w-full min-w-[1080px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted">
               <th className="w-px whitespace-nowrap px-3 py-2 font-medium" title={TIER_TIP}>
-                <SortHeader label="Tier" sortKeyName="tier" active={sortKey} dir={sortDir} onClick={toggleSort} />
+                <SortHeader label="Tier" sortKeyName="tier" sorts={sorts} onClick={clickHeader} />
               </th>
               <th className="px-3 py-2 font-medium">
-                <SortHeader label="Ticker" sortKeyName="ticker" active={sortKey} dir={sortDir} onClick={toggleSort} />
+                <SortHeader label="Ticker" sortKeyName="ticker" sorts={sorts} onClick={clickHeader} />
               </th>
               <th className="px-3 py-2 font-medium">Sector</th>
               <th className="w-px whitespace-nowrap px-3 py-2 font-medium">
-                <SortHeader label="Price vs Walls" sortKeyName="walls" active={sortKey} dir={sortDir} onClick={toggleSort} />
+                <SortHeader label="Price vs Walls" sortKeyName="walls" sorts={sorts} onClick={clickHeader} />
               </th>
               <th className="w-20 px-2 py-2 text-right font-medium">
-                <SortHeader label="Chg %" sortKeyName="chg" active={sortKey} dir={sortDir} onClick={toggleSort} align="right" />
+                <SortHeader label="Chg %" sortKeyName="chg" sorts={sorts} onClick={clickHeader} align="right" />
               </th>
               <th
                 className="w-20 px-2 py-2 text-right font-medium"
                 title="Plain stock return this calendar year: the current price against the last close of last year. * marks a name listed this year, measured from its first close."
               >
-                <SortHeader label="YTD %" sortKeyName="ytd" active={sortKey} dir={sortDir} onClick={toggleSort} align="right" />
+                <SortHeader label="YTD %" sortKeyName="ytd" sorts={sorts} onClick={clickHeader} align="right" />
               </th>
               <th
                 className="w-16 px-2 py-2 text-right font-medium"
                 title="The stock's beta vs SPY on up to a year of daily returns — 1.0 moves with the market, 2.0 twice as much. A property of the ticker, not of any option on it."
               >
-                <SortHeader label="Beta" sortKeyName="beta" active={sortKey} dir={sortDir} onClick={toggleSort} align="right" />
+                <SortHeader label="Beta" sortKeyName="beta" sorts={sorts} onClick={clickHeader} align="right" />
               </th>
               <th className="px-3 py-2 font-medium">
-                <SortHeader label="BB" sortKeyName="bb" active={sortKey} dir={sortDir} onClick={toggleSort} />
+                <SortHeader label="BB" sortKeyName="bb" sorts={sorts} onClick={clickHeader} />
               </th>
               <th className="px-3 py-2 font-medium">
-                <SortHeader label="RSI" sortKeyName="rsi" active={sortKey} dir={sortDir} onClick={toggleSort} />
+                <SortHeader label="RSI" sortKeyName="rsi" sorts={sorts} onClick={clickHeader} />
               </th>
               <th className="px-3 py-2 font-medium">MACD</th>
               <th className="px-3 py-2 font-medium">
-                <SortHeader label="IVR" sortKeyName="ivr" active={sortKey} dir={sortDir} onClick={toggleSort} />
+                <SortHeader label="IVR" sortKeyName="ivr" sorts={sorts} onClick={clickHeader} />
               </th>
               <th className="px-3 py-2 font-medium" title="IV ÷ blended 20/60/120-day realized vol — rich ≥1.20, thin ≤0.90. Third line: the same IV over the plain 20-day RV, the Brief's window.">
-                <SortHeader label="VRP" sortKeyName="vrp" active={sortKey} dir={sortDir} onClick={toggleSort} />
+                <SortHeader label="VRP" sortKeyName="vrp" sorts={sorts} onClick={clickHeader} />
               </th>
               <th className="px-3 py-2" />
             </tr>
