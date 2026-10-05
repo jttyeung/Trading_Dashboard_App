@@ -332,7 +332,7 @@ function LeapsBlock({ leaps, since }: { leaps: LeapsSection; since: string }) {
             {`The delta grade needs the tracker's entry snapshot. ${fillsIn(since, "delta")} Fidelity gets one too, same as Schwab — it's only missing for a trade the tracker never saw open.`}
           </Card>
           <BucketBars
-            title="Win rate by CBOE PCC at open (RULE-026)"
+            title="Win rate by CBOE PCC at open"
             buckets={leaps.pccAtOpenBuckets}
             empty="Fills in for LEAPs opened after PCC tracking began."
           />
