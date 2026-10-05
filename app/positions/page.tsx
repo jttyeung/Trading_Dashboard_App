@@ -3,7 +3,7 @@ import { ShowAmounts } from "@/components/privacy";
 import { DataRefresh } from "@/components/DataRefresh";
 import { PositionsTable, type SourcedEquity, type SourcedOption } from "@/components/PositionsTable";
 import { getSnapshot } from "@/lib/snapshot";
-import { accountLabel } from "@/lib/account-shared";
+import { accountLabel, realAccounts } from "@/lib/account-shared";
 import { isCashEquivalent } from "@/lib/calc";
 import { getRefreshStatus } from "@/lib/refresh-status";
 
@@ -18,8 +18,9 @@ export default async function PositionsPage() {
   const equities: SourcedEquity[] = [];
   // Skip the type "all" bucket (the daemon's All Accounts, with SnapTrade and
   // E*TRADE folded in by lib/snapshot.ts): it repeats every real account's
-  // positions, so including it listed each one twice.
-  const accounts = snap.accounts.filter((a) => a.type !== "all");
+  // positions, so including it listed each one twice. And the Auto Trader
+  // paper accounts: simulated, with their own page (/autotrader).
+  const accounts = realAccounts(snap.accounts);
   for (const a of accounts) {
     const d = snap.data[a.id];
     if (!d) continue;

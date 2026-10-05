@@ -26,7 +26,7 @@ export function SideRail() {
       </Link>
 
       <nav aria-label="Sections" className="flex flex-col gap-0.5">
-        {[...TABS.slice(0, 2), { href: "/positions", label: "Positions", icon: TableIcon }, ...TABS.slice(2)].map(({ href, label, icon: Icon }) => {
+        {[...TABS.slice(0, 2), { href: "/positions", label: "Positions", icon: TableIcon }, ...TABS.slice(2), { href: "/autotrader", label: "Auto Trader", icon: BotIcon }].map(({ href, label, icon: Icon }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (
             <Link
@@ -77,6 +77,15 @@ function TableIcon({ active }: { active?: boolean }) {
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="4" width="18" height="16" rx="2" />
       <path d="M3 9h18M3 14h18M9 9v11" />
+    </svg>
+  );
+}
+
+function BotIcon({ active }: { active?: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="5" y="8" width="14" height="11" rx="2" />
+      <path d="M12 4v4M9 13h.01M15 13h.01M9 16h6" />
     </svg>
   );
 }

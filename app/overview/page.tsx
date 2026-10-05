@@ -15,7 +15,8 @@ import { getScoreFactors } from "@/lib/score-factors";
 import { getMyTrades } from "@/lib/my-trades";
 import { getCspPicks } from "@/lib/csp-picks";
 import { getPortfolioRisk } from "@/lib/portfolio-risk";
-import { accountLabel } from "@/lib/account-shared";
+import { accountLabel, paperAccounts, realAccounts } from "@/lib/account-shared";
+import { readAutotraderReport } from "@/lib/autotrader";
 import { isExampleMode } from "@/lib/example-mode";
 import { OverviewShell } from "@/components/overview/OverviewShell";
 
@@ -40,14 +41,21 @@ export default async function OverviewPage() {
 
   // Same per-account flatten app/desktop/page.tsx uses — see its own
   // comment for why this can't just read the pre-merged "combined" bucket.
-  const realAccounts = snap.accounts.filter((a) => a.type !== "all");
-  const options = realAccounts.flatMap((a) =>
+  const options = realAccounts(snap.accounts).flatMap((a) =>
     snap.data[a.id].options.map((o) => ({ ...o, sourceLabel: accountLabel(a) })),
   );
+  // The Auto Trader paper accounts' positions, for their own tab — never
+  // mixed into the Positions tab above.
+  const paperOptions = paperAccounts(snap.accounts).flatMap((a) =>
+    (snap.data[a.id]?.options ?? []).map((o) => ({ ...o, sourceLabel: accountLabel(a) })),
+  );
+  const hasAutotrader = readAutotraderReport() !== null;
 
   return (
     <OverviewShell
       options={options}
+      paperOptions={paperOptions}
+      hasAutotrader={hasAutotrader}
       alerts={alerts}
       generalBot={generalBot}
       safeBot={safeBot}
