@@ -149,20 +149,11 @@ function loadTab(): Tab {
     /* ignore */
   }
   try {
+    // Same ALL_TABS list as the ?tab= branch above. A hand-written copy of it
+    // here had drifted: "autotrader" was missing, so a reload on that tab fell
+    // back to the default.
     const raw = localStorage.getItem(TAB_KEY);
-    if (
-      raw === "desktop" ||
-      raw === "trades" ||
-      raw === "bot" ||
-      raw === "bot-safe" ||
-      raw === "bot-aggressive" ||
-      raw === "scorecard" ||
-      raw === "calculator" ||
-      raw === "chart" ||
-      raw === "watchlist" ||
-      raw === "connections"
-    )
-      return raw;
+    if (raw && (ALL_TABS as string[]).includes(raw)) return raw as Tab;
   } catch {
     /* ignore */
   }
@@ -253,7 +244,13 @@ export function OverviewShell({
 }) {
   const anyConnectionDown = useAnyConnectionDown();
   const [tab, setTab] = useState<Tab>("desktop");
-  useEffect(() => setTab(loadTab()), []);
+  // The Auto Trader tab is only offered when there's a report (hasAutotrader),
+  // so a saved or linked ?tab=autotrader with no report falls back to Desktop
+  // rather than rendering an empty tab.
+  useEffect(() => {
+    const t = loadTab();
+    setTab(t === "autotrader" && !hasAutotrader ? "desktop" : t);
+  }, [hasAutotrader]);
 
   function selectTab(next: Tab) {
     setTab(next);
