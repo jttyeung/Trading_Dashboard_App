@@ -52,7 +52,7 @@ export default async function AutotraderPage() {
         <Card className="mt-3 px-4 py-3 text-[11px] leading-relaxed text-muted">
           Each account trades one put strategy by its own rules, every 15 minutes in market hours, with no approval step: entries, exits, assignment,
           covered calls. Paper only — nothing is sent to a broker. Fills are the mid less a quarter of the bid–ask spread, so a wide market costs
-          what it would in real life. None opens a put across an earnings date. The Quant rule&apos;s backtest basket was picked with hindsight;
+          what it would in real life. The Quant rule&apos;s backtest basket was picked with hindsight;
           read its line as the study, not a forecast.
         </Card>
 
