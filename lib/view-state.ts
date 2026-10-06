@@ -110,3 +110,43 @@ export function usePersistentSet(key: string): {
   const has = useCallback((id: string) => open.has(id), [open]);
   return { open, has, toggle };
 }
+
+/**
+ * A set of ids kept in localStorage, so it survives a page refresh and a fresh
+ * visit, not only Back. usePersistentSet can't do that: a refresh is not a Back
+ * navigation, so its sessionStorage copy is ignored. Use this only for a per-viewer
+ * preference the user set on purpose (a collapsed section) — never for state that
+ * must be shared or read back by Claude. Every storage access is guarded, so a
+ * blocked or full storage just falls back to in-memory state.
+ */
+export function useLocalSet(key: string): {
+  has: (id: string) => boolean;
+  toggle: (id: string) => void;
+} {
+  const storageKey = `vs-local:${key}`;
+  const [ids, setIds] = useState<string[]>([]);
+  // Rehydrate before paint, after the server-matching empty first render.
+  useIsoLayoutEffect(() => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw != null) setIds(JSON.parse(raw) as string[]);
+    } catch {
+      /* unreadable — start empty */
+    }
+  }, [storageKey]);
+  const open = useMemo(() => new Set(ids), [ids]);
+  const toggle = useCallback(
+    (id: string) => {
+      const next = ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];
+      setIds(next);
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(next));
+      } catch {
+        /* storage full / disabled — in-memory only */
+      }
+    },
+    [ids, storageKey],
+  );
+  const has = useCallback((id: string) => open.has(id), [open]);
+  return { has, toggle };
+}
