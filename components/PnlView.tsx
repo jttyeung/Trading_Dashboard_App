@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { usePersistentSet, usePersistentState } from "@/lib/view-state";
+import { useLocalSet, usePersistentSet, usePersistentState } from "@/lib/view-state";
 import Link from "next/link";
 import { Card, SectionTitle, Stat } from "@/components/ui";
 import { Amt } from "@/components/privacy";
@@ -394,10 +394,10 @@ export function PnlView({
   // opposite.)
   const { has: monthOpen, toggle: toggleMonth } = usePersistentSet("pnl-openmonths");
   // Years are the opposite: a handful of them, so they start expanded and the
-  // set holds the ones the user has COLLAPSED. The key is new (not reused from a
-  // prior open-keys set) so no saved state can come back meaning its opposite.
-  // A collapsed year keeps its header total, so the year's result stays visible.
-  const { has: yearCollapsed, toggle: toggleYear } = usePersistentSet("pnl-collapsedyears");
+  // set holds the ones the user has COLLAPSED. It lives in localStorage so a
+  // refresh keeps what was collapsed. A collapsed year keeps its header total,
+  // so the year's result stays visible.
+  const { has: yearCollapsed, toggle: toggleYear } = useLocalSet("pnl-collapsedyears");
 
   return (
     <div className="pb-24 pt-3 sm:pb-6">
