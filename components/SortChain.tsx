@@ -6,12 +6,28 @@
 // comparator (null handling differs between them); this file only owns the
 // chain's state transitions and the UI that edits it.
 //
+// A continuous column (Chg %, RSI, IV…) almost never ties exactly, so a key
+// after it would never get a say. So every key except the last compares by
+// band instead (lower edge inclusive); the last one compares by exact value.
+// A column with no bands defined always compares exactly. A single-column
+// sort is therefore unchanged.
+//
 // Plain header click keeps the old single-column behavior (flip the primary,
 // or sort by that column alone). Shift-click builds the chain on desktop; the
 // SortStrip does the same on a tablet, which has no Shift.
 
 export type SortSpec<K extends string> = { key: K; dir: 1 | -1 };
 type SetSorts<K extends string> = (next: SortSpec<K>[] | ((prev: SortSpec<K>[]) => SortSpec<K>[])) => void;
+
+// Which band v falls in, given ascending edges: 0 below the first edge, 1 from
+// the first to the second, and so on. null stays null (each table already has
+// its own rule for where missing values go).
+export function bandOf(v: number | null, edges: number[]): number | null {
+  if (v == null) return null;
+  let i = 0;
+  while (i < edges.length && v >= edges[i]) i++;
+  return i;
+}
 
 export function sortChainActions<K extends string>(sorts: SortSpec<K>[], setSorts: SetSorts<K>) {
   const flip = (k: K) => setSorts((prev) => prev.map((s) => (s.key === k ? { ...s, dir: s.dir === 1 ? -1 : 1 } : s)));
@@ -49,33 +65,44 @@ export function SortStrip<K extends string>({
 }: {
   sorts: SortSpec<K>[];
   setSorts: SetSorts<K>;
-  columns: { key: K; label: string }[];
+  // `bands` describes the column's bands for the chip tooltip; leave it off
+  // for a column that always sorts exactly.
+  columns: { key: K; label: string; bands?: string }[];
   className?: string;
 }) {
   const { flip, add, remove } = sortChainActions(sorts, setSorts);
   const labelOf = (k: K) => columns.find((c) => c.key === k)?.label ?? k;
+  const bandsOf = (k: K) => columns.find((c) => c.key === k)?.bands;
   const unsorted = columns.filter((c) => !sorts.some((s) => s.key === c.key));
   return (
     <div className={`flex flex-wrap items-center gap-1.5 text-[11px] ${className}`}>
       <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">Sort</span>
-      {sorts.map((s, i) => (
-        <span key={s.key} className="inline-flex items-center rounded-lg border border-border bg-surface-2 font-medium">
-          <button onClick={() => flip(s.key)} className="flex items-center gap-1 px-2 py-0.5 hover:text-text" title="Flip direction">
-            {sorts.length > 1 && <span className="text-[9px] text-muted">{i + 1}</span>}
-            {labelOf(s.key)}
-            <span className="text-[8px]">{s.dir === 1 ? "▲" : "▼"}</span>
-          </button>
-          {sorts.length > 1 && (
+      {sorts.map((s, i) => {
+        const bands = i < sorts.length - 1 ? bandsOf(s.key) : undefined;
+        return (
+          <span key={s.key} className="inline-flex items-center rounded-lg border border-border bg-surface-2 font-medium">
             <button
-              onClick={() => remove(s.key)}
-              className="border-l border-border px-1.5 py-0.5 text-muted hover:text-text"
-              aria-label={`Remove ${labelOf(s.key)} from sort`}
+              onClick={() => flip(s.key)}
+              className="flex items-center gap-1 px-2 py-0.5 hover:text-text"
+              title={bands ? `Sorted by band so the next key can break ties: ${bands}. Tap to flip.` : "Flip direction"}
             >
-              ×
+              {sorts.length > 1 && <span className="text-[9px] text-muted">{i + 1}</span>}
+              {labelOf(s.key)}
+              {bands && <span className="text-[9px] text-muted">bands</span>}
+              <span className="text-[8px]">{s.dir === 1 ? "▲" : "▼"}</span>
             </button>
-          )}
-        </span>
-      ))}
+            {sorts.length > 1 && (
+              <button
+                onClick={() => remove(s.key)}
+                className="border-l border-border px-1.5 py-0.5 text-muted hover:text-text"
+                aria-label={`Remove ${labelOf(s.key)} from sort`}
+              >
+                ×
+              </button>
+            )}
+          </span>
+        );
+      })}
       {unsorted.length > 0 && (
         <select
           value=""

@@ -22,7 +22,7 @@ import {
   type WatchlistRow,
 } from "@/lib/watchlist-api";
 import { exampleWatchlistBoard } from "@/lib/example";
-import { SortMark, SortStrip, sortChainActions, type SortSpec } from "@/components/SortChain";
+import { SortMark, SortStrip, bandOf, sortChainActions, type SortSpec } from "@/components/SortChain";
 import { VRP_STYLE } from "@/lib/am-report-types";
 
 function Lever({
@@ -329,20 +329,37 @@ function compareNullable(av: number | null, bv: number | null, dir: 1 | -1): num
 
 type SortKey = "tier" | "ticker" | "bb" | "walls" | "chg" | "ytd" | "beta" | "rsi" | "ivr" | "vrp";
 
-const SORT_COLUMNS: { key: SortKey; label: string }[] = [
+// Band edges for a sort key that has another key after it (see SortChain).
+// RSI reuses the 30/70 zones the Lever draws, with the neutral middle split at
+// 50 (the account holder's ask); IVR's 50 is PREMIUM_SETUP_IVR_MIN. The Chg,
+// YTD and Beta edges, and the thirds of the BB / walls range, were picked as
+// readable round numbers, not from a source.
+const CHG_EDGES = [-0.02, 0, 0.02];
+const YTD_EDGES = [-0.1, 0, 0.1];
+const BETA_EDGES = [0.8, 1.2, 2];
+const RANGE_EDGES = [0, 1 / 3, 2 / 3, 1]; // below, lower / middle / upper third, at or above
+const RSI_EDGES = [30, 50, 70];
+const IVR_EDGES = [25, PREMIUM_SETUP_IVR_MIN];
+const VRP_BAND: Record<string, number> = { thin: 0, fair: 1, rich: 2 };
+
+const SORT_COLUMNS: { key: SortKey; label: string; bands?: string }[] = [
   { key: "tier", label: "Tier" },
   { key: "ticker", label: "Ticker" },
-  { key: "walls", label: "Price vs Walls" },
-  { key: "chg", label: "Chg %" },
-  { key: "ytd", label: "YTD %" },
-  { key: "beta", label: "Beta" },
-  { key: "bb", label: "BB" },
-  { key: "rsi", label: "RSI" },
-  { key: "ivr", label: "IVR" },
-  { key: "vrp", label: "VRP" },
+  { key: "walls", label: "Price vs Walls", bands: "below put wall, lower / middle / upper third, at or above call wall" },
+  { key: "chg", label: "Chg %", bands: "≤ −2%, −2–0%, 0–2%, ≥ 2%" },
+  { key: "ytd", label: "YTD %", bands: "≤ −10%, −10–0%, 0–10%, ≥ 10%" },
+  { key: "beta", label: "Beta", bands: "< 0.8, 0.8–1.2, 1.2–2, ≥ 2" },
+  { key: "bb", label: "BB", bands: "below band, lower / middle / upper third, at or above band" },
+  { key: "rsi", label: "RSI", bands: "≤ 30, 30–50, 50–70, ≥ 70" },
+  { key: "ivr", label: "IVR", bands: "< 25, 25–50, ≥ 50" },
+  { key: "vrp", label: "VRP", bands: "thin, fair, rich" },
 ];
 
-function compareBy(a: WatchlistRow, b: WatchlistRow, key: SortKey, dir: 1 | -1): number {
+// banded: compare by band rather than exact value, so a later key in the
+// sort chain can order the rows that share one (see SortChain).
+function compareBy(a: WatchlistRow, b: WatchlistRow, key: SortKey, dir: 1 | -1, banded: boolean): number {
+  const by = (f: (r: WatchlistRow) => number | null, edges: number[]) =>
+    banded ? compareNullable(bandOf(f(a), edges), bandOf(f(b), edges), dir) : compareNullable(f(a), f(b), dir);
   switch (key) {
     case "tier":
       // First click reads S→A→B (the direction anyone sorting by tier
@@ -352,21 +369,24 @@ function compareBy(a: WatchlistRow, b: WatchlistRow, key: SortKey, dir: 1 | -1):
     case "ticker":
       return a.ticker.localeCompare(b.ticker) * dir;
     case "bb":
-      return compareNullable(bbPosition(a), bbPosition(b), dir);
+      return by(bbPosition, RANGE_EDGES);
     case "walls":
-      return compareNullable(wallsPosition(a), wallsPosition(b), dir);
+      return by(wallsPosition, RANGE_EDGES);
     case "chg":
-      return compareNullable(a.dayChangePct, b.dayChangePct, dir);
+      return by((r) => r.dayChangePct, CHG_EDGES);
     case "ytd":
-      return compareNullable(a.ytdPct, b.ytdPct, dir);
+      return by((r) => r.ytdPct, YTD_EDGES);
     case "beta":
-      return compareNullable(a.beta, b.beta, dir);
+      return by((r) => r.beta, BETA_EDGES);
     case "rsi":
-      return compareNullable(a.rsi14, b.rsi14, dir);
+      return by((r) => r.rsi14, RSI_EDGES);
     case "ivr":
-      return compareNullable(a.ivRank, b.ivRank, dir);
+      return by((r) => r.ivRank, IVR_EDGES);
     case "vrp":
-      return compareNullable(a.vrpRatio, b.vrpRatio, dir);
+      // The rich/fair/thin read the VRP cell already shows is the band.
+      return banded
+        ? compareNullable(VRP_BAND[a.vrp] ?? null, VRP_BAND[b.vrp] ?? null, dir)
+        : compareNullable(a.vrpRatio, b.vrpRatio, dir);
   }
 }
 
@@ -407,8 +427,8 @@ export function WatchlistBoard({ exampleMode }: { exampleMode: boolean }) {
   const sorted = useMemo(() => {
     const list = [...rows];
     list.sort((a, b) => {
-      for (const s of sorts) {
-        const cmp = compareBy(a, b, s.key, s.dir);
+      for (const [i, s] of sorts.entries()) {
+        const cmp = compareBy(a, b, s.key, s.dir, i < sorts.length - 1);
         if (cmp) return cmp;
       }
       return a.ticker.localeCompare(b.ticker);

@@ -30,7 +30,7 @@ import {
   spotPercentChange,
 } from "@/lib/calc";
 import { positionDailyTheta } from "@/lib/theta";
-import { SortMark, SortStrip, sortChainActions, type SortSpec as Spec } from "@/components/SortChain";
+import { SortMark, SortStrip, bandOf, sortChainActions, type SortSpec as Spec } from "@/components/SortChain";
 
 export type SourcedOption = OptionPosition & { account: string };
 export type SourcedEquity = Equity & { account: string };
@@ -187,9 +187,39 @@ function sortValue(r: Row, k: SortKey): number | string {
 type SortSpec = Spec<SortKey>;
 const DEFAULT_SORT: SortSpec[] = [{ key: "dte", dir: 1 }];
 
-function compareBy(a: Row, b: Row, k: SortKey): number {
-  const av = sortValue(a, k);
-  const bv = sortValue(b, k);
+// Band edges for a sort key that has another key after it (see SortChain).
+// DTE matches dteBucket below; Unrealized bands the % captured at the 50%
+// take-profit line and 80%; Δ bands by magnitude (a −0.30 put and a +0.30 call
+// sit equally far in). The other edges are round numbers, not from a source.
+// Columns missing here (ticker, type, qty, strike, spot, Θ, value, account)
+// always sort by exact value.
+const BANDS: Partial<Record<SortKey, { edges: number[]; of?: (r: Row) => number | null; label: string }>> = {
+  dte: { edges: [8, 22, 31, 46], label: "0–7, 8–21, 22–30, 31–45, 45+ DTE" },
+  dit: { edges: [8, 22, 46], label: "0–7, 8–21, 22–45, 45+ days" },
+  spotPct: { edges: [-0.02, 0, 0.02], label: "≤ −2%, −2–0%, 0–2%, ≥ 2%" },
+  delta: { edges: [0.15, 0.3, 0.5], of: (r) => (r.delta != null ? Math.abs(r.delta) : null), label: "|Δ| < 0.15, 0.15–0.30, 0.30–0.50, ≥ 0.50" },
+  iv: { edges: [0.3, 0.5, 0.8], label: "< 30%, 30–50%, 50–80%, ≥ 80%" },
+  ror: { edges: [0.01, 0.02, 0.03], label: "< 1%, 1–2%, 2–3%, ≥ 3%" },
+  apy: { edges: [0.15, 0.3, 0.5], label: "< 15%, 15–30%, 30–50%, ≥ 50%" },
+  remApy: { edges: [0.15, 0.3, 0.5], label: "< 15%, 15–30%, 30–50%, ≥ 50%" },
+  unrealized: { edges: [0, 0.5, 0.8], of: (r) => r.unrealizedPct, label: "loss, 0–50%, 50–80%, ≥ 80% of basis" },
+  todayPl: { edges: [0], label: "down, up" },
+};
+
+// banded: compare by band rather than exact value, so a later key in the sort
+// chain can order the rows that share one (see SortChain).
+function compareBy(a: Row, b: Row, k: SortKey, banded: boolean): number {
+  const band = banded ? BANDS[k] : undefined;
+  const value = (r: Row) => {
+    const v = sortValue(r, k);
+    if (!band || typeof v === "string") return v;
+    // A missing value keeps its ±Infinity from sortValue, so it lands where it
+    // does in an exact sort instead of folding into the lowest/highest band.
+    const x = band.of ? band.of(r) : v;
+    return x == null || !Number.isFinite(x) ? v : (bandOf(x, band.edges) as number);
+  };
+  const av = value(a);
+  const bv = value(b);
   if (typeof av === "string") return av.localeCompare(String(bv));
   // Two missing values (both ±Infinity) subtract to NaN; treat them as a tie so
   // the next key in the chain gets to decide.
@@ -302,8 +332,8 @@ export function PositionsTable({
     list.sort((a, b) => (a.order !== b.order ? a.order - b.order : a.label.localeCompare(b.label)));
     for (const g of list) {
       g.rows.sort((a, b) => {
-        for (const s of sorts) {
-          const cmp = compareBy(a, b, s.key) * s.dir;
+        for (const [i, s] of sorts.entries()) {
+          const cmp = compareBy(a, b, s.key, i < sorts.length - 1) * s.dir;
           if (cmp) return cmp;
         }
         return a.symbol.localeCompare(b.symbol);
@@ -317,6 +347,7 @@ export function PositionsTable({
   const allCollapsed = groupBy !== "none" && groups.length > 0 && groups.every((g) => collapsedSet.has(g.key));
 
   const { clickHeader } = sortChainActions(sorts, setSorts);
+  const stripColumns = columns.map((c) => ({ ...c, bands: BANDS[c.key]?.label }));
   const toggleGroup = (key: string) =>
     setCollapsed((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
 
@@ -399,7 +430,7 @@ export function PositionsTable({
 
       {/* Sort chain — the touch path to a multi-column sort (desktop can also
           Shift-click headers). */}
-      <SortStrip sorts={sorts} setSorts={setSorts} columns={columns} className="border-b border-border px-3 py-2" />
+      <SortStrip sorts={sorts} setSorts={setSorts} columns={stripColumns} className="border-b border-border px-3 py-2" />
 
       {/* Table — wider than the canvas at every column, so it scrolls sideways
           inside this card while the page itself never does. */}
