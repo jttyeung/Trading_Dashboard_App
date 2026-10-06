@@ -393,6 +393,11 @@ export function PnlView({
   // the convention so an old saved set can't come back meaning its
   // opposite.)
   const { has: monthOpen, toggle: toggleMonth } = usePersistentSet("pnl-openmonths");
+  // Years are the opposite: a handful of them, so they start expanded and the
+  // set holds the ones the user has COLLAPSED. The key is new (not reused from a
+  // prior open-keys set) so no saved state can come back meaning its opposite.
+  // A collapsed year keeps its header total, so the year's result stays visible.
+  const { has: yearCollapsed, toggle: toggleYear } = usePersistentSet("pnl-collapsedyears");
 
   return (
     <div className="pb-24 pt-3 sm:pb-6">
@@ -622,74 +627,85 @@ export function PnlView({
             <div className="space-y-3">
               {monthlyByYear.map((y) => {
                 const yearTotal = y.months.reduce((s, mo) => s + mo.pnl, 0);
+                const isYearOpen = !yearCollapsed(y.year);
                 return (
                   <div key={y.year}>
-                    <div className="mb-1 flex items-center justify-between px-1">
-                      <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">{y.year}</span>
+                    <button
+                      type="button"
+                      onClick={() => toggleYear(y.year)}
+                      aria-expanded={isYearOpen}
+                      className="mb-1 flex w-full items-center justify-between px-1 text-left"
+                    >
+                      <span className="flex items-center gap-2">
+                        <span className="w-3 shrink-0 text-[10px] text-muted">{isYearOpen ? "▾" : "▸"}</span>
+                        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">{y.year}</span>
+                      </span>
                       <span className={`tabular flex items-baseline gap-1 text-[11px] font-semibold ${yearTotal >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                         <Amt>{signed(yearTotal)}</Amt>
                         {y.yearPct != null && <span className="font-normal opacity-80">({fmtPct(y.yearPct)})</span>}
                       </span>
-                    </div>
-                    <Card className="divide-y divide-border">
-                      {y.months.map((mo) => {
-                        // Only a month with NAV history has anything to collapse;
-                        // one without stays a plain row, with a spacer where the
-                        // chevron would be so the month names still line up.
-                        const canCollapse = mo.perf != null;
-                        const isOpen = canCollapse && monthOpen(mo.key);
-                        return (
-                          <div key={mo.key}>
-                            <button
-                              type="button"
-                              onClick={() => canCollapse && toggleMonth(mo.key)}
-                              disabled={!canCollapse}
-                              className="block w-full px-4 pb-3 pt-3 text-left active:bg-surface-2 disabled:active:bg-transparent"
-                            >
-                              <div className="flex items-center justify-between gap-3">
-                                <div className="flex min-w-0 items-center gap-2">
-                                  <span className="w-3 shrink-0 text-[10px] text-muted">{canCollapse ? (isOpen ? "▾" : "▸") : ""}</span>
-                                  <span className="text-sm font-medium">{mo.label}</span>
-                                  {mo.count > 0 && (
-                                    <span className="tabular rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] text-muted">{mo.count}</span>
-                                  )}
-                                  {/* Collapsed, the month still says whether the portfolio
-                                      itself grew -- the one figure realized dollars can't
-                                      stand in for. */}
-                                  {canCollapse && !isOpen && mo.perf && (
-                                    <span className={`tabular text-[10px] ${mo.perf.twr >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                                      {fmtPct(mo.perf.twr)} TWR
-                                    </span>
-                                  )}
+                    </button>
+                    {isYearOpen && (
+                      <Card className="divide-y divide-border">
+                        {y.months.map((mo) => {
+                          // Only a month with NAV history has anything to collapse;
+                          // one without stays a plain row, with a spacer where the
+                          // chevron would be so the month names still line up.
+                          const canCollapse = mo.perf != null;
+                          const isOpen = canCollapse && monthOpen(mo.key);
+                          return (
+                            <div key={mo.key}>
+                              <button
+                                type="button"
+                                onClick={() => canCollapse && toggleMonth(mo.key)}
+                                disabled={!canCollapse}
+                                className="block w-full px-4 pb-3 pt-3 text-left active:bg-surface-2 disabled:active:bg-transparent"
+                              >
+                                <div className="flex items-center justify-between gap-3">
+                                  <div className="flex min-w-0 items-center gap-2">
+                                    <span className="w-3 shrink-0 text-[10px] text-muted">{canCollapse ? (isOpen ? "▾" : "▸") : ""}</span>
+                                    <span className="text-sm font-medium">{mo.label}</span>
+                                    {mo.count > 0 && (
+                                      <span className="tabular rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] text-muted">{mo.count}</span>
+                                    )}
+                                    {/* Collapsed, the month still says whether the portfolio
+                                        itself grew -- the one figure realized dollars can't
+                                        stand in for. */}
+                                    {canCollapse && !isOpen && mo.perf && (
+                                      <span className={`tabular text-[10px] ${mo.perf.twr >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                                        {fmtPct(mo.perf.twr)} TWR
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className={`tabular flex shrink-0 items-baseline gap-1 text-sm font-semibold ${mo.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                                    <Amt>{signed(mo.pnl)}</Amt>
+                                    {mo.pct != null && <span className="text-[11px] font-normal opacity-80">({fmtPct(mo.pct)})</span>}
+                                  </span>
                                 </div>
-                                <span className={`tabular flex shrink-0 items-baseline gap-1 text-sm font-semibold ${mo.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                                  <Amt>{signed(mo.pnl)}</Amt>
-                                  {mo.pct != null && <span className="text-[11px] font-normal opacity-80">({fmtPct(mo.pct)})</span>}
-                                </span>
-                              </div>
-                              <div className="mt-2">
-                                <DivergingBar pnl={mo.pnl} maxAbs={monthlyMaxAbs} />
-                              </div>
-                            </button>
-                            {isOpen && mo.perf && (
-                              <div className="-mt-2 px-4 pb-3">
-                                <NavStrip perf={mo.perf} />
-                              </div>
-                            )}
+                                <div className="mt-2">
+                                  <DivergingBar pnl={mo.pnl} maxAbs={monthlyMaxAbs} />
+                                </div>
+                              </button>
+                              {isOpen && mo.perf && (
+                                <div className="-mt-2 px-4 pb-3">
+                                  <NavStrip perf={mo.perf} />
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                        {y.yearPerf && (
+                          <div className="bg-surface-2/40 px-4 py-3">
+                            {/* Label only — the strip below carries the numbers, in the
+                                same four columns as every month row above it. */}
+                            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+                              {y.yearPerf.partial ? `${y.year} since ${MONTHS[Number(y.yearPerf.fromLabel.slice(5, 7)) - 1]}` : `${y.year} total`}
+                            </span>
+                            <NavStrip perf={y.yearPerf} />
                           </div>
-                        );
-                      })}
-                      {y.yearPerf && (
-                        <div className="bg-surface-2/40 px-4 py-3">
-                          {/* Label only — the strip below carries the numbers, in the
-                              same four columns as every month row above it. */}
-                          <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">
-                            {y.yearPerf.partial ? `${y.year} since ${MONTHS[Number(y.yearPerf.fromLabel.slice(5, 7)) - 1]}` : `${y.year} total`}
-                          </span>
-                          <NavStrip perf={y.yearPerf} />
-                        </div>
-                      )}
-                    </Card>
+                        )}
+                      </Card>
+                    )}
                   </div>
                 );
               })}
