@@ -60,6 +60,14 @@ export type SourcedOption = OptionPosition & { sourceLabel: string };
 type GroupBy = "none" | "strategy" | "dte" | "ticker" | "account";
 type SortKey = "ticker" | "strategy" | "qty" | "dit" | "dte" | "strike" | "spot" | "spotPct" | "theta" | "arr" | "ror" | "unrealized" | "remArr" | "todayPl" | "marketValue" | "source";
 
+// A row's identity is account + contract, not the contract alone: the same
+// OCC symbol can be held in two brokerages at once (e.g. an INTC put in both
+// Schwab and E*TRADE). Keying React rows on o.id alone gave them duplicate
+// keys, and React then left stale rows behind when the grouping changed.
+function rowKey(o: SourcedOption): string {
+  return `${o.sourceLabel}|${o.id}`;
+}
+
 interface Row {
   o: SourcedOption;
   strategyCode: string;
@@ -438,7 +446,7 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
   const [sortDir, setSortDir] = useState<1 | -1>(1);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   // Which CSP rows have their "Roll analysis" panel open --
-  // keyed by contract symbol (r.o.id). Lazy-mounted: RollAnalysisPanel
+  // keyed by rowKey (account + contract). Lazy-mounted: RollAnalysisPanel
   // only fires its live chain fetch once a row is actually expanded, so
   // opening this table never fires N live calls up front.
   const [rollAnalysisOpen, setRollAnalysisOpen] = useState<Set<string>>(new Set());
@@ -640,9 +648,9 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                 {!isCollapsed &&
                   g.rows.map((r) => {
                     const isShortCSP = r.o.kind === "csp" && r.o.side === "short";
-                    const rollOpen = rollAnalysisOpen.has(r.o.id);
+                    const rollOpen = rollAnalysisOpen.has(rowKey(r.o));
                     return (
-                  <Fragment key={r.o.id}>
+                  <Fragment key={rowKey(r.o)}>
                     <tr className="border-b border-border/60 hover:bg-surface-2/40">
                       <td className="whitespace-nowrap px-3 py-2 font-medium text-text">
                         {r.o.symbol}
@@ -653,7 +661,7 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                         )}
                         {isShortCSP && (
                           <button
-                            onClick={() => toggleRollAnalysis(r.o.id)}
+                            onClick={() => toggleRollAnalysis(rowKey(r.o))}
                             title={r.defensiveRoll ?? "Roll analysis"}
                             className={`ml-1 text-xs ${rollOpen ? "text-accent" : r.defensiveRoll ? "text-amber-400 hover:text-amber-300" : "text-muted/50 hover:text-text"}`}
                           >
