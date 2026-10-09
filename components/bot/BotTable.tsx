@@ -171,9 +171,9 @@ interface DateGroup {
 }
 
 // collapsedDatesKey/loadCollapsedDates/saveCollapsedDates persist which
-// date groups are collapsed per browser — same pattern as AlertsPanel's
-// own "read" state — so a page refresh doesn't silently re-expand
-// everything you'd already collapsed. Scoped per bot (storageKey) since
+// date groups are collapsed per browser — the same localStorage pattern
+// the old alerts panel used for read state — so a page refresh doesn't
+// silently re-expand everything you'd already collapsed. Scoped per bot (storageKey) since
 // /bot and /bot-20-delta-safe are two independent tables with their own
 // dates worth remembering separately.
 function collapsedDatesKey(storageKey: string): string {
