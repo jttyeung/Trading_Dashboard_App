@@ -743,7 +743,9 @@ export interface PortfolioRiskFile {
 // ---------------------------------------------------------------------------
 export interface Alert {
   ticker: string;
-  putCall: "PUT" | "CALL";
+  // "" on a name_over_allocated alert, which is about a whole name, not
+  // one contract (its contractSymbol is the ticker itself).
+  putCall: "PUT" | "CALL" | "";
   contractSymbol: string;
   strike: number;
   expirationDate: string;
@@ -755,10 +757,13 @@ export interface Alert {
   underlyingPrice: number;
   // Mirrors internal/agents/tracker/evaluate.go's Action* constants.
   // assignment_likely is an ITM short option with no roll inside
-  // the $120/contract debit cap (a heads-up, not an action);
+  // the $100/contract debit cap (a heads-up, not an action);
   // leaps_over_allocated is a held LEAP breaching the allocation caps;
   // earnings is a short put whose underlying reports before it expires
-  // (RULE-027 — close before the report).
+  // (a heads-up); name_over_allocated is a whole name (shares, put
+  // collateral, spread risk and LEAPS together) over the one-name cap.
+  // "watch" (delta climbing while OTM) was retired 2026-10-09 but can
+  // still sit in an alerts.json written before then.
   action:
     | "close"
     | "roll"
@@ -768,7 +773,9 @@ export interface Alert {
     | "roll_up"
     | "assignment_likely"
     | "leaps_over_allocated"
-    | "earnings";
+    | "earnings"
+    | "pcc_caution"
+    | "name_over_allocated";
   rationale: string;
   rollToSymbol: string | null;
   rollToStrike: number | null;

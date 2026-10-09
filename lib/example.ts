@@ -501,8 +501,10 @@ export const exampleAlertsFile: AlertsFile = {
       profitLoss: -978,
       profitPct: -0.971,
       underlyingPrice: 317.36,
-      action: "watch",
-      rationale: "Delta has risen to 0.42 while still OTM — an early warning before this needs an active roll decision.",
+      action: "earnings",
+      rationale: "earnings Thu Oct 22 after the close, before this put expires " +
+        isoDay(21).slice(5) +
+        " — an overnight gap could move through the $310.00 strike; last session before the report is Thu Oct 22; currently DOWN $978.00",
       rollToSymbol: null,
       rollToStrike: null,
       rollToExpirationDate: null,
