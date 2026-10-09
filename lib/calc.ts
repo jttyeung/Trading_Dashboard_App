@@ -408,17 +408,16 @@ export function cspInsight(o: OptionPosition): Insight {
     };
   }
   // Rollable once the remaining premium's annualized return (the Yr% column) has
-  // decayed below 28% — the collateral isn't working hard enough; harvest & redeploy.
-  // Mirrors the backend tracker's cspAnnualizedReturnFloor (OptionsEvaluator's
+  // decayed below 25% with at least half the credit kept — the collateral isn't
+  // working hard enough; harvest & redeploy. Mirrors the backend tracker's
+  // cspAnnualizedReturnFloor and cspProfitTargetMinKeptPct (OptionsEvaluator's
   // internal/agents/tracker/profit_target.go) so this tag and the profit_target
-  // alert never disagree about the same contract. Only on a position that's
-  // already profitable (some credit captured), same as the backend's own gate:
-  // closing a losing CSP here would realize the loss, not redeploy a gain.
-  if (cap > 0 && remAnn < 0.28) {
+  // alert never disagree about the same contract.
+  if (cap >= 0.5 && remAnn < 0.25) {
     return {
       level: "roll",
       label: "Rollable",
-      detail: `Remaining premium annualizes to ${Math.round(remAnn * 100)}% (below 28%). Roll or close to redeploy the collateral.`,
+      detail: `Remaining premium annualizes to ${Math.round(remAnn * 100)}% (below 25%) with ${Math.round(cap * 100)}% kept. Roll or close to redeploy the collateral.`,
     };
   }
   return {
