@@ -58,7 +58,7 @@ const STRATEGY_STYLE: Record<OptionKind, string> = {
 export type SourcedOption = OptionPosition & { sourceLabel: string };
 
 type GroupBy = "none" | "strategy" | "dte" | "ticker" | "account";
-type SortKey = "ticker" | "strategy" | "qty" | "dit" | "dte" | "strike" | "spot" | "spotPct" | "theta" | "arr" | "ror" | "unrealized" | "remArr" | "todayPl" | "marketValue" | "source";
+type SortKey = "ticker" | "strategy" | "qty" | "dit" | "dte" | "strike" | "spot" | "spotPct" | "theta" | "arr" | "ror" | "unrealized" | "remArr" | "todayPl" | "marketValue" | "manage" | "source";
 
 // A row's identity is account + contract, not the contract alone: the same
 // OCC symbol can be held in two brokerages at once (e.g. an INTC put in both
@@ -107,26 +107,72 @@ interface Row {
   marketValue: number;
   arr: number | null;
   ror: number | null;
-  // Set only when a tracker alert matching this exact contract calls for
-  // a ticker-adjacent glyph — 💸 for "good profits, consider closing"
-  // (profit_target: a CSP whose remaining annualized return dropped
-  // below the account holder's own floor, or a LEAP that hit a fast
-  // profit-taking band), ⚠️ for "this LEAP is approaching expiration"
-  // (leap_expiring), 🛡️ for "this position is ITM, roll defensively for
-  // credit or minimal debit before assignment" (roll — but only on a row
-  // with no roll-analysis button, i.e. a covered call; a short CSP's
-  // button itself becomes the 🛡️, see defensiveRoll), or 📈 for "stock
-  // has run up, consider rolling up for more credit" (roll_up — the
-  // opposite, opportunistic case: only ever searches strikes above the
-  // current one). The rationale text is the glyph's native hover tooltip,
-  // rather than duplicating AlertsPanel's own full card here.
-  tickerFlag: { emoji: string; rationale: string } | null;
+  // The tracker's alert on this exact contract, if any -- the Manage
+  // column's action. One per contract: the backend already merges every
+  // check that fired on it into one leading alert (merge.go).
+  alert: Alert | null;
+  // The tracker's whole-name alert (name_over_allocated), keyed by the
+  // ticker rather than a contract, so it shows on every row of the name.
+  nameAlert: Alert | null;
   // The tracker's `roll` rationale for a short CSP: the row's 🔄
   // roll-analysis button turns into 🛡️ with this as its tooltip, since
   // the panel behind it switches to the defensive search for an ITM put
   // (RollAnalysisPanel's DefensiveRollBlock) — one icon says both "this
   // needs a roll" and "the roll on offer is the defensive kind".
   defensiveRoll: string | null;
+}
+
+// MANAGE is the Manage column's label and color per tracker action, in
+// the table's own theme tokens. The labels say what to do (or what's
+// coming); the full rationale is one click away.
+const MANAGE: Record<string, { label: string; cls: string }> = {
+  close: { label: "Close", cls: "text-neg" },
+  profit_target: { label: "Take profit", cls: "text-pos" },
+  roll: { label: "Roll", cls: "text-warn" },
+  assignment_likely: { label: "Assignment likely", cls: "text-neg" },
+  earnings: { label: "Earnings", cls: "text-warn" },
+  roll_up: { label: "Roll up", cls: "text-pos" },
+  leap_expiring: { label: "Expiring", cls: "text-warn" },
+  leaps_over_allocated: { label: "Over-allocated", cls: "text-warn" },
+  pcc_caution: { label: "Sentiment caution", cls: "text-info" },
+  name_over_allocated: { label: "Over 10% cap", cls: "text-warn" },
+  watch: { label: "Watch", cls: "text-info" }, // retired; only in an alerts.json written before 2026-10-09
+};
+
+// Urgency order for sorting the Manage column, mirrored from the Go
+// side's merge.go actionRank. "Hold" (no alert) sorts last.
+const MANAGE_RANK: Record<string, number> = {
+  close: 0,
+  roll: 1,
+  assignment_likely: 2,
+  earnings: 3,
+  leap_expiring: 5,
+  leaps_over_allocated: 6,
+  profit_target: 7,
+  roll_up: 8,
+  pcc_caution: 9,
+  name_over_allocated: 10,
+};
+
+function manageStyle(a: Alert): { label: string; cls: string } {
+  return MANAGE[a.action] ?? { label: a.action, cls: "text-muted" };
+}
+
+// manageDetail is the one short line under the Manage label: the roll
+// target when there is one, the report date for an earnings heads-up,
+// otherwise how much of the credit a short position has kept.
+function manageDetail(r: Row): string | null {
+  const a = r.alert;
+  if (a?.rollToStrike != null && a.rollToExpirationDate) {
+    const net = a.rollToNetCredit != null ? ` · ${a.rollToNetCredit >= 0 ? "+" : "−"}$${Math.abs(a.rollToNetCredit).toFixed(2)}/sh` : "";
+    return `→ $${a.rollToStrike} ${a.rollToExpirationDate.slice(5)}${net}`;
+  }
+  if (a?.action === "earnings") {
+    const m = /^earnings (\w{3} \w{3} \d+)/.exec(a.rationale);
+    if (m) return `reports ${m[1]}`;
+  }
+  if (r.o.side === "short") return `${fmtPct(r.unrealizedPct, 0)} kept`;
+  return null;
 }
 
 // OptionPosition.qty is a plain magnitude (side carries the sign) — signed
@@ -140,13 +186,7 @@ function signedQty(o: OptionPosition): number {
 // Smallest yesterday-value ($) a Today P/L % is computed against.
 const MIN_PCT_BASE = 1;
 
-function buildRow(
-  o: SourcedOption,
-  profitTargetBySymbol: Map<string, string>,
-  leapExpiringBySymbol: Map<string, string>,
-  rollBySymbol: Map<string, string>,
-  rollUpBySymbol: Map<string, string>,
-): Row {
+function buildRow(o: SourcedOption, alertBySymbol: Map<string, Alert>): Row {
   const marketValue = optionNetValue(o); // long +, short − (the buy-back liability)
   const todayPl = o.dayValueChange ?? null;
   // Back out yesterday's value (today's value minus today's change) to get a
@@ -164,32 +204,9 @@ function buildRow(
       ? todayPl / Math.abs(yesterdayValue)
       : null;
 
-  // profit_target takes priority if a contract somehow matched both (it
-  // shouldn't in practice — evaluateLeapPosition's own switch is mutually
-  // exclusive — but "good profits to take" is the more actionable signal
-  // of the two either way). roll (defensive, ITM) outranks roll_up
-  // (opportunistic, still OTM and profitable) since it's the more urgent of
-  // the two roll signals — and in practice they can't overlap anyway, since
-  // evaluatePosition's ActionRoll and evaluateCSPRollUpForCredit's ActionRollUp
-  // are mutually exclusive ITM/profitable-and-green-day branches. roll_up is
-  // checked last: it's the lowest-priority signal of the four, and in
-  // practice won't often overlap with the other two either (it only fires
-  // well before a position's own profit-target or expiration window comes
-  // into play).
-  const profitRationale = profitTargetBySymbol.get(o.id);
-  const expiringRationale = leapExpiringBySymbol.get(o.id);
-  const rollRationale = rollBySymbol.get(o.id) ?? null;
-  const rollUpRationale = rollUpBySymbol.get(o.id);
+  const alert = alertBySymbol.get(o.id) ?? null;
+  const nameAlert = alertBySymbol.get(o.symbol) ?? null;
   const isShortCSP = o.kind === "csp" && o.side === "short";
-  const tickerFlag = profitRationale
-    ? { emoji: "💸", rationale: profitRationale }
-    : expiringRationale
-      ? { emoji: "⚠️", rationale: expiringRationale }
-      : rollRationale && !isShortCSP
-        ? { emoji: "🛡️", rationale: rollRationale }
-        : rollUpRationale
-          ? { emoji: "📈", rationale: rollUpRationale }
-          : null;
 
   return {
     o,
@@ -216,8 +233,9 @@ function buildRow(
     marketValue,
     arr: positionAnnualizedReturn(o),
     ror: positionReturnOnCapital(o),
-    tickerFlag,
-    defensiveRoll: isShortCSP ? rollRationale : null,
+    alert,
+    nameAlert,
+    defensiveRoll: isShortCSP && alert?.action === "roll" ? alert.rationale : null,
   };
 }
 
@@ -297,6 +315,57 @@ function SummaryRow({
         );
       })}
     </tr>
+  );
+}
+
+// ManageCell is the Manage column: the tracker's action for this row
+// (or "Hold"), one short line of detail, and a whole-name cap warning
+// when the name is over. Clicking opens the full rationale underneath.
+function ManageCell({ r, open, onToggle }: { r: Row; open: boolean; onToggle: () => void }) {
+  if (!r.alert && !r.nameAlert) {
+    const detail = manageDetail(r);
+    return (
+      <div className="flex flex-col leading-tight">
+        <span className="text-xs text-muted">Hold</span>
+        {detail && <span className="text-[10px] text-muted">{detail}</span>}
+      </div>
+    );
+  }
+  const style = r.alert ? manageStyle(r.alert) : null;
+  const detail = manageDetail(r);
+  return (
+    <button onClick={onToggle} className="flex flex-col items-start text-left leading-tight hover:opacity-80" title={open ? "Hide why" : "Show why"}>
+      {style ? (
+        <span className={`text-xs font-semibold ${style.cls}`}>
+          {style.label}
+          {r.alert?.action === "roll_up" && r.alert.rollUpConviction > 0 && (
+            <span className="ml-1 font-normal text-muted">{r.alert.rollUpConviction}/4</span>
+          )}
+        </span>
+      ) : (
+        <span className="text-xs text-muted">Hold</span>
+      )}
+      {detail && <span className="text-[10px] text-muted">{detail}</span>}
+      {r.nameAlert && <span className="text-[10px] font-semibold text-warn">{manageStyle(r.nameAlert).label}</span>}
+    </button>
+  );
+}
+
+// ManageDetail is the expanded rationale row: the contract's alert and
+// the whole-name alert, each with the tracker's own words.
+function ManageDetail({ r }: { r: Row }) {
+  return (
+    <div className="flex flex-col gap-1.5 text-xs leading-relaxed">
+      {[r.alert, r.nameAlert].map((a) =>
+        a ? (
+          <p key={a.contractSymbol + a.action} className="text-muted">
+            <span className={`mr-1.5 font-semibold ${manageStyle(a).cls}`}>{manageStyle(a).label}:</span>
+            {a.rationale}
+            {a.accountLabel && <span className="ml-1.5 text-[10px]">({a.accountLabel})</span>}
+          </p>
+        ) : null,
+      )}
+    </div>
   );
 }
 
@@ -385,6 +454,8 @@ function sortValue(r: Row, key: SortKey): number | string {
       return r.todayPl ?? -Infinity;
     case "marketValue":
       return r.marketValue;
+    case "manage":
+      return r.alert ? (MANAGE_RANK[r.alert.action] ?? 50) : 99;
     case "source":
       return r.o.sourceLabel;
   }
@@ -437,6 +508,7 @@ const COLUMNS: { key: SortKey; label: string; align?: "right" }[] = [
   { key: "remArr", label: "ARR Left", align: "right" },
   { key: "todayPl", label: "Today P/L", align: "right" },
   { key: "marketValue", label: "Market Value", align: "right" },
+  { key: "manage", label: "Manage" },
   { key: "source", label: "Source" },
 ];
 
@@ -459,42 +531,22 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
     });
   }
 
-  const profitTargetBySymbol = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const a of alerts) {
-      if (a.action === "profit_target") m.set(a.contractSymbol, a.rationale);
-    }
-    return m;
-  }, [alerts]);
+  // One lookup for both kinds of alert: a contract alert is keyed by its
+  // OCC symbol (the row's id), a whole-name alert by the bare ticker.
+  const alertBySymbol = useMemo(() => new Map(alerts.map((a) => [a.contractSymbol, a])), [alerts]);
 
-  const leapExpiringBySymbol = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const a of alerts) {
-      if (a.action === "leap_expiring") m.set(a.contractSymbol, a.rationale);
-    }
-    return m;
-  }, [alerts]);
+  const rows = useMemo(() => options.map((o) => buildRow(o, alertBySymbol)), [options, alertBySymbol]);
 
-  const rollBySymbol = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const a of alerts) {
-      if (a.action === "roll") m.set(a.contractSymbol, a.rationale);
-    }
-    return m;
-  }, [alerts]);
-
-  const rollUpBySymbol = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const a of alerts) {
-      if (a.action === "roll_up") m.set(a.contractSymbol, a.rationale);
-    }
-    return m;
-  }, [alerts]);
-
-  const rows = useMemo(
-    () => options.map((o) => buildRow(o, profitTargetBySymbol, leapExpiringBySymbol, rollBySymbol, rollUpBySymbol)),
-    [options, profitTargetBySymbol, leapExpiringBySymbol, rollBySymbol, rollUpBySymbol],
-  );
+  // Which rows have their Manage rationale open, keyed by rowKey.
+  const [manageOpen, setManageOpen] = useState<Set<string>>(new Set());
+  function toggleManage(id: string) {
+    setManageOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   const groups = useMemo(() => {
     type Group = { key: string; label: string; order: number; rows: Row[] };
@@ -654,11 +706,6 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                     <tr className="border-b border-border/60 hover:bg-surface-2/40">
                       <td className="whitespace-nowrap px-3 py-2 font-medium text-text">
                         {r.o.symbol}
-                        {r.tickerFlag && (
-                          <span className="ml-1 cursor-default" title={r.tickerFlag.rationale}>
-                            {r.tickerFlag.emoji}
-                          </span>
-                        )}
                         {isShortCSP && (
                           <button
                             onClick={() => toggleRollAnalysis(rowKey(r.o))}
@@ -734,8 +781,18 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                         )}
                       </td>
                       <td className="px-3 py-2 text-right tabular text-text">{fmtMoney(r.marketValue, { sign: true })}</td>
+                      <td className="whitespace-nowrap px-3 py-2">
+                        <ManageCell r={r} open={manageOpen.has(rowKey(r.o))} onToggle={() => toggleManage(rowKey(r.o))} />
+                      </td>
                       <td className="whitespace-nowrap px-3 py-2 text-xs text-muted">{r.o.sourceLabel}</td>
                     </tr>
+                    {manageOpen.has(rowKey(r.o)) && (r.alert || r.nameAlert) && (
+                      <tr className="border-b border-border/60 bg-surface-2/30">
+                        <td colSpan={COLUMNS.length} className="px-4 py-2.5">
+                          <ManageDetail r={r} />
+                        </td>
+                      </tr>
+                    )}
                     {rollOpen && (
                       <tr className="border-b border-border/60 bg-surface-2/30">
                         <td colSpan={COLUMNS.length} className="px-4 py-3">
