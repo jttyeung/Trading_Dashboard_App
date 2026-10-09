@@ -11,9 +11,7 @@ import { AccountSwitcher } from "@/components/AccountSwitcher";
 import { PortfolioFit } from "@/components/PortfolioFit";
 import { BuyingPowerStat } from "@/components/BuyingPowerStat";
 import { AvailableCash } from "@/components/AvailableCash";
-import { AlertsPanel } from "@/components/AlertsPanel";
 import { MonthlyGoalCard } from "@/components/MonthlyGoalCard";
-import { getAlerts } from "@/lib/alerts";
 import { getMonthlyGoal } from "@/lib/monthly-goal";
 import { getSnapshot } from "@/lib/snapshot";
 import { getAmReport } from "@/lib/am-report";
@@ -55,7 +53,6 @@ function fmtDataStamp(pricesAsOf: string): string {
 
 export default async function HomePage() {
   const snap = await getSnapshot();
-  const alerts = (await getAlerts()).alerts;
   const monthlyGoal = await getMonthlyGoal();
   const { accounts, meta } = snap;
   const { id, account, data } = await getSelectedAccount(snap);
@@ -276,8 +273,9 @@ export default async function HomePage() {
         />
       </div>
 
-      {/* Monthly goal and tracker alerts are OptionsEvaluator's (their data
-          and their write-back APIs); see lib/features.ts BRIDGE. */}
+      {/* The monthly goal is OptionsEvaluator's (its data and write-back
+          API); see lib/features.ts BRIDGE. Tracker alerts live in the
+          desktop Positions table's Manage column, not here. */}
       {OPTIONSEVAL && (
         <>
           <MonthlyGoalCard
@@ -288,10 +286,6 @@ export default async function HomePage() {
             daysInMonth={monthlyGoal.daysInMonth}
             history={monthlyGoal.history}
           />
-
-          {/* Active tracker alerts — what needs attention right now, ahead of the
-              static quick-access cards below. */}
-          <AlertsPanel alerts={alerts} />
         </>
       )}
 
