@@ -2,7 +2,7 @@ import { PageHeader } from "@/components/ui";
 import { ShowAmounts } from "@/components/privacy";
 import { getSnapshot } from "@/lib/snapshot";
 import { getSelectedAccount, getCombineIds, COMBINED_ID } from "@/lib/account";
-import { combinePace, readPaceCar } from "@/lib/pace-car";
+import { combinePace, readPaceCar, type PaceAccount } from "@/lib/pace-car";
 import { PaceCarCard } from "@/components/PaceCarCard";
 import { getClosedCsps } from "@/lib/csp-closed";
 import { getClosedLeaps } from "@/lib/leaps-closed";
@@ -108,7 +108,7 @@ export default async function PnlPage() {
   // The pace car for this view: one account, or the Combined View's members summed.
   const paceFile = readPaceCar();
   const paceIds = id === COMBINED_ID ? await getCombineIds(snap) : [id];
-  const pace = paceFile ? combinePace(paceIds.map((i) => paceFile.accounts[i]).filter((a): a is NonNullable<typeof a> => !!a)) : null;
+  const pace = paceFile ? combinePace(paceIds.map((i) => paceFile.accounts[i]).filter((a): a is PaceAccount => !!a)) : null;
 
   return (
     <main className="px-4 tablet:px-6" data-wide="1">
