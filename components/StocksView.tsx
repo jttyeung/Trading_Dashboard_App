@@ -53,7 +53,7 @@ function Caret({ on, dir }: { on: boolean; dir: "asc" | "desc" }) {
   return <span className={`text-[7px] ${on ? "text-text" : "text-transparent"}`}>{dir === "asc" ? "▲" : "▼"}</span>;
 }
 
-export function StocksView({ equities, closed, initialStatus = "open", statusFromUrl = false, closedMode, closedMonths, laddersNextAt, coveredCalls = [] }: { equities: Equity[]; closed: ClosedStock[]; initialStatus?: Status; statusFromUrl?: boolean; closedMode?: "all" | "ytd" | "months" | "today"; closedMonths?: number; laddersNextAt?: string; coveredCalls?: OptionPosition[] }) {
+export function StocksView({ equities, closed, initialStatus = "open", statusFromUrl = false, closedMode, closedMonths, laddersNextAt, coveredCalls = [] }: { equities: Equity[]; closed: ClosedStock[]; initialStatus?: Status; statusFromUrl?: boolean; closedMode?: "all" | "ytd" | "months" | "week" | "today"; closedMonths?: number; laddersNextAt?: string; coveredCalls?: OptionPosition[] }) {
   const [status, setStatus] = usePersistentState<Status>("stocks-status", initialStatus, statusFromUrl);
   const { has, toggle } = usePersistentSet("stocks-open");
   const [sortKey, setSortKey] = usePersistentState<SortKey>("stocks-sortkey", "value");

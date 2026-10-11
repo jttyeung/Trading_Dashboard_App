@@ -69,7 +69,7 @@ export function StrategyTypeView({
   closedSpreads: ClosedSpread[];
   initialStatus?: Status;
   statusFromUrl?: boolean; // true when ?view= set it — then it wins over persisted
-  closedMode?: "all" | "ytd" | "months" | "today";
+  closedMode?: "all" | "ytd" | "months" | "week" | "today";
   closedMonths?: number;
   // Underlying average cost per share, keyed by uppercase symbol — supplied by
   // the covered-call page so a strike under the basis can carry a BC tag.
