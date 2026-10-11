@@ -63,7 +63,7 @@ function BriefScore({ b }: { b: AmBoardRow | null }) {
   const failed = b.fails.length > 0;
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${failed ? "bg-surface-2 text-muted ring-border line-through decoration-rose-400/60" : TIER_CLS[b.tier] ?? TIER_CLS.B}`}
+      className={`inline-flex items-center gap-1 whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${failed ? "bg-surface-2 text-muted ring-border line-through decoration-rose-400/60" : TIER_CLS[b.tier] ?? TIER_CLS.B}`}
       title={`Brief screen: tier ${b.tier}, score ${Math.round(b.score)} · trend ${b.trend.uptrend ? "up" : "not up"} · VRP ${b.vrp}${b.ivr != null ? ` · IV rank ${Math.round(b.ivr)}` : ""}${failed ? ` · off the board: ${b.fails.join(", ")}` : ""}`}
     >
       {b.tier} · {Math.round(b.score)}
@@ -76,7 +76,7 @@ function RankBadge({ r }: { r: QuantRank }) {
   const cls = r.score >= 65 ? "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30" : r.score >= 45 ? "bg-sky-500/15 text-sky-300 ring-sky-500/30" : "bg-surface-2 text-muted ring-border";
   return (
     <span
-      className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${cls}`}
+      className={`inline-flex items-center whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${cls}`}
       title={`The Auto Trader's rank: spread ${r.spreadPct != null ? `${Math.round(r.spreadPct)}% of mid` : "unknown"} (40%), delta needed to reach the target (35%), IV/RV ${r.vrpRatio != null ? r.vrpRatio.toFixed(2) : "unknown"} (25%). ${r.perRound > 1 ? `Takes ${r.perRound} contracts a round when cash is short.` : "One contract a round when cash is short."}`}
     >
       rank {Math.round(r.score)}
@@ -88,21 +88,25 @@ function PickCard({ row, fit, P, brief, rank }: { row: QuantRow; fit: QuantFit |
   const p = row.pick!;
   return (
     <Card className="px-4 py-3">
-      <div className="flex items-baseline justify-between gap-3">
-        <div className="min-w-0">
+      {/* Ticker, price and badges wrap as a row; the yield stays top-right; the
+          explanation gets its own full-width line so it can wrap on a phone
+          instead of running under the price. */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
           <span className="text-sm font-semibold" data-ticker={row.sym} title={erTitle(row, p.exp)}>
             {row.sym}
             <ErMark row={row} exp={p.exp} />
-          </span>{" "}
-          <span className="text-xs text-muted">
-            {row.price != null ? `$${row.price.toFixed(2)}` : ""}
-          </span>{" "}
-          {rank && <RankBadge r={rank} />} <BriefScore b={brief} />
+          </span>
+          <span className="text-xs text-muted">{row.price != null ? `$${row.price.toFixed(2)}` : ""}</span>
+          {rank && <RankBadge r={rank} />}
+          <BriefScore b={brief} />
         </div>
-        <div className="shrink-0 text-right">
-          <div className="text-sm font-semibold text-emerald-300">{pct(p.yield30, 1)} <span className="text-[10px] font-medium text-emerald-300/70">per 30 days</span></div>
-          <div className="text-[10px] text-muted">{pct(((p.fill ?? p.mark) / p.strike) * 100, 1)} for this {p.dte}-day put at {fillLabel(p)} · target {P ? (P.targetYield * 100).toFixed(0) : 4}% per 30</div>
+        <div className="shrink-0 whitespace-nowrap text-right text-sm font-semibold text-emerald-300">
+          {pct(p.yield30, 1)} <span className="text-[10px] font-medium text-emerald-300/70">per 30 days</span>
         </div>
+      </div>
+      <div className="mt-0.5 text-[10px] leading-snug text-muted">
+        {pct(((p.fill ?? p.mark) / p.strike) * 100, 1)} for this {p.dte}-day put at {fillLabel(p)} · target {P ? (P.targetYield * 100).toFixed(0) : 4}% per 30
       </div>
 
       <div className="mt-2 grid grid-cols-4 gap-x-2 gap-y-1 text-[11px] tabular">

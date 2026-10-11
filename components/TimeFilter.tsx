@@ -5,7 +5,13 @@
 import { useMemo, useState } from "react";
 import { type Range } from "@/lib/date-range";
 
-export type TimeMode = "all" | "ytd" | "months" | "today";
+export type TimeMode = "all" | "ytd" | "months" | "week" | "today";
+
+/** Monday of the week `d` falls in, as a local calendar date. */
+export function weekStart(d: Date): Date {
+  const back = (d.getDay() + 6) % 7; // Mon=0 … Sun=6
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() - back);
+}
 
 export function useTimeFilter(defaultMode: TimeMode = "months", defaultMonths = 1) {
   const [mode, setMode] = useState<TimeMode>(defaultMode);
@@ -22,6 +28,7 @@ export function useTimeFilter(defaultMode: TimeMode = "months", defaultMonths = 
       const t = ymd(d);
       return { start: t, end: t };
     }
+    if (mode === "week") return { start: ymd(weekStart(d)), end: null }; // Monday → today
     // N calendar months including the current one: 1 = month-to-date,
     // 2 = all of last month + MTD, … 6 = 1st of the month five months back → now.
     return { start: ymd(new Date(d.getFullYear(), d.getMonth() - (months - 1), 1)), end: null };
@@ -72,6 +79,9 @@ export function TimeFilter({ state }: { state: TimeFilterState }) {
           aria-label="Months to show"
         />
       </div>
+      <button onClick={() => setMode("week")} className={chip(mode === "week")} title="This week, Monday to today">
+        Week
+      </button>
       <button onClick={() => setMode("today")} className={chip(mode === "today")}>
         Today
       </button>

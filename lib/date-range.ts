@@ -66,7 +66,7 @@ export function rangeSubLabel(r: Range): string {
 }
 
 // The time-window modes used by the closed lists and the P&L card's TimeFilter.
-export type ClosedMode = "all" | "ytd" | "months" | "today";
+export type ClosedMode = "all" | "ytd" | "months" | "week" | "today";
 
 /**
  * Parse a closed-view time window out of URL search params so the P&L card's
@@ -74,7 +74,7 @@ export type ClosedMode = "all" | "ytd" | "months" | "today";
  * parts when absent/invalid, letting the component fall back to its defaults.
  */
 export function parseClosedWindow(range?: string, months?: string): { mode?: ClosedMode; months?: number } {
-  const mode = (["all", "ytd", "months", "today"] as const).includes(range as ClosedMode)
+  const mode = (["all", "ytd", "months", "week", "today"] as const).includes(range as ClosedMode)
     ? (range as ClosedMode)
     : undefined;
   const m = months != null ? Math.min(6, Math.max(1, Number.parseInt(months, 10) || 1)) : undefined;
