@@ -36,12 +36,14 @@ function Curves({ acct }: { acct: PaceAccount }) {
 
 type Row = { label: string; book: number; pace: number };
 
-function lastWeeks(acct: PaceAccount, n: number): Row[] {
+/** The weeks of the last month: every week (Monday to Sunday) whose Monday falls in the last 31 days. */
+function weeksOfLastMonth(acct: PaceAccount): Row[] {
   const out: Row[] = [];
   const today = new Date();
+  const floor = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
   const back = (today.getDay() + 6) % 7;
   let monday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - back);
-  for (let i = 0; i < n; i++) {
+  while (monday >= floor) {
     const sunday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6);
     const c = windowChange(acct, ymd(monday), ymd(sunday));
     if (c) out.push({ label: `${monday.toLocaleDateString([], { month: "short", day: "numeric" })} wk`, book: c.book, pace: c.pace });
@@ -50,9 +52,11 @@ function lastWeeks(acct: PaceAccount, n: number): Row[] {
   return out;
 }
 
-function lastMonths(acct: PaceAccount, n: number): Row[] {
+/** Calendar months from this one back to January of this year. */
+function monthsThisYear(acct: PaceAccount): Row[] {
   const out: Row[] = [];
   const today = new Date();
+  const n = today.getMonth() + 1;
   for (let i = 0; i < n; i++) {
     const first = new Date(today.getFullYear(), today.getMonth() - i, 1);
     const last = new Date(today.getFullYear(), today.getMonth() - i + 1, 0);
@@ -94,8 +98,8 @@ function Periods({ title, rows }: { title: string; rows: Row[] }) {
 export function PaceCarCard({ acct, benchmark }: { acct: PaceAccount; benchmark: string }) {
   const s = acct.summary as Partial<PaceSummary>;
   if (!s.days) return null;
-  const weeks = lastWeeks(acct, 8);
-  const months = lastMonths(acct, 6);
+  const weeks = weeksOfLastMonth(acct);
+  const months = monthsThisYear(acct);
   return (
     <Card className="mt-3 px-4 py-3">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
@@ -141,8 +145,8 @@ export function PaceCarCard({ acct, benchmark }: { acct: PaceAccount; benchmark:
 
       {(weeks.length > 0 || months.length > 0) && (
         <div className="mt-3 grid gap-4 sm:grid-cols-2">
-          <Periods title="Recent weeks" rows={weeks} />
-          <Periods title="Recent months" rows={months} />
+          <Periods title="Weeks, last month" rows={weeks} />
+          <Periods title="Months, back to January" rows={months} />
         </div>
       )}
       <p className="mt-2 text-[10px] leading-relaxed text-muted">
