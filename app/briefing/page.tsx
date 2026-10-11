@@ -8,6 +8,12 @@ import { getRefreshStatus } from "@/lib/refresh-status";
 import { DataRefresh } from "@/components/DataRefresh";
 import { BriefingRefresh } from "@/components/BriefingRefresh";
 import { BRIDGE } from "@/lib/features";
+import { ThetaGoalCard } from "@/components/ThetaGoalCard";
+import { getPortfolioRisk } from "@/lib/portfolio-risk";
+import { getCspPicks } from "@/lib/csp-picks";
+import { getVixSnapshot } from "@/lib/vix-data";
+import { assessVix } from "@/lib/vix";
+import { buildThetaGoalPlan } from "@/lib/theta-goal";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +38,23 @@ export default async function BriefingPage() {
     new Set([...data.equities.map((e) => e.symbol.toUpperCase()), ...data.options.map((o) => o.symbol.toUpperCase())]),
   );
 
+  // Theta goal across every real account (not the selected one): the goal is the whole
+  // portfolio's, and the plan needs each account's own shares, calls and cash.
+  const risk = await getPortfolioRisk();
+  const vixSnap = getVixSnapshot(snap.meta.source === "example");
+  const thetaPlan =
+    risk.blended.thetaGoal > 0
+      ? buildThetaGoalPlan({
+          goal: risk.blended.thetaGoal,
+          current: risk.blended.thetaToday,
+          inputs: snap.accounts
+            .filter((a) => a.type !== "all" && a.type !== "paper" && snap.data[a.id])
+            .map((a) => ({ account: a, data: snap.data[a.id] })),
+          picks: (await getCspPicks()).picks,
+          reservePct: vixSnap ? assessVix(vixSnap).targetReservePct : null,
+        })
+      : null;
+
   return (
     <main className="px-4">
       <PageHeader
@@ -51,6 +74,7 @@ export default async function BriefingPage() {
         // watchlist chain, so the button only shows on the bridge.
         right={report && BRIDGE ? <BriefingRefresh /> : undefined}
       />
+      {thetaPlan && <ThetaGoalCard plan={thetaPlan} />}
       {report ? (
         <AmReportView report={report} underweight={underweight} book={book} />
       ) : (

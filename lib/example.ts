@@ -382,6 +382,8 @@ export const examplePortfolioRiskFile: PortfolioRiskFile = {
     thetaTargetMaxPct: 0.0015,
     thetaMaxPct: 0.002,
     thetaGapToTarget: 0,
+    thetaGoal: 100,
+    thetaGoalGap: 31.6,
     beta: 0.82,
     betaCoverage: 0.85,
     betaStatus: "on_target",
