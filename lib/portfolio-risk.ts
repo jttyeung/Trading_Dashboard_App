@@ -36,6 +36,8 @@ const EMPTY: PortfolioRiskFile = {
     thetaTargetMaxPct: 0,
     thetaMaxPct: 0,
     thetaGapToTarget: 0,
+    thetaGoal: 0,
+    thetaGoalGap: 0,
     beta: 0,
     betaCoverage: 0,
     betaStatus: "unknown",
