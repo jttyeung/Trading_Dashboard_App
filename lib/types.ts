@@ -654,6 +654,8 @@ export interface BlendedRiskView {
   thetaTargetMaxPct: number;
   thetaMaxPct: number;
   thetaGapToTarget: number; // mirrors RiskView's own field of the same name
+  thetaGoal: number; // $/day dollar goal (RULE-032) — the backend owns the number
+  thetaGoalGap: number; // $/day still missing to reach it, 0 once there
   beta: number;
   betaCoverage: number; // fraction of portfolioValue with a computable per-underlying beta
   betaStatus: "below_target" | "on_target" | "above_target" | "unknown";
