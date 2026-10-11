@@ -132,8 +132,7 @@ export default async function PnlPage() {
         )}
         <ManualStockEntry sales={manualSales} />
         <EnteredCostBases entries={enteredBases} />
-        {pace && paceFile && <PaceCarCard acct={pace} benchmark={paceFile.meta.benchmark} />}
-        <PnlView realized={realized} open={open} />
+        <PnlView realized={realized} open={open} after={pace && paceFile ? <PaceCarCard acct={pace} benchmark={paceFile.meta.benchmark} /> : null} />
       </ShowAmounts>
     </main>
   );

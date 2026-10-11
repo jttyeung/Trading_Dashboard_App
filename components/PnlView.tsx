@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Card, SectionTitle, Stat } from "@/components/ui";
 import { Amt } from "@/components/privacy";
 import { TimeFilter, useTimeFilter } from "@/components/TimeFilter";
+import type { ReactNode } from "react";
 import { fmtMoney } from "@/lib/calc";
 import { inRange, rangeSubLabel } from "@/lib/date-range";
 
@@ -85,7 +86,9 @@ interface BucketAgg {
   lossDollars: number; // sum of |negative trade P&L| (positive magnitude)
 }
 
-export function PnlView({ realized, open }: { realized: BucketInput[]; open: BucketInput[] }) {
+// `after` renders under the By ticker block (the page passes the pace car there;
+// it is a server component, handed in as a prop so this client view needs no data of its own).
+export function PnlView({ realized, open, after }: { realized: BucketInput[]; open: BucketInput[]; after?: ReactNode }) {
   const tf = useTimeFilter("months", 1); // default to the last 1 month
   const [mode, setMode] = usePersistentState<"realized" | "open">("pnl-mode", "realized");
   const [term, setTerm] = usePersistentState<TermFilter>("pnl-term", "both");
@@ -524,6 +527,7 @@ export function PnlView({ realized, open }: { realized: BucketInput[]; open: Buc
           )}
         </>
       )}
+      {after}
       </div>
       </div>
     </div>
