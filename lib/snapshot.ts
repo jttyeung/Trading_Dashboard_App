@@ -26,6 +26,9 @@ function mergeSnapshots(parts: Snapshot[]): Snapshot {
   const extraOptions: OptionPosition[] = [];
 
   for (const s of parts) {
+    for (const d of Object.values(s.data)) {
+      for (const o of d?.options ?? []) o.underlyingAsOf ??= s.meta?.generatedAt;
+    }
     if (new Date(s.meta.generatedAt).getTime() > new Date(merged.meta.generatedAt).getTime()) {
       merged.meta = s.meta;
     }

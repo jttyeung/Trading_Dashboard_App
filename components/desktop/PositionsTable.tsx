@@ -186,7 +186,22 @@ function signedQty(o: OptionPosition): number {
 // Smallest yesterday-value ($) a Today P/L % is computed against.
 const MIN_PCT_BASE = 1;
 
-function buildRow(o: SourcedOption, alertBySymbol: Map<string, Alert>): Row {
+// The position on each ticker whose underlying quote is newest. Every broker's
+// snapshot quotes the underlying at its own sync time (Schwab, Fidelity and
+// E*TRADE minutes apart), so near the open two AMAT rows from different
+// accounts read $3 apart. Mark/Chg % take the newest quote for the whole
+// ticker; the option's own mark and P&L stay with its source.
+function freshestUnderlying(options: SourcedOption[]): Map<string, SourcedOption> {
+  const best = new Map<string, SourcedOption>();
+  for (const o of options) {
+    if (o.underlyingPrice == null && o.underlyingLive == null) continue;
+    const cur = best.get(o.symbol);
+    if (!cur || (o.underlyingAsOf ?? "") > (cur.underlyingAsOf ?? "")) best.set(o.symbol, o);
+  }
+  return best;
+}
+
+function buildRow(o: SourcedOption, alertBySymbol: Map<string, Alert>, quote: SourcedOption): Row {
   const marketValue = optionNetValue(o); // long +, short − (the buy-back liability)
   const todayPl = o.dayValueChange ?? null;
   // Back out yesterday's value (today's value minus today's change) to get a
@@ -213,13 +228,13 @@ function buildRow(o: SourcedOption, alertBySymbol: Map<string, Alert>): Row {
     strategyCode: STRATEGY_CODE[o.kind] ?? "OTH",
     dit: o.openedAt ? daysBetween(o.openedAt) : null,
     dte: daysToExpiry(o.expiration),
-    spot: o.underlyingPrice ?? o.underlyingLive ?? o.underlyingClose ?? null,
+    spot: quote.underlyingPrice ?? quote.underlyingLive ?? quote.underlyingClose ?? null,
     // The underlying's own move today, measured against the SAME price
     // shown in the cell so the two can never disagree. underlyingPrice
     // and underlyingLive are the same value for every broker: the daemon
     // picks the extended-hours print only when its trade time is newer
     // (OptionsEvaluator internal/export/underlying_price.go).
-    spotPct: spotPercentChange(o),
+    spotPct: spotPercentChange(quote),
     theta: positionDailyTheta(o),
     unrealized: optionPnl(o),
     unrealizedPct: optionPnlPct(o),
@@ -535,7 +550,10 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
   // OCC symbol (the row's id), a whole-name alert by the bare ticker.
   const alertBySymbol = useMemo(() => new Map(alerts.map((a) => [a.contractSymbol, a])), [alerts]);
 
-  const rows = useMemo(() => options.map((o) => buildRow(o, alertBySymbol)), [options, alertBySymbol]);
+  const rows = useMemo(() => {
+    const quotes = freshestUnderlying(options);
+    return options.map((o) => buildRow(o, alertBySymbol, quotes.get(o.symbol) ?? o));
+  }, [options, alertBySymbol]);
 
   // Which rows have their Manage rationale open, keyed by rowKey.
   const [manageOpen, setManageOpen] = useState<Set<string>>(new Set());
