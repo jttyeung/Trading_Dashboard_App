@@ -14,6 +14,7 @@ import { getCspPicks } from "@/lib/csp-picks";
 import { getVixSnapshot } from "@/lib/vix-data";
 import { assessVix } from "@/lib/vix";
 import { buildThetaGoalPlan } from "@/lib/theta-goal";
+import { getEarnings } from "@/lib/earnings";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,7 @@ export default async function BriefingPage() {
             .filter((a) => a.type !== "all" && a.type !== "paper" && snap.data[a.id])
             .map((a) => ({ account: a, data: snap.data[a.id] })),
           picks: (await getCspPicks()).picks,
+          earnings: getEarnings(snap.meta.source === "example"),
           reservePct: vixSnap ? assessVix(vixSnap).targetReservePct : null,
         })
       : null;

@@ -32,6 +32,7 @@ export interface Equity {
   accountIndex?: number; // Combined View only: the account's position in the combined set, which picks its marker colour
   dayChange?: number | null; // per-share $ move today (vs prior close), for Top Movers
   coveredCalls?: CoveredCallQuote[]; // ~30Δ call premiums at 1–4 week tenors (holdings ≥100 sh)
+  farCalls?: CoveredCallQuote[]; // ~0.10Δ calls 28–46 days out, for shares to keep (taxable gains)
   bbSigma?: number | null; // current price's σ from its 20-day mean (−2 = lower band)
   gamma?: GammaWalls | null; // naive dealer-gamma walls from option OI (holdings ≥100 sh)
   priceHistory?: number[] | null; // last ~7 daily closes (oldest→newest), for the expanded mini chart
@@ -57,6 +58,7 @@ export interface CoveredCallQuote {
   annPct: number | null; // premPct annualized (×365/dte)
   oi: number;
   bbSigma?: number | null; // this call strike's σ from the underlying's 20-day mean
+  expiration?: string; // ISO yyyy-mm-dd; absent on ladders stored before it was recorded
 }
 
 export interface CryptoHolding {

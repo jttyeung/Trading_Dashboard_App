@@ -39,17 +39,31 @@ export function ThetaGoalCard({ plan }: { plan: ThetaGoalPlan }) {
                   <span>
                     <span className="font-medium">{l.symbol}</span>{" "}
                     <span className="text-muted">
-                      ×{l.contracts} · {l.accountLabel} · {l.call.dte}d ${l.call.strike} call, {Math.round(l.call.delta * 100)}Δ
+                      {l.mode === "keep" ? `${l.contracts} of ${l.lotsOpen}` : `×${l.contracts}`} · {l.accountLabel}
+                      {l.call && (
+                        <>
+                          {" "}
+                          · {l.call.dte}d ${l.call.strike} call, {Math.round(l.call.delta * 100)}Δ
+                        </>
+                      )}
                     </span>
+                    {l.mode === "keep" && (
+                      <span className="block text-[11px] text-sky-300">
+                        Taxable gain: far out of the money, a few lots at a time
+                      </span>
+                    )}
+                    {l.waitUntil && (
+                      <span className="block text-[11px] text-amber-300">Every expiration spans earnings {l.waitUntil}: write after the report</span>
+                    )}
                     {l.callAwayGain != null && (
                       <span className={`block text-[11px] ${l.callAwayGain < 0 ? "text-rose-300" : "text-muted"}`}>
                         {l.callAwayGain < 0
                           ? `strike is ${fmtMoney(Math.round(-l.callAwayGain))} below cost basis`
-                          : `called away realizes ~${fmtMoney(Math.round(l.callAwayGain))} of taxable gain`}
+                          : `if called away, realizes ~${fmtMoney(Math.round(l.callAwayGain))} of taxable gain`}
                       </span>
                     )}
                   </span>
-                  <span className="tabular-nums text-emerald-300">+≈{perDay(l.estThetaPerDay)}</span>
+                  {l.call ? <span className="tabular-nums text-emerald-300">+≈{perDay(l.estThetaPerDay)}</span> : <span className="text-muted">—</span>}
                 </li>
               ))}
             </ul>
