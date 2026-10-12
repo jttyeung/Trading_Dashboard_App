@@ -103,6 +103,11 @@ export interface OptionPosition {
   underlyingChange?: number | null; // underlying per-share $ move today (Top Movers)
   underlyingClose?: number | null; // regular-session close — Simulate reference price
   underlyingLive?: number | null; // current/after-hours last — Simulate target price
+  // ISO generatedAt of the snapshot file the underlying* fields above came
+  // from, stamped on load by lib/snapshot.ts (never in the JSON itself).
+  // Each broker's file quotes the underlying at its own sync time, so two
+  // positions on one ticker can carry different prices; this says which is newer.
+  underlyingAsOf?: string;
   dayValueChange?: number | null; // this leg's signed $ value move today (Top Movers)
   // Set only when dayValueChange is a FALLBACK to the most recent real
   // trading day (a weekend/holiday has no session -- e.g. Schwab's own
