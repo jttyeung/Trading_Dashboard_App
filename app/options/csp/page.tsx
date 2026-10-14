@@ -22,11 +22,11 @@ function toCspFilter(v: string | undefined): CspFilter | undefined {
 }
 
 export default async function OptionsCspPage({
-  const feed = await appFeed(); // the data badge: next refresh, or Login needed / failed
   searchParams,
 }: {
   searchParams: Promise<{ filter?: string; view?: string; range?: string; months?: string; symbol?: string }>;
 }) {
+  const feed = await appFeed(); // the data badge: next refresh, or Login needed / failed
   const { filter, view, range, months, symbol } = await searchParams;
   const { mode: closedMode, months: closedMonths } = parseClosedWindow(range, months);
   const snap = await getSnapshot();
