@@ -42,6 +42,36 @@ with no negation patterns. After any deploy, the check is the files API, not
 the rendered page: a page that shows fixtures says nothing about what was
 uploaded.
 
+## Account numbers and secrets
+
+**This repository is public.** Anything committed here, including in a
+branch that was later deleted or a commit that was later amended, should be
+treated as published.
+
+- **The dashboard only ever sees opaque account ids** (`acct-` followed by
+  hex). The evaluator derives them with a keyed HMAC, so an id can't be
+  turned back into an account number without a key that never leaves the
+  evaluator's machine. Treat an id as a key, never as something to parse,
+  shorten or derive digits from. Show the account holder's own label
+  instead.
+- **Never show or store any digits of a real account number.** No "last 4"
+  or `••••1234` display: a partial number still cuts the search to about a
+  thousand guesses. The broker's own masked form counts as real digits
+  too.
+- **Never put real account data in the repo.** No real numbers or digits
+  of one, real labels, real balances or real trades, in fixtures
+  (`lib/example.ts`), tests, comments or commit messages. Use obviously
+  fake values (`acct-demo01`, `12345678`). Once pushed, a value stays
+  readable in git history, and in every fork and clone, until the history
+  is rewritten everywhere.
+- **Secrets stay in `.env*` on your machine.** Never in code, fixtures,
+  logs, URLs or a third-party host's environment unless that host needs
+  it. Never print one to check it: compare hashes or lengths instead.
+- **Before pushing,** scan what you're adding, not just what you meant to
+  change: `git diff --cached` for data, and gitleaks for credentials.
+  gitleaks can't tell a real account number from a fake one, so that part
+  is on the author.
+
 ## Reporting a vulnerability
 
 If you find a security issue — especially anything that could expose
