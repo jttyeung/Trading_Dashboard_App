@@ -24,7 +24,7 @@ export default async function RiskPage() {
           subtitle={
             <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
               <span>Capital per sector against a {(risk.rules.sector.maxAllocationPct * 100).toFixed(0)}% cap</span>
-              <DataRefresh status={appFeed()} />
+              <DataRefresh status={await appFeed()} />
             </span>
           }
           right={<BackLink />}

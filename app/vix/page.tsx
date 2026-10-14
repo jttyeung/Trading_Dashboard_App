@@ -255,7 +255,7 @@ function VixBody({
         Not financial advice — a rules-based framework from your context doc, applied to the
         snapshot. {a.confidence === "reduced" && `Reduced confidence: ${a.missing.join("; ")} not in the data feed. `}
         Source: {vix.source}. As of {vix.asof}.
-        <DataRefresh status={appFeed()} />
+        <DataRefresh status={await appFeed()} />
       </p>
     </>
   );

@@ -50,7 +50,7 @@ export default async function StocksPage({ searchParams }: { searchParams: Promi
 
         <p className="mt-4 px-1 text-[11px] leading-relaxed text-muted">
           Per-share price is from the latest snapshot ({snap.meta.pricesAsOf})
-          <DataRefresh status={appFeed()} />. Open percentages are
+          <DataRefresh status={await appFeed()} />. Open percentages are
           unrealized return on cost; closed are realized round-trips.
         </p>
       </ShowAmounts>

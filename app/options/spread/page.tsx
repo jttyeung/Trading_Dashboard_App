@@ -37,7 +37,7 @@ export default async function OptionsSpreadPage({ searchParams }: { searchParams
             <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
               <AccountSwitcher accounts={snap.accounts} selectedId={id} />
               <span>· {open.length} legs open</span>
-              <DataRefresh status={appFeed()} />
+              <DataRefresh status={await appFeed()} />
             </span>
           }
           right={<BackLink />}

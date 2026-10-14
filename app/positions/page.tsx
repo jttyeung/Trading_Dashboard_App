@@ -37,7 +37,7 @@ export default async function PositionsPage() {
                 {n} {n === 1 ? "position" : "positions"} · {options.length} options · {equities.length} stocks
                 {snap.accounts.length > 1 ? ` · ${snap.accounts.length} accounts` : ""}
               </span>
-              <DataRefresh status={appFeed()} />
+              <DataRefresh status={await appFeed()} />
             </span>
           }
           right={<BackLink />}
