@@ -21,7 +21,7 @@ import { getSelectedAccount } from "@/lib/account";
 import { getVixSnapshot } from "@/lib/vix-data";
 import { getBtcQuote, fmtBtc } from "@/lib/btc-data";
 import { isRegularSession } from "@/lib/market-hours";
-import { getRefreshStatus } from "@/lib/refresh-status";
+import { appFeed } from "@/lib/refresh-status";
 import { DataRefresh } from "@/components/DataRefresh";
 import { assessVix, REGIME_COLORS } from "@/lib/vix";
 import {
@@ -134,7 +134,7 @@ export default async function HomePage() {
           <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
             <AccountSwitcher accounts={accounts} selectedId={id} />
             <span>As of {fmtDataStamp(meta.pricesAsOf)}</span>
-            <DataRefresh nextAt={getRefreshStatus().app?.nextAt} />
+            <DataRefresh status={appFeed()} />
           </span>
         }
         right={

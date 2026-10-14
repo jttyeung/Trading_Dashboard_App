@@ -5,7 +5,7 @@ import { DataRefresh } from "@/components/DataRefresh";
 import { getSnapshot } from "@/lib/snapshot";
 import { getSectorMap } from "@/lib/sectors";
 import { computePortfolioRisk } from "@/lib/portfolio-risk";
-import { getRefreshStatus } from "@/lib/refresh-status";
+import { appFeed } from "@/lib/refresh-status";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +24,7 @@ export default async function RiskPage() {
           subtitle={
             <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
               <span>Capital per sector against a {(risk.rules.sector.maxAllocationPct * 100).toFixed(0)}% cap</span>
-              <DataRefresh nextAt={getRefreshStatus().app?.nextAt} />
+              <DataRefresh status={appFeed()} />
             </span>
           }
           right={<BackLink />}

@@ -3,7 +3,7 @@ import { Amt, ShowAmounts } from "@/components/privacy";
 import { AccountSwitcher } from "@/components/AccountSwitcher";
 import { getSnapshot } from "@/lib/snapshot";
 import { getSelectedAccount } from "@/lib/account";
-import { getRefreshStatus } from "@/lib/refresh-status";
+import { appFeed } from "@/lib/refresh-status";
 import { DataRefresh } from "@/components/DataRefresh";
 import { cryptoValue, fmtMoney } from "@/lib/calc";
 
@@ -81,7 +81,7 @@ export default async function CryptoPage() {
 
         <p className="mt-4 px-1 text-[11px] leading-relaxed text-muted">
           Read-only — this app never trades. Crypto totals come from the portfolio snapshot
-          ({snap.meta.pricesAsOf})<DataRefresh nextAt={getRefreshStatus().app?.nextAt} />.
+          ({snap.meta.pricesAsOf})<DataRefresh status={appFeed()} />.
         </p>
       </ShowAmounts>
     </main>

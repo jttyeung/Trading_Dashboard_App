@@ -5,7 +5,7 @@ import { PositionsTable, type SourcedEquity, type SourcedOption } from "@/compon
 import { getSnapshot } from "@/lib/snapshot";
 import { accountLabel } from "@/lib/account-shared";
 import { isCashEquivalent } from "@/lib/calc";
-import { getRefreshStatus } from "@/lib/refresh-status";
+import { appFeed } from "@/lib/refresh-status";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +37,7 @@ export default async function PositionsPage() {
                 {n} {n === 1 ? "position" : "positions"} · {options.length} options · {equities.length} stocks
                 {snap.accounts.length > 1 ? ` · ${snap.accounts.length} accounts` : ""}
               </span>
-              <DataRefresh nextAt={getRefreshStatus().app?.nextAt} />
+              <DataRefresh status={appFeed()} />
             </span>
           }
           right={<BackLink />}

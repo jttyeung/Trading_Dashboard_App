@@ -5,7 +5,7 @@ import { PortfolioFit } from "@/components/PortfolioFit";
 import { PostureStats } from "@/components/PostureStats";
 import { MesCard, VixIndicators } from "@/components/VixIndicators";
 import { getMesQuote } from "@/lib/mes-data";
-import { getRefreshStatus } from "@/lib/refresh-status";
+import { appFeed } from "@/lib/refresh-status";
 import { DataRefresh } from "@/components/DataRefresh";
 import { getSnapshot } from "@/lib/snapshot";
 import { getSelectedAccount } from "@/lib/account";
@@ -255,7 +255,7 @@ function VixBody({
         Not financial advice — a rules-based framework from your context doc, applied to the
         snapshot. {a.confidence === "reduced" && `Reduced confidence: ${a.missing.join("; ")} not in the data feed. `}
         Source: {vix.source}. As of {vix.asof}.
-        <DataRefresh nextAt={getRefreshStatus().app?.nextAt} />
+        <DataRefresh status={appFeed()} />
       </p>
     </>
   );

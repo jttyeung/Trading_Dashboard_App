@@ -4,7 +4,7 @@ import { ShowAmounts } from "@/components/privacy";
 import { AccountSwitcher } from "@/components/AccountSwitcher";
 import { StocksView } from "@/components/StocksView";
 import { TickerBar } from "@/components/TickerBar";
-import { getRefreshStatus } from "@/lib/refresh-status";
+import { appFeed } from "@/lib/refresh-status";
 import { DataRefresh } from "@/components/DataRefresh";
 import { getSnapshot } from "@/lib/snapshot";
 import { getSelectedAccount } from "@/lib/account";
@@ -50,7 +50,7 @@ export default async function StocksPage({ searchParams }: { searchParams: Promi
 
         <p className="mt-4 px-1 text-[11px] leading-relaxed text-muted">
           Per-share price is from the latest snapshot ({snap.meta.pricesAsOf})
-          <DataRefresh nextAt={getRefreshStatus().app?.nextAt} />. Open percentages are
+          <DataRefresh status={appFeed()} />. Open percentages are
           unrealized return on cost; closed are realized round-trips.
         </p>
       </ShowAmounts>
