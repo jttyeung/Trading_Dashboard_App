@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic";
 // in one wide table. Built for the tablet layout (it is the rail's third
 // entry); on a phone it still works, scrolling sideways inside its card.
 export default async function PositionsPage() {
+  const feed = await appFeed(); // the data badge: next refresh, or Login needed / failed
   const snap = await getSnapshot();
   const options: SourcedOption[] = [];
   const equities: SourcedEquity[] = [];
@@ -37,7 +38,7 @@ export default async function PositionsPage() {
                 {n} {n === 1 ? "position" : "positions"} · {options.length} options · {equities.length} stocks
                 {snap.accounts.length > 1 ? ` · ${snap.accounts.length} accounts` : ""}
               </span>
-              <DataRefresh status={await appFeed()} />
+              <DataRefresh status={feed} />
             </span>
           }
           right={<BackLink />}

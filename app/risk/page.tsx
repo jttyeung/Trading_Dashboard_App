@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic";
 // account (all bridges), not the one the switcher has selected — a sector cap
 // you only breach when the accounts are summed is still breached.
 export default async function RiskPage() {
+  const feed = await appFeed(); // the data badge: next refresh, or Login needed / failed
   const [snap, sectors] = await Promise.all([getSnapshot(), getSectorMap()]);
   const risk = computePortfolioRisk(snap, sectors);
 
@@ -24,7 +25,7 @@ export default async function RiskPage() {
           subtitle={
             <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
               <span>Capital per sector against a {(risk.rules.sector.maxAllocationPct * 100).toFixed(0)}% cap</span>
-              <DataRefresh status={await appFeed()} />
+              <DataRefresh status={feed} />
             </span>
           }
           right={<BackLink />}

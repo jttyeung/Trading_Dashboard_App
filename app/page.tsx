@@ -48,6 +48,7 @@ function fmtDataStamp(pricesAsOf: string): string {
 }
 
 export default async function HomePage() {
+  const feed = await appFeed(); // the data badge: next refresh, or Login needed / failed
   const snap = await getSnapshot();
   const { accounts, meta } = snap;
   const { id, data } = await getSelectedAccount(snap);
@@ -134,7 +135,7 @@ export default async function HomePage() {
           <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
             <AccountSwitcher accounts={accounts} selectedId={id} />
             <span>As of {fmtDataStamp(meta.pricesAsOf)}</span>
-            <DataRefresh status={await appFeed()} />
+            <DataRefresh status={feed} />
           </span>
         }
         right={

@@ -10,6 +10,7 @@ import { cryptoValue, fmtMoney } from "@/lib/calc";
 export const dynamic = "force-dynamic";
 
 export default async function CryptoPage() {
+  const feed = await appFeed(); // the data badge: next refresh, or Login needed / failed
   const snap = await getSnapshot();
   const { id, data } = await getSelectedAccount(snap);
   const holdings = [...(data.crypto ?? [])].sort((a, b) => cryptoValue(b) - cryptoValue(a));
@@ -81,7 +82,7 @@ export default async function CryptoPage() {
 
         <p className="mt-4 px-1 text-[11px] leading-relaxed text-muted">
           Read-only — this app never trades. Crypto totals come from the portfolio snapshot
-          ({snap.meta.pricesAsOf})<DataRefresh status={await appFeed()} />.
+          ({snap.meta.pricesAsOf})<DataRefresh status={feed} />.
         </p>
       </ShowAmounts>
     </main>

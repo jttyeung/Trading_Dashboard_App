@@ -17,6 +17,7 @@ export const dynamic = "force-dynamic";
 const isSpread = (o: OptionPosition) => o.kind === "put-spread" || o.kind === "call-spread";
 
 export default async function OptionsSpreadPage({ searchParams }: { searchParams: Promise<{ view?: string; range?: string; months?: string; symbol?: string }> }) {
+  const feed = await appFeed(); // the data badge: next refresh, or Login needed / failed
   const { view, range, months, symbol } = await searchParams;
   const { mode: closedMode, months: closedMonths } = parseClosedWindow(range, months);
   const snap = await getSnapshot();
@@ -37,7 +38,7 @@ export default async function OptionsSpreadPage({ searchParams }: { searchParams
             <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
               <AccountSwitcher accounts={snap.accounts} selectedId={id} />
               <span>· {open.length} legs open</span>
-              <DataRefresh status={await appFeed()} />
+              <DataRefresh status={feed} />
             </span>
           }
           right={<BackLink />}

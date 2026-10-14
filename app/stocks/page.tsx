@@ -14,6 +14,7 @@ import { parseClosedWindow } from "@/lib/date-range";
 export const dynamic = "force-dynamic";
 
 export default async function StocksPage({ searchParams }: { searchParams: Promise<{ view?: string; range?: string; months?: string; symbol?: string }> }) {
+  const feed = await appFeed(); // the data badge: next refresh, or Login needed / failed
   const { view, range, months, symbol } = await searchParams;
   const { mode: closedMode, months: closedMonths } = parseClosedWindow(range, months);
   const snap = await getSnapshot();
@@ -50,7 +51,7 @@ export default async function StocksPage({ searchParams }: { searchParams: Promi
 
         <p className="mt-4 px-1 text-[11px] leading-relaxed text-muted">
           Per-share price is from the latest snapshot ({snap.meta.pricesAsOf})
-          <DataRefresh status={await appFeed()} />. Open percentages are
+          <DataRefresh status={feed} />. Open percentages are
           unrealized return on cost; closed are realized round-trips.
         </p>
       </ShowAmounts>

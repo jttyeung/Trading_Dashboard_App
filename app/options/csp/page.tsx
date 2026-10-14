@@ -22,6 +22,7 @@ function toCspFilter(v: string | undefined): CspFilter | undefined {
 }
 
 export default async function OptionsCspPage({
+  const feed = await appFeed(); // the data badge: next refresh, or Login needed / failed
   searchParams,
 }: {
   searchParams: Promise<{ filter?: string; view?: string; range?: string; months?: string; symbol?: string }>;
@@ -49,7 +50,7 @@ export default async function OptionsCspPage({
             <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
               <AccountSwitcher accounts={snap.accounts} selectedId={id} />
               <span>· {open.length} open</span>
-              <DataRefresh status={await appFeed()} />
+              <DataRefresh status={feed} />
             </span>
           }
           right={<BackLink />}

@@ -5,7 +5,7 @@ import { PortfolioFit } from "@/components/PortfolioFit";
 import { PostureStats } from "@/components/PostureStats";
 import { MesCard, VixIndicators } from "@/components/VixIndicators";
 import { getMesQuote } from "@/lib/mes-data";
-import { appFeed } from "@/lib/refresh-status";
+import { appFeed, type FeedStatus } from "@/lib/refresh-status";
 import { DataRefresh } from "@/components/DataRefresh";
 import { getSnapshot } from "@/lib/snapshot";
 import { getSelectedAccount } from "@/lib/account";
@@ -34,6 +34,7 @@ const VXN_BANDS: { label: string; lo: number; hi: number; regime: VxnRegime }[] 
 ];
 
 export default async function VixPage() {
+  const feed = await appFeed(); // the data badge: next refresh, or Login needed / failed
   const snap = await getSnapshot();
   const { id, data } = await getSelectedAccount(snap);
   const vix = getVixSnapshot(snap.meta.source === "example");
@@ -66,6 +67,7 @@ export default async function VixPage() {
           </Card>
         ) : (
           <VixBody
+            feed={feed}
             vix={vix}
             uncommitted={freeCashValue(data.summary, data.equities, data.options)}
             totalValue={data.summary.totalValue}
@@ -80,6 +82,7 @@ export default async function VixPage() {
 }
 
 function VixBody({
+  feed,
   mes,
   vix,
   uncommitted,
@@ -91,6 +94,7 @@ function VixBody({
   totalValue: number;
   optionsBuyingPower: number;
   mes?: Awaited<ReturnType<typeof getMesQuote>>;
+  feed: FeedStatus;
 }) {
   const a = assessVix(vix);
   const tone = REGIME_COLORS[a.regime];
@@ -255,7 +259,7 @@ function VixBody({
         Not financial advice — a rules-based framework from your context doc, applied to the
         snapshot. {a.confidence === "reduced" && `Reduced confidence: ${a.missing.join("; ")} not in the data feed. `}
         Source: {vix.source}. As of {vix.asof}.
-        <DataRefresh status={await appFeed()} />
+        <DataRefresh status={feed} />
       </p>
     </>
   );
