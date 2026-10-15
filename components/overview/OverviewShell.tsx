@@ -292,6 +292,26 @@ export function OverviewShell({
           the header-box treatment below instead (see globals.css's
           --header-box). */}
       <nav className="sticky top-0 flex h-[100dvh] w-16 shrink-0 flex-col items-center gap-1 border-r border-border bg-surface py-4">
+        {/* Plain links out to the phone-frame pages, which bring their own nav. */}
+        {[
+          { href: "/", label: "Home", d: ["M3 10.5 12 3l9 7.5", "M5 9.5V21h14V9.5"] },
+          { href: "/positions", label: "Positions", d: ["M3 6h18v12H3z", "M3 12h18", "M9 6v12"] },
+        ].map((l) => (
+          <a
+            key={l.href}
+            href={l.href}
+            title={l.label}
+            aria-label={l.label}
+            className="flex w-12 flex-col items-center gap-1 rounded-xl py-2.5 text-muted transition-colors hover:bg-surface-2 hover:text-text"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              {l.d.map((p) => (
+                <path key={p} d={p} />
+              ))}
+            </svg>
+          </a>
+        ))}
+        <div className="my-1 h-px w-8 bg-border" />
         {TABS.filter((t) => t.key !== "autotrader" || hasAutotrader).map((t) => (
           <button
             key={t.key}

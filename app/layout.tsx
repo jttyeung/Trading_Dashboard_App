@@ -84,7 +84,8 @@ export default async function RootLayout({
           <ThemeModeProvider>
             <ThemeToggle />
             <AllAppsLink variant="fixed" />
-            <HomeLink />
+            {/* /overview's own icon rail carries Home and Positions links. */}
+            {!pathname.startsWith("/overview") && <HomeLink />}
             {/* globals.css caps html/body at 100vh with overflow:hidden — written
                 for the phone-frame shell's own inner ScrollArea below, which the
                 phone-frame branch further down in this file provides but this
