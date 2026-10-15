@@ -137,8 +137,10 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
 
 const TAB_KEY = "overviewActiveTab";
 
-// "desktop" (Positions) left the rail; /positions is the Positions link above it.
-const ALL_TABS: Tab[] = ["trades", "bot", "bot-safe", "bot-aggressive", "scorecard", "autotrader", "calculator", "chart", "watchlist", "connections"];
+// "desktop" (Open Positions) is reached from the rail's Home icon, not a tab
+// button, but it is still a tab that gets saved, so it must be restorable —
+// leaving it out sent a reload on Home back to My Trades.
+const ALL_TABS: Tab[] = ["desktop", "trades", "bot", "bot-safe", "bot-aggressive", "scorecard", "autotrader", "calculator", "chart", "watchlist", "connections"];
 
 // loadTab: a ?tab= query param wins (a bookmarkable deep link to one tab),
 // else the last tab used on this device.
