@@ -3,7 +3,7 @@
 //
 // The rule (from the 2022–2026 backtests, confirmed on the 2023 hold-out): sell
 // the LOWEST-delta put paying at least 4% of the strike per 30 days, never above
-// 0.35 delta, across every expiration 28–45 days out; close at 50% of the credit.
+// 0.35 delta, in the expiration closest to 35 days (28–42); close at 50% of the credit.
 // The bridge applies that to every approved name (market data only). What a pick
 // means for THIS account — how many contracts fit, whether the name is already at
 // its full size — depends on which account is selected, so that part lives here.
@@ -28,17 +28,24 @@ export function capitalCommitted(options: OptionPosition[], equities: Equity[]):
 }
 import { EXAMPLE_CLOSES, EXAMPLE_EARNINGS, lastClose } from "./example-market";
 
+/** Where a pick's price was judged, in words. */
+export function fillLabel(p: { basis?: string }): string {
+  return p.basis === "bid" ? "the bid" : p.basis === "quarter" ? "¼ of the way from bid to ask" : "the mid";
+}
+
 export interface QuantContract {
   exp: string;
   dte: number;
   strike: number;
   bid: number;
   ask: number;
-  mark: number;
+  mark: number; // the midpoint
+  fill?: number; // the price the yield is judged at: mid (spread ≤10%), a quarter from bid to ask (10–30%), the bid (30%+)
+  basis?: "mid" | "quarter" | "bid";
   delta: number;
-  yield30: number; // % of strike per 30 days, at the mid
+  yield30: number; // % of strike per 30 days, at the fill
   annPct: number;
-  premium: number; // $ per contract at the mid
+  premium: number; // $ per contract at the fill
   collateral: number;
   oi: number;
   volume: number;
@@ -52,7 +59,8 @@ export interface QuantRow {
   price: number | null;
   pick: QuantContract | null; // the contract the rule would sell
   best: QuantContract | null; // richest contract under the delta cap (the closest miss)
-  reason: "ok" | "low" | "no_puts" | "no_chain" | string;
+  reason: "ok" | "low" | "no_puts" | "no_chain" | "wide" | string;
+  wide?: number; // candidates skipped for a spread over the max
   erDate: string | null;
   erDays: number | null;
   erInWindow: boolean;
@@ -64,7 +72,7 @@ export interface QuantScan {
     marketOpen: boolean | null;
     universe: number;
     qualifying: number;
-    params: { targetYield: number; yieldDays: number; maxDelta: number; expMin: number; expMax: number; closeAtPct: number; maxPerTicker: number; tickerBand: number };
+    params: { targetYield: number; yieldDays: number; maxDelta: number; expMin: number; expMax: number; expTarget?: number; maxSpread?: number; closeAtPct: number; maxPerTicker: number; tickerBand: number };
     source: string;
     elapsedSec?: number;
   };
@@ -101,10 +109,13 @@ export interface QuantCapacity {
   cash: number;
   vix: number | null;
   margin: number; // VIX-scaled allowance, as a fraction of total value
+  extraMargin: number; // $ the user set for this account (margin against holdings they won't sell)
   buyingPower: number;
   putObligations: number;
   committedTotal: number;
-  freeCash: number; // uncommitted cash + the margin allowance
+  freeCash: number; // uncommitted cash + the margin allowance + extra margin
+  marginUsed: number; // $ committed beyond the account's value (Home's "used margin")
+  room: number; // $ new puts can actually take: the smaller of free cash and what is left under buying power
 }
 
 export function vixMargin(vix: number | null): number {
@@ -112,9 +123,13 @@ export function vixMargin(vix: number | null): number {
   return Math.min(0.35, 0.05 * Math.floor(vix / 5));
 }
 
-export function quantCapacity(data: AccountData, vix: number | null): QuantCapacity {
+/** `extraMargin`: dollars the user adds to this account's base (Quant Settings),
+ *  so long-term holdings they won't sell don't leave the wheel short of capital.
+ *  It raises buying power (and with it the per-name cap) and free cash alike. */
+export function quantCapacity(data: AccountData, vix: number | null, extraMargin = 0): QuantCapacity {
   const totalValue = data.summary.totalValue;
   const margin = vixMargin(vix);
+  const extra = Math.max(0, extraMargin);
   // Collateral the short book pledges: CSPs at strike x 100, spreads at their
   // defined risk. A short put inside a spread is NOT a cash-secured put.
   const putObligations = cspCollateralTotal(data.options) + spreadRiskCapital(data.options);
@@ -122,16 +137,31 @@ export function quantCapacity(data: AccountData, vix: number | null): QuantCapac
   // less everything deployed (shares, LEAPS, collateral, spread risk), plus
   // money-market sweep funds, which Schwab reports as a holding rather than cash.
   const free = freeCashValue(data.summary, data.equities, data.options);
+  const buyingPower = totalValue * (1 + margin) + extra;
+  const committedTotal = capitalCommitted(data.options, data.equities);
+  const freeCash = free + margin * totalValue + extra;
   return {
     totalValue,
     cash: free + putObligations, // cash on hand, including what already secures the puts
     vix,
     margin,
-    buyingPower: totalValue * (1 + margin),
+    extraMargin: extra,
+    buyingPower,
     putObligations,
-    committedTotal: capitalCommitted(data.options, data.equities),
-    freeCash: free + margin * totalValue,
+    committedTotal,
+    freeCash,
+    marginUsed: Math.max(0, committedTotal - totalValue),
+    // Margin already in use counts against the allowances: an account $97k past its
+    // value with a $117k extra-margin limit has $20k of room, not $117k.
+    room: Math.max(0, Math.min(freeCash, buyingPower - committedTotal)),
   };
+}
+
+/** Hold back a cash reserve (the VIX cash allocation) from what can be deployed. */
+export function holdBack(cap: QuantCapacity, reserve: number): QuantCapacity {
+  if (reserve <= 0) return cap;
+  const freeCash = Math.max(0, cap.freeCash - reserve);
+  return { ...cap, freeCash, room: Math.max(0, Math.min(freeCash, cap.buyingPower - cap.committedTotal)) };
 }
 
 export function quantFit(row: QuantRow, data: AccountData, cap: QuantCapacity, params: QuantScan["meta"]["params"]): QuantFit | null {
@@ -178,7 +208,7 @@ function exampleQuantScan(): QuantScan {
     const mark = Math.round(((yield30 / 100) * strike * dte) / 30 * 100) / 100;
     const bid = Math.round((mark - 0.03) * 100) / 100;
     const contract: QuantContract = {
-      exp: exp(dte), dte, strike, bid, ask: Math.round((mark + 0.03) * 100) / 100, mark,
+      exp: exp(dte), dte, strike, bid, ask: Math.round((mark + 0.03) * 100) / 100, mark, fill: mark, basis: "mid",
       delta: Math.round((0.22 + ((i * 5) % 13) / 100) * 1000) / 1000,
       yield30: Math.round(yield30 * 100) / 100, annPct: Math.round((mark / strike) * (365 / dte) * 1000) / 10,
       premium: Math.round(mark * 100 * 100) / 100, collateral: strike * 100, oi: 1200 + ((i * 917) % 9000), volume: 80 + ((i * 131) % 700),
@@ -192,7 +222,7 @@ function exampleQuantScan(): QuantScan {
   });
   rows.sort((a, b) => Number(!!b.pick) - Number(!!a.pick) || (b.pick ?? b.best)!.yield30 - (a.pick ?? a.best)!.yield30);
   return {
-    meta: { asOf: new Date().toISOString(), marketOpen: true, universe: rows.length, qualifying: rows.filter((r) => r.pick).length, params: { targetYield: 0.04, yieldDays: 30, maxDelta: 0.35, expMin: 28, expMax: 45, closeAtPct: 50, maxPerTicker: 0.1, tickerBand: 0.05 }, source: "example" },
+    meta: { asOf: new Date().toISOString(), marketOpen: true, universe: rows.length, qualifying: rows.filter((r) => r.pick).length, params: { targetYield: 0.04, yieldDays: 30, maxDelta: 0.35, expMin: 28, expMax: 42, expTarget: 35, maxSpread: 0.5, closeAtPct: 50, maxPerTicker: 0.1, tickerBand: 0.05 }, source: "example" },
     rows,
   };
 }

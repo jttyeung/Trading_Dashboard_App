@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Card, SectionTitle, Stat } from "@/components/ui";
 import { Amt } from "@/components/privacy";
 import { TimeFilter, useTimeFilter } from "@/components/TimeFilter";
+import type { ReactNode } from "react";
 import { fmtMoney, fmtPct } from "@/lib/calc";
 import { inRange, rangeSubLabel } from "@/lib/date-range";
 import { monthlyPerformance, type MonthPerformance } from "@/lib/benchmark-calc";
@@ -164,11 +165,14 @@ interface BucketAgg {
   lossDollars: number; // sum of |negative trade P&L| (positive magnitude)
 }
 
+// `after` renders under the By ticker block (the page passes the pace car there;
+// it is a server component, handed in as a prop so this client view needs no data of its own).
 export function PnlView({
   realized,
   open,
   capitalHistory = [],
   dailyReturns = [],
+  after,
 }: {
   realized: BucketInput[];
   open: BucketInput[];
@@ -176,6 +180,7 @@ export function PnlView({
   /** benchmark.json's actualDailyReturns — pairs with capitalHistory (its actual[]) to
    *  give each month a TWR next to its realized dollars. Empty just hides those stats. */
   dailyReturns?: ActualDailyReturn[];
+  after?: ReactNode;
 }) {
   const tf = useTimeFilter("months", 1); // default to the last 1 month
   const [mode, setMode] = usePersistentState<"realized" | "open">("pnl-mode", "realized");
@@ -833,6 +838,7 @@ export function PnlView({
           )}
         </>
       )}
+      {after}
       </div>
       </div>
     </div>

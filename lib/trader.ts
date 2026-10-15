@@ -15,7 +15,7 @@ export type SuggestionStatus = "new" | "good" | "bad" | "done" | "skip" | "expir
 
 export interface Suggestion {
   key: string;
-  kind: "csp" | "close" | "cc" | "note";
+  kind: "csp" | "close" | "cc" | "hedge" | "hedge-close" | "note";
   symbol: string;
   title: string;
   detail: string;
@@ -35,6 +35,53 @@ export interface Suggestion {
   accountId?: string;
   /** the account's label, as the notification named it */
   account?: string;
+  /** position in the trader's build for this account; for new puts, the ranked queue order */
+  seq?: number;
+  /** the trader's rank (0–100) for a new put */
+  rank?: number;
+}
+
+// Kinds in the order the page shows them inside each account: new puts first
+// (the user's priority), then closes, covered calls and notes.
+const KIND_ORDER: Record<Suggestion["kind"], number> = { csp: 0, hedge: 1, close: 2, "hedge-close": 3, cc: 4, note: 5 };
+
+/** Group by account (dashboard order), then kind, then the trader's build position.
+ *  Stable across the day: the 15-minute close checks no longer reshuffle the list. */
+export function orderSuggestions(rows: Suggestion[], accounts: string[] = []): Suggestion[] {
+  const acct = (s: Suggestion) => {
+    const i = s.account ? accounts.indexOf(s.account) : -1;
+    return i === -1 ? accounts.length : i;
+  };
+  return [...rows].sort(
+    (a, b) =>
+      acct(a) - acct(b) ||
+      (a.account ?? "").localeCompare(b.account ?? "") ||
+      KIND_ORDER[a.kind] - KIND_ORDER[b.kind] ||
+      (a.seq ?? 1e6) - (b.seq ?? 1e6) ||
+      b.lastSeen.localeCompare(a.lastSeen),
+  );
+}
+
+export interface PassNote {
+  at: string;
+  kind: "auto" | "run now";
+  skipped?: string; // "market closed" / "before 11:00 ET"
+  count?: number; // identical skips in a row
+  waiting?: string; // "scan": the entry slot is open but no fresh Quant scan yet
+  entries?: boolean; // new puts, calls and notes were evaluated
+  pushed?: number;
+  active?: number;
+  paused?: boolean;
+  error?: string;
+}
+
+/** One line for a pass, in plain words. */
+export function describePass(p: PassNote): string {
+  if (p.error) return `failed: ${p.error}`;
+  if (p.skipped) return `skipped, ${p.skipped}${p.count && p.count > 1 ? ` (×${p.count})` : ""}`;
+  const what = p.waiting ? "closes checked; waiting for a fresh Quant scan before new puts" : p.entries ? "closes and new entries checked" : "closes checked";
+  const sent = p.paused ? "paused, nothing sent" : `${p.pushed ?? 0} sent`;
+  return `${what} · ${p.active ?? 0} open · ${sent}`;
 }
 
 export interface SuggestionsFile {
@@ -52,6 +99,8 @@ export interface SuggestionsFile {
     /** the last day (ET) the entry half ran */
     entriesBuilt?: string | null;
     lastPass?: "entries" | "closes" | "run now";
+    /** what the recent passes did, oldest first (the trader keeps the last 16) */
+    passes?: PassNote[];
   };
   suggestions: Suggestion[];
 }

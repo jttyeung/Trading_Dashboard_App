@@ -12,6 +12,7 @@ import { Stat } from "@/components/ui";
 import { Amt } from "@/components/privacy";
 import { fmtMoney, fmtPct } from "@/lib/calc";
 import { inRange, rangeSubLabel, type Range } from "@/lib/date-range";
+import { weekStart } from "@/components/TimeFilter";
 import type { ClosedCoveredCall, ClosedSpread } from "@/lib/types";
 
 type Item = ClosedCoveredCall | ClosedSpread;
@@ -32,10 +33,10 @@ export function ClosedStrategy({
 }: {
   kind: "covered" | "spread";
   items: Item[];
-  initialMode?: "all" | "ytd" | "months" | "today";
+  initialMode?: "all" | "ytd" | "months" | "week" | "today";
   initialMonths?: number;
 }) {
-  type Mode = "all" | "ytd" | "months" | "today";
+  type Mode = "all" | "ytd" | "months" | "week" | "today";
   const [mode, setMode] = usePersistentState<Mode>("closedstrat-mode", initialMode ?? "months");
   const [months, setMonths] = usePersistentState("closedstrat-months", initialMonths ?? 1);
   const [openId, setOpenId] = usePersistentState<string | null>("closedstrat-openid", null);
@@ -76,6 +77,7 @@ export function ClosedStrategy({
       const t = ymd(d);
       return { start: t, end: t };
     }
+    if (mode === "week") return { start: ymd(weekStart(d)), end: null };
     return { start: ymd(new Date(d.getFullYear(), d.getMonth() - (months - 1), 1)), end: null };
   }, [mode, months, now]);
 
@@ -147,6 +149,15 @@ export function ClosedStrategy({
             aria-label="Months of closed trades to show"
           />
         </div>
+        <button
+          onClick={() => setMode("week")}
+          title="This week, Monday to today"
+          className={`shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-medium ring-1 ring-inset transition-colors ${
+            mode === "week" ? "bg-surface-2 text-text ring-border" : "bg-surface text-muted ring-border active:bg-surface-2/50"
+          }`}
+        >
+          Week
+        </button>
         <button
           onClick={() => setMode("today")}
           className={`shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-medium ring-1 ring-inset transition-colors ${

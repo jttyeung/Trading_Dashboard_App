@@ -5,7 +5,7 @@ import { ShowAmounts } from "@/components/privacy";
 import { TraderList } from "@/components/TraderList";
 import { TraderRunButton } from "@/components/TraderRunButton";
 import { PaperTrades } from "@/components/PaperTrades";
-import { readPaper, readSuggestions, traderPresent } from "@/lib/trader";
+import { describePass, orderSuggestions, readPaper, readSuggestions, traderPresent } from "@/lib/trader";
 import { Amt } from "@/components/privacy";
 
 const money = (n: number) => `$${Math.round(n).toLocaleString()}`;
@@ -43,13 +43,37 @@ export default async function TraderPage() {
         <Card className="mt-3 px-4 py-3 text-[11px] leading-relaxed text-muted">
           Stage 1: suggestions only. For every account{m?.accounts?.length ? ` (${m.accounts.join(", ")})` : ""} the trader checks puts
           for the 50% close every 15 minutes all session, and at the top of each entry hour ({m?.window ?? "11:00–15:00 ET hourly"}) it
-          re-runs the Quant scan and suggests every new put, covered call and note the rules allow.{" "}
+          re-runs the Quant scan and suggests every new put, covered call, portfolio hedge and note the rules allow. The hedge is SMH puts 10% out, 6 to 12 months, half of committed capital, bought at a portfolio high with the VIX under 20 and sold at 2.5× cost. Each account lists its new puts
+          first, numbered in the order they get capital (no earnings inside the put first, then rank), then closes, calls and notes.{" "}
           <span className="text-emerald-300">Run now</span> does a full pass any time, any day. Anything new goes to your phone, named
           for its account, and is logged here. Mark each one <span className="text-emerald-300">good</span> or{" "}
           <span className="text-rose-300">bad</span> as you review, <span className="text-sky-300">placed it</span> if you traded it
           yourself, or <span className="text-text">skip</span> to stop the reminders. That record is what decides when the next stage —
           placing orders after your approval — is ready. Nothing here places a trade.
         </Card>
+        {m?.passes && m.passes.length > 0 && (
+          <Card className="mt-3 px-4 py-3">
+            <details>
+              <summary className="cursor-pointer text-[11px] text-muted">
+                <span className="font-medium text-text">Recent passes</span> · last: {m.passes[m.passes.length - 1].kind === "auto" ? "automatic" : "Run now"},{" "}
+                {describePass(m.passes[m.passes.length - 1])}
+              </summary>
+              <ul className="mt-2 space-y-1 text-[11px] text-muted">
+                {[...m.passes].reverse().map((p, i) => (
+                  <li key={`${p.at}-${i}`} className="flex gap-2">
+                    <span className="w-28 shrink-0 tabular">{new Date(p.at).toLocaleString([], { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>
+                    <span className={`w-16 shrink-0 ${p.kind === "auto" ? "" : "text-emerald-300"}`}>{p.kind === "auto" ? "automatic" : "Run now"}</span>
+                    <span className={p.error ? "text-rose-300" : p.waiting ? "text-amber-300" : ""}>{describePass(p)}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-[10px] leading-relaxed text-muted">
+                Automatic passes run every 15 minutes from 11:00 ET to the close. A suggestion is sent once, then again only after 24 hours or a 15% price move, so a pass
+                with &quot;0 sent&quot; usually means nothing new.
+              </p>
+            </details>
+          </Card>
+        )}
         {pm && (
           <Card className="mt-3 px-4 py-3">
             <div className="flex items-baseline justify-between gap-3">
@@ -82,7 +106,7 @@ export default async function TraderPage() {
           </Card>
         )}
         <div className="mt-3">
-          <TraderList initial={doc?.suggestions ?? []} />
+          <TraderList initial={orderSuggestions(doc?.suggestions ?? [], m?.accounts ?? [])} />
         </div>
       </ShowAmounts>
     </main>
