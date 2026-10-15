@@ -4,6 +4,7 @@ import { useAnyConnectionDown } from "@/lib/use-connections-down";
 
 import { useEffect, useState } from "react";
 import type { Alert, BotSnapshot } from "@/lib/types";
+import { AllAppsLink } from "@/components/AllAppsLink";
 import { PositionsTable, type SourcedOption } from "@/components/desktop/PositionsTable";
 import { BotTable } from "@/components/bot/BotTable";
 import { ReturnCalculator } from "@/components/desktop/ReturnCalculator";
@@ -136,7 +137,8 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
 
 const TAB_KEY = "overviewActiveTab";
 
-const ALL_TABS: Tab[] = ["desktop", "trades", "bot", "bot-safe", "bot-aggressive", "scorecard", "autotrader", "calculator", "chart", "watchlist", "connections"];
+// "desktop" (Positions) left the rail; /positions is the Positions link above it.
+const ALL_TABS: Tab[] = ["trades", "bot", "bot-safe", "bot-aggressive", "scorecard", "autotrader", "calculator", "chart", "watchlist", "connections"];
 
 // loadTab: a ?tab= query param wins (a bookmarkable deep link to one tab),
 // else the last tab used on this device.
@@ -156,7 +158,7 @@ function loadTab(): Tab {
   } catch {
     /* ignore */
   }
-  return "desktop";
+  return "trades";
 }
 
 const HEADINGS: Record<Tab, { title: string; subtitle: string }> = {
@@ -242,13 +244,13 @@ export function OverviewShell({
   exampleMode: boolean;
 }) {
   const anyConnectionDown = useAnyConnectionDown();
-  const [tab, setTab] = useState<Tab>("desktop");
+  const [tab, setTab] = useState<Tab>("trades");
   // The Auto Trader tab is only offered when there's a report (hasAutotrader),
   // so a saved or linked ?tab=autotrader with no report falls back to Desktop
   // rather than rendering an empty tab.
   useEffect(() => {
     const t = loadTab();
-    setTab(t === "autotrader" && !hasAutotrader ? "desktop" : t);
+    setTab(t === "autotrader" && !hasAutotrader ? "trades" : t);
   }, [hasAutotrader]);
 
   function selectTab(next: Tab) {
@@ -312,7 +314,7 @@ export function OverviewShell({
           </a>
         ))}
         <div className="my-1 h-px w-8 bg-border" />
-        {TABS.filter((t) => t.key !== "autotrader" || hasAutotrader).map((t) => (
+        {TABS.filter((t) => t.key !== "desktop" && (t.key !== "autotrader" || hasAutotrader)).map((t) => (
           <button
             key={t.key}
             onClick={() => selectTab(t.key)}
@@ -333,12 +335,14 @@ export function OverviewShell({
             a separate route with no obvious way back except the
             browser's own back button. Dot lights when ANY connection
             this app manages (E*TRADE) needs re-authorization. */}
+        <div className="mt-auto flex flex-col items-center gap-1">
+        <AllAppsLink variant="icon" />
         <button
           onClick={() => selectTab("connections")}
           title="Connections"
           aria-label="Connections"
           aria-current={tab === "connections"}
-          className={`mt-auto flex w-12 flex-col items-center gap-1 rounded-xl py-2.5 text-[9px] font-medium transition-colors ${
+          className={`flex w-12 flex-col items-center gap-1 rounded-xl py-2.5 text-[9px] font-medium transition-colors ${
             tab === "connections" ? "bg-accent/20 text-accent" : "text-muted hover:bg-surface-2 hover:text-text"
           }`}
         >
@@ -353,6 +357,7 @@ export function OverviewShell({
             )}
           </span>
         </button>
+        </div>
       </nav>
 
       <main className="min-w-0 flex-1 px-6 py-6">
