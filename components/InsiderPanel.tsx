@@ -198,7 +198,7 @@ export function InsiderPanel({ data, error, loading }: { data: Ownership | null;
                   <div className="shrink-0 text-right">
                     <div className="tabular text-text">{fmtMoney(t.value)}</div>
                     <div className="flex items-center justify-end gap-1 text-[10px] text-muted">
-                      <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: t.buy ? AQUA : ORANGE }} />
+                      <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: t.buy ? AQUA : t.planned ? ORANGE_PLANNED : ORANGE }} />
                       {t.buy ? "Bought" : "Sold"}
                     </div>
                   </div>
