@@ -12,6 +12,7 @@ import { MarginModeProvider } from "@/components/margin-mode";
 import { ThemeModeProvider } from "@/components/theme-mode";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AllAppsLink } from "@/components/AllAppsLink";
+import { HomeLink } from "@/components/HomeLink";
 import { DEMO_MODE } from "@/lib/demo";
 import { LAYOUT_BOOT_SCRIPT } from "@/lib/layout-mode";
 import { Analytics } from "@vercel/analytics/next";
@@ -83,6 +84,7 @@ export default async function RootLayout({
           <ThemeModeProvider>
             <ThemeToggle />
             <AllAppsLink variant="fixed" />
+            <HomeLink />
             {/* globals.css caps html/body at 100vh with overflow:hidden — written
                 for the phone-frame shell's own inner ScrollArea below, which the
                 phone-frame branch further down in this file provides but this
