@@ -1,5 +1,6 @@
 // Server-side loader for active position alerts (data/alerts.json),
-// written by the data bridge.
+// written by the data bridge. (Unrelated to lib/signal-alerts.ts's chart
+// signal scan, which writes its own data/signal-alerts.json.)
 import fs from "node:fs";
 import path from "node:path";
 import type { AlertsFile } from "./types";

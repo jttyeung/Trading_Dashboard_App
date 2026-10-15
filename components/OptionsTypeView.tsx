@@ -68,7 +68,7 @@ export function OptionsTypeView({
   initialCspFilter?: CspFilter; // deep-link from the home action center
   initialStatus?: Status; // deep-link straight to Open, Closed, or Candidates
   statusFromUrl?: boolean; // true when ?view= set it — then it wins over persisted
-  closedMode?: "all" | "ytd" | "months" | "today"; // carry the P&L time window in
+  closedMode?: "all" | "ytd" | "months" | "week" | "today"; // carry the P&L time window in
   closedMonths?: number;
 }) {
   const [status, setStatus] = usePersistentState<Status>("options-status", initialStatus, statusFromUrl);

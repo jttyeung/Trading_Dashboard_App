@@ -10,6 +10,7 @@ import { Stat } from "@/components/ui";
 import { Amt } from "@/components/privacy";
 import { fmtMoney, fmtPct } from "@/lib/calc";
 import { inRange, rangeSubLabel, type Range } from "@/lib/date-range";
+import { weekStart } from "@/components/TimeFilter";
 import type { ClosedStock } from "@/lib/types";
 
 const chipFor = (outcome: string) =>
@@ -25,10 +26,10 @@ export function ClosedStocks({
   initialMonths,
 }: {
   source: ClosedStock[];
-  initialMode?: "all" | "ytd" | "months" | "today";
+  initialMode?: "all" | "ytd" | "months" | "week" | "today";
   initialMonths?: number;
 }) {
-  type Mode = "all" | "ytd" | "months" | "today";
+  type Mode = "all" | "ytd" | "months" | "week" | "today";
   const [mode, setMode] = usePersistentState<Mode>("closedstk-mode", initialMode ?? "months");
   const [months, setMonths] = usePersistentState("closedstk-months", initialMonths ?? 1);
   const [openId, setOpenId] = usePersistentState<string | null>("closedstk-openid", null);
@@ -67,6 +68,7 @@ export function ClosedStocks({
       const t = ymd(d);
       return { start: t, end: t };
     }
+    if (mode === "week") return { start: ymd(weekStart(d)), end: null };
     return { start: ymd(new Date(d.getFullYear(), d.getMonth() - (months - 1), 1)), end: null };
   }, [mode, months, now]);
 
@@ -136,6 +138,15 @@ export function ClosedStocks({
             aria-label="Months of closed trades to show"
           />
         </div>
+        <button
+          onClick={() => setMode("week")}
+          title="This week, Monday to today"
+          className={`shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-medium ring-1 ring-inset transition-colors ${
+            mode === "week" ? "bg-surface-2 text-text ring-border" : "bg-surface text-muted ring-border active:bg-surface-2/50"
+          }`}
+        >
+          Week
+        </button>
         <button
           onClick={() => setMode("today")}
           className={`shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-medium ring-1 ring-inset transition-colors ${

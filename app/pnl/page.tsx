@@ -2,7 +2,9 @@ import { PageHeader } from "@/components/ui";
 import { ShowAmounts } from "@/components/privacy";
 import { AccountSwitcher } from "@/components/AccountSwitcher";
 import { getSnapshot } from "@/lib/snapshot";
-import { getSelectedAccount } from "@/lib/account";
+import { getSelectedAccount, getCombineIds, COMBINED_ID } from "@/lib/account";
+import { combinePace, readPaceCar, type PaceAccount } from "@/lib/pace-car";
+import { PaceCarCard } from "@/components/PaceCarCard";
 import { getClosedCsps } from "@/lib/csp-closed";
 import { getClosedLeaps } from "@/lib/leaps-closed";
 import { getClosedCovered } from "@/lib/covered-closed";
@@ -125,6 +127,11 @@ export default async function PnlPage() {
   ];
   const reconcileAccounts = snap.accounts.map((a) => ({ id: a.id, label: `${accountLabel(a)} ${a.mask}` }));
 
+  // The pace car for this view: one account, or the Combined View's members summed.
+  const paceFile = readPaceCar();
+  const paceIds = id === COMBINED_ID ? await getCombineIds(snap) : [id];
+  const pace = paceFile ? combinePace(paceIds.map((i) => paceFile.accounts[i]).filter((a): a is PaceAccount => !!a)) : null;
+
   return (
     <main className="px-4 tablet:px-6" data-wide="1">
       <ShowAmounts>
@@ -154,7 +161,13 @@ export default async function PnlPage() {
         )}
         <ManualStockEntry sales={manualSales} />
         <EnteredCostBases entries={enteredBases} />
-        <PnlView realized={realized} open={open} capitalHistory={capitalHistory} dailyReturns={dailyReturns} />
+        <PnlView
+          realized={realized}
+          open={open}
+          capitalHistory={capitalHistory}
+          dailyReturns={dailyReturns}
+          after={pace && paceFile ? <PaceCarCard acct={pace} benchmark={paceFile.meta.benchmark} /> : null}
+        />
       </ShowAmounts>
     </main>
   );

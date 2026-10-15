@@ -3,7 +3,7 @@ import { ShowAmounts } from "@/components/privacy";
 import { AccountSwitcher } from "@/components/AccountSwitcher";
 import { StrategyTypeView } from "@/components/StrategyTypeView";
 import { TickerBar } from "@/components/TickerBar";
-import { getRefreshStatus } from "@/lib/refresh-status";
+import { appFeed } from "@/lib/refresh-status";
 import { DataRefresh } from "@/components/DataRefresh";
 import { getSnapshot } from "@/lib/snapshot";
 import { getSelectedAccount } from "@/lib/account";
@@ -22,6 +22,7 @@ function toStatus(v: string | undefined): "open" | "closed" | "candidates" {
 }
 
 export default async function OptionsSpreadPage({ searchParams }: { searchParams: Promise<{ view?: string; range?: string; months?: string; symbol?: string }> }) {
+  const feed = await appFeed(); // the data badge: next refresh, or Login needed / failed
   const { view, range, months, symbol } = await searchParams;
   const { mode: closedMode, months: closedMonths } = parseClosedWindow(range, months);
   const snap = await getSnapshot();
@@ -45,7 +46,7 @@ export default async function OptionsSpreadPage({ searchParams }: { searchParams
             <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
               <AccountSwitcher accounts={snap.accounts} selectedId={id} />
               <span>· {open.length} legs open</span>
-              <DataRefresh nextAt={getRefreshStatus().app?.nextAt} />
+              <DataRefresh status={feed} />
             </span>
           }
           right={<BackLink />}

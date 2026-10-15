@@ -7,6 +7,7 @@ import type { Holding } from "@/lib/research-types";
 import { readSuggestions, traderPresent } from "@/lib/trader";
 import { QUANT, TRADER } from "@/lib/features";
 import { readAutotraderReport } from "@/lib/autotrader";
+import { exampleSignalAlerts, readSignalAlerts } from "@/lib/signal-alerts";
 
 export const dynamic = "force-dynamic";
 
@@ -89,6 +90,10 @@ export default async function ResearchPage({
   // OptionsEvaluator's four paper accounts, once its export has written them.
   const autotrader = readAutotraderReport();
   const leader = autotrader ? [...autotrader.accounts].sort((a, b) => b.returnPct - a.returnPct)[0] : null;
+  const alerts = snap.meta.source === "example" ? exampleSignalAlerts() : readSignalAlerts();
+  const lastSession = alerts ? alerts.events.filter((e) => e.date === alerts.lastBar) : null;
+  const alertsToday = lastSession ? lastSession.length : null;
+  const alertsCrosses = lastSession ? lastSession.filter((e) => e.kind === "cross").length : 0;
 
   return (
     <main className="px-4">
@@ -112,6 +117,21 @@ export default async function ResearchPage({
             <div className="text-[11px] text-muted">2-year chart · Bollinger, SMA 50/200, MACD, RSI, walls</div>
           </div>
           <span className="shrink-0 text-sm font-medium text-violet-300">Open ›</span>
+        </Card>
+      </Link>
+
+      {/* Signal alerts — chart signals (crosses, MACD, RSI, bands) across the approved list. */}
+      <Link href="/alerts" className="mt-2 block active:opacity-80">
+        <Card className="flex items-center justify-between gap-3 bg-amber-500/5 px-4 py-3 ring-1 ring-inset ring-amber-500/25">
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-amber-200">Signal alerts</div>
+            <div className="text-[11px] text-muted">
+              {alertsToday == null
+                ? "Golden / death crosses, 200-day, MACD, RSI, Bollinger · every approved name"
+                : `${alertsToday} signal${alertsToday === 1 ? "" : "s"} last session${alertsCrosses ? ` · ${alertsCrosses} golden/death cross${alertsCrosses === 1 ? "" : "es"}` : ""} · every approved name`}
+            </div>
+          </div>
+          <span className="shrink-0 text-sm font-medium text-amber-300">Open ›</span>
         </Card>
       </Link>
 
