@@ -83,7 +83,7 @@ export default async function RootLayout({
         <body className="theme-light h-full bg-bg font-[family-name:var(--font-inter)]">
           <ThemeModeProvider>
             <ThemeToggle />
-            <AllAppsLink variant="fixed" />
+            {!pathname.startsWith("/overview") && <AllAppsLink variant="fixed" />}
             {/* /overview's own icon rail carries Home and Positions links. */}
             {!pathname.startsWith("/overview") && <HomeLink />}
             {/* globals.css caps html/body at 100vh with overflow:hidden — written
