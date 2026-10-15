@@ -7,6 +7,7 @@ import { TopMovers } from "@/components/TopMovers";
 import { HomeHeroSim } from "@/components/HomeHeroSim";
 import type { DonutSlice } from "@/components/charts";
 import { Amt, HideButton } from "@/components/privacy";
+import { AllAppsLink } from "@/components/AllAppsLink";
 import { AccountSwitcher } from "@/components/AccountSwitcher";
 import { PortfolioFit } from "@/components/PortfolioFit";
 import { BuyingPowerStat } from "@/components/BuyingPowerStat";
@@ -196,6 +197,7 @@ export default async function HomePage() {
               </div>
             )}
             <div className="flex items-center gap-2">
+              <AllAppsLink variant="pill" />
               <Link
                 href="/settings"
                 aria-label="Settings"
