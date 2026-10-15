@@ -41,7 +41,7 @@ export default async function TraderPage() {
         <Card className="mt-3 px-4 py-3 text-[11px] leading-relaxed text-muted">
           Stage 1: suggestions only. For every account{m?.accounts?.length ? ` (${m.accounts.join(", ")})` : ""} the trader checks puts
           for the 50% close every 15 minutes all session, and at the top of each entry hour ({m?.window ?? "11:00–15:00 ET hourly"}) it
-          re-runs the Quant scan and suggests every new put, covered call and note the rules allow. Each account lists its new puts
+          re-runs the Quant scan and suggests every new put, covered call, portfolio hedge and note the rules allow. The hedge is QQQ puts 10% out, 6 to 12 months, half of committed capital, bought at a portfolio high with the VIX under 20 and sold at 2.5× cost. Each account lists its new puts
           first, numbered in the order they get capital (no earnings inside the put first, then rank), then closes, calls and notes.{" "}
           <span className="text-emerald-300">Run now</span> does a full pass any time, any day. Anything new goes to your phone, named
           for its account, and is logged here. Mark each one <span className="text-emerald-300">good</span> or{" "}

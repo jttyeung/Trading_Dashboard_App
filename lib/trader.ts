@@ -15,7 +15,7 @@ export type SuggestionStatus = "new" | "good" | "bad" | "done" | "skip" | "expir
 
 export interface Suggestion {
   key: string;
-  kind: "csp" | "close" | "cc" | "note";
+  kind: "csp" | "close" | "cc" | "hedge" | "hedge-close" | "note";
   symbol: string;
   title: string;
   detail: string;
@@ -43,7 +43,7 @@ export interface Suggestion {
 
 // Kinds in the order the page shows them inside each account: new puts first
 // (the user's priority), then closes, covered calls and notes.
-const KIND_ORDER: Record<Suggestion["kind"], number> = { csp: 0, close: 1, cc: 2, note: 3 };
+const KIND_ORDER: Record<Suggestion["kind"], number> = { csp: 0, hedge: 1, close: 2, "hedge-close": 3, cc: 4, note: 5 };
 
 /** Group by account (dashboard order), then kind, then the trader's build position.
  *  Stable across the day: the 15-minute close checks no longer reshuffle the list. */

@@ -10,11 +10,13 @@ import { Card } from "@/components/ui";
 import { Amt } from "@/components/privacy";
 import type { Suggestion, SuggestionStatus } from "@/lib/trader";
 
-const KIND_LABEL: Record<Suggestion["kind"], string> = { csp: "New CSP", close: "Close at 50%", cc: "Covered call", note: "Note" };
+const KIND_LABEL: Record<Suggestion["kind"], string> = { csp: "New CSP", close: "Close at 50%", cc: "Covered call", hedge: "Hedge", "hedge-close": "Hedge exit", note: "Note" };
 const KIND_CLS: Record<Suggestion["kind"], string> = {
   csp: "bg-emerald-500/10 text-emerald-300 ring-emerald-500/25",
   close: "bg-sky-500/10 text-sky-300 ring-sky-500/25",
   cc: "bg-amber-500/10 text-amber-300 ring-amber-500/25",
+  hedge: "bg-violet-500/10 text-violet-300 ring-violet-500/25",
+  "hedge-close": "bg-violet-500/10 text-violet-300 ring-violet-500/25",
   note: "bg-surface-2 text-muted ring-border",
 };
 const STATUS_CLS: Record<SuggestionStatus, string> = {
