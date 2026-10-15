@@ -10,6 +10,7 @@ import { usePathname } from "next/navigation";
 import { TABS } from "@/components/BottomNav";
 import { HideButton } from "@/components/privacy";
 import { LayoutToggle } from "@/components/LayoutToggle";
+import { AllAppsLink } from "@/components/AllAppsLink";
 import { UpdateDot } from "@/components/UpdateDot";
 
 export function SideRail() {
@@ -64,6 +65,7 @@ export function SideRail() {
             <UpdateDot />
           </Link>
         </div>
+        <AllAppsLink variant="rail" />
         <div className="px-0.5 text-[10px] uppercase tracking-wider text-muted">Layout</div>
         <LayoutToggle compact />
       </div>
