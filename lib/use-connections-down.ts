@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { DEMO_MODE } from "@/lib/demo";
-import { fetchAuthStatus } from "@/lib/auth-api";
 import { fetchETradeAuthStatus } from "@/lib/etrade-auth-api";
 
-// useAnyConnectionDown reports whether ANY brokerage connection this app
-// manages (Schwab, E*TRADE) is currently down and actionable -- the nav
+// useAnyConnectionDown reports whether the brokerage connection this app
+// manages (E*TRADE; Schwab's login lives in the gateway) is currently down and actionable -- the nav
 // rail's red dot lights for this, not for each connection separately, so
 // a glance at either nav tells the account holder "something here needs
 // you" regardless of which one it is.
@@ -42,12 +41,13 @@ export function useAnyConnectionDown(pollMs = 5 * 60 * 1000): boolean {
     if (DEMO_MODE) return;
     let cancelled = false;
     function check() {
-      Promise.allSettled([fetchAuthStatus(), fetchETradeAuthStatus()]).then(([schwab, etrade]) => {
-        if (cancelled) return;
-        const schwabDown = schwab.status === "fulfilled" && !schwab.value.connected;
-        const etradeDown = etrade.status === "fulfilled" && etrade.value.configured && !etrade.value.connected;
-        setDown(schwabDown || etradeDown);
-      });
+      fetchETradeAuthStatus().then(
+        (etrade) => {
+          if (cancelled) return;
+          setDown(etrade.configured && !etrade.connected);
+        },
+        () => {},
+      );
     }
     check();
     const id = setInterval(check, pollMs);

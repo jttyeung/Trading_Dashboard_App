@@ -9,7 +9,6 @@ import { BotTable } from "@/components/bot/BotTable";
 import { ReturnCalculator } from "@/components/desktop/ReturnCalculator";
 import { SecurityChart } from "@/components/SecurityChart";
 import { WatchlistBoard } from "@/components/desktop/WatchlistBoard";
-import { SchwabReconnect } from "@/components/desktop/SchwabReconnect";
 import { ETradeReconnect } from "@/components/desktop/ETradeReconnect";
 import { MyTradesScorecard, BotScorecard } from "@/components/desktop/ScorecardDesktop";
 import type { CspPicksFile, MyTradesFile, PerformanceRow, PortfolioRiskFile, ScoreFactorsFile } from "@/lib/types";
@@ -203,7 +202,7 @@ const HEADINGS: Record<Tab, { title: string; subtitle: string }> = {
   },
   connections: {
     title: "Connections",
-    subtitle: "Re-authorize Schwab or E*TRADE when a session dies — the same steps as the CLI, done from a browser.",
+    subtitle: "Re-authorize E*TRADE when its session dies — the same steps as the CLI, done from a browser.",
   },
 };
 
@@ -313,7 +312,7 @@ export function OverviewShell({
             any other icon is the way back, instead of navigating away to
             a separate route with no obvious way back except the
             browser's own back button. Dot lights when ANY connection
-            this app manages (Schwab, E*TRADE) needs re-authorization. */}
+            this app manages (E*TRADE) needs re-authorization. */}
         <button
           onClick={() => selectTab("connections")}
           title="Connections"
@@ -405,7 +404,6 @@ export function OverviewShell({
         </div>
         {tab === "connections" && (
           <>
-            <SchwabReconnect />
             <ETradeReconnect />
           </>
         )}
