@@ -21,13 +21,15 @@ import { MarketCountdown } from "@/components/desktop/MarketCountdown";
 import { RollAnalysisPanel } from "@/components/desktop/RollAnalysisPanel";
 import { fmtWeekdayShort } from "@/lib/dates";
 
+// Only credit spreads are tagged upstream (OptionsEvaluator tagCreditSpreads):
+// call-spread = bear call (BCS), put-spread = bull put (BPS).
 const STRATEGY_CODE: Record<OptionKind, string> = {
   csp: "CSP",
   "covered-call": "CC",
   "leap-call": "LEAPS",
   "leap-put-hedge": "HDG",
-  "put-spread": "PS",
-  "call-spread": "CS",
+  "put-spread": "BPS",
+  "call-spread": "BCS",
   other: "OTH",
 };
 
