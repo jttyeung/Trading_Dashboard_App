@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import type { Alert, BotSnapshot } from "@/lib/types";
 import { AllAppsLink } from "@/components/AllAppsLink";
 import { PositionsTable, type SourcedOption } from "@/components/desktop/PositionsTable";
+import { CoverableSharesTable, type SourcedEquity } from "@/components/desktop/CoverableSharesTable";
 import { BotTable } from "@/components/bot/BotTable";
 import { ReturnCalculator } from "@/components/desktop/ReturnCalculator";
 import { SecurityChart } from "@/components/SecurityChart";
@@ -218,6 +219,8 @@ const HEADINGS: Record<Tab, { title: string; subtitle: string }> = {
 // re-fetch or navigation.
 export function OverviewShell({
   options,
+  equities,
+  earnings,
   paperOptions,
   hasAutotrader,
   alerts,
@@ -232,6 +235,8 @@ export function OverviewShell({
   exampleMode,
 }: {
   options: SourcedOption[];
+  equities: SourcedEquity[];
+  earnings: Record<string, string>;
   paperOptions: SourcedOption[];
   hasAutotrader: boolean;
   alerts: Alert[];
@@ -370,7 +375,12 @@ export function OverviewShell({
           <p className="text-sm text-header-box-text/70">{heading.subtitle}</p>
         </div>
 
-        {tab === "desktop" && <PositionsTable options={options} alerts={alerts} />}
+        {tab === "desktop" && (
+          <>
+            <PositionsTable options={options} alerts={alerts} />
+            <CoverableSharesTable equities={equities} options={options} earnings={earnings} />
+          </>
+        )}
         {/* The three bot tables stay mounted (hidden, not unmounted) for
             the same reason as the calculator/watchlist panels below. Caught
             live: a thumbs-up/down is an optimistic edit to BotTable's own
