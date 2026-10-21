@@ -15,6 +15,8 @@ import { getScoreFactors } from "@/lib/score-factors";
 import { getMyTrades } from "@/lib/my-trades";
 import { getCspPicks } from "@/lib/csp-picks";
 import { getPortfolioRisk } from "@/lib/portfolio-risk";
+import { getEarnings } from "@/lib/earnings";
+import { isCashEquivalent } from "@/lib/calc";
 import { accountLabel, paperAccounts, realAccounts } from "@/lib/account-shared";
 import { readAutotraderReport } from "@/lib/autotrader";
 import { isExampleMode } from "@/lib/example-mode";
@@ -44,6 +46,12 @@ export default async function OverviewPage() {
   const options = realAccounts(snap.accounts).flatMap((a) =>
     snap.data[a.id].options.map((o) => ({ ...o, sourceLabel: accountLabel(a) })),
   );
+  // Stock of 100+ shares, per real account, for the Shares to Cover table.
+  const equities = realAccounts(snap.accounts).flatMap((a) =>
+    snap.data[a.id].equities
+      .filter((e) => e.qty >= 100 && !isCashEquivalent(e.symbol))
+      .map((e) => ({ ...e, sourceLabel: accountLabel(a) })),
+  );
   // The Auto Trader paper accounts' positions, for their own tab — never
   // mixed into the Positions tab above.
   const paperOptions = paperAccounts(snap.accounts).flatMap((a) =>
@@ -54,6 +62,8 @@ export default async function OverviewPage() {
   return (
     <OverviewShell
       options={options}
+      equities={equities}
+      earnings={getEarnings(exampleMode)}
       paperOptions={paperOptions}
       hasAutotrader={hasAutotrader}
       alerts={alerts}

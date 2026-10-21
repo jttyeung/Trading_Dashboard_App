@@ -8,6 +8,9 @@ import { getSnapshot } from "@/lib/snapshot";
 import { getAlerts } from "@/lib/alerts";
 import { accountLabel, realAccounts } from "@/lib/account-shared";
 import { PositionsTable } from "@/components/desktop/PositionsTable";
+import { CoverableSharesTable } from "@/components/desktop/CoverableSharesTable";
+import { getEarnings } from "@/lib/earnings";
+import { isCashEquivalent } from "@/lib/calc";
 
 export const dynamic = "force-dynamic";
 
@@ -27,9 +30,16 @@ export default async function DesktopPage() {
     snap.data[a.id].options.map((o) => ({ ...o, sourceLabel: accountLabel(a) })),
   );
 
+  const equities = realAccounts(snap.accounts).flatMap((a) =>
+    snap.data[a.id].equities
+      .filter((e) => e.qty >= 100 && !isCashEquivalent(e.symbol))
+      .map((e) => ({ ...e, sourceLabel: accountLabel(a) })),
+  );
+
   return (
     <main className="min-h-screen w-full bg-bg px-6 py-6 text-text">
       <PositionsTable options={options} alerts={alerts} />
+      <CoverableSharesTable equities={equities} options={options} earnings={getEarnings(snap.meta.source === "example")} />
     </main>
   );
 }
