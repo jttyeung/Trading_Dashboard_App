@@ -1005,6 +1005,27 @@ export interface BucketStat {
 // null/absent on trades opened before capture began and are left out of
 // those stats' N — an absent guideline key means "unknown," not "passed."
 // ---------------------------------------------------------------------------
+export interface MySpread {
+  ticker: string;
+  putCall: "PUT" | "CALL";
+  shortSymbol: string;
+  longSymbol: string;
+  shortStrike: number;
+  longStrike: number;
+  source: string;
+  account: string;
+  openDate: string;
+  closeDate: string;
+  quantity: number;
+  netPerShare: number; // credit − debit at open, per share
+  realizedPnl: number;
+  collateral: number; // max loss; 0 when unknown
+  returnPct: number;
+  win: boolean;
+  dit: number;
+  dteAtOpen: number;
+}
+
 export interface MyTradesFile {
   meta: {
     generatedAt: string;
@@ -1030,6 +1051,9 @@ export interface MyTradesFile {
   concurrency: BucketStat[];
   sizing: BucketStat[];
   rollChains: RollChain[];
+  // Verticals closed as a unit (bull put, bear call, debit): one trade each,
+  // kept out of `trades`. Absent in older files.
+  spreads?: MySpread[];
   // Closed LONG option trades (LEAPs), graded on their own terms and kept
   // out of every section above — a bought call has no collateral, credit
   // kept, or roll chain; its return is on cost.
