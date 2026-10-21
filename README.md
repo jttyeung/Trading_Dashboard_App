@@ -55,6 +55,11 @@ built-in demo dataset, so you can explore the whole UI immediately.
   QQQ, and an open-P&L floor, all across every account. Sector buckets (with the tickers behind
   each) come from the daemon's `data/portfolio-risk.json`; sectors are the wheel watchlist
   sheet's own, so a name not on the sheet shows under "Unclassified"
+- **Shares to Cover** (desktop `/overview` Positions tab, under Open Positions) — every holding of
+  100+ shares per account, its lots already written against vs still open, and an expandable
+  covered-call ladder: ~30Δ 1–4 weeks, or for a taxable holding with a gain the ~10Δ 4–6 week
+  rungs a third of the open lots at a time (the Brief's theta-goal rule). Flags strikes below
+  cost and rungs that span earnings. Reads the snapshot's existing ladders; ideas only
 - **My Trades** (desktop `/overview` tab) — the account holder's own broker-confirmed trades that
   matched a suggestion, by strategy and delta bucket — kept separate from the bots. The guideline,
   management and entry-condition sections cover every closed short option trade across Schwab,

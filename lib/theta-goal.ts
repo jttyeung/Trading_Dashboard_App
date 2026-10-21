@@ -20,9 +20,9 @@ const MAX_PICK_RANK = 10;
 const MIN_LOT_THETA = 10;
 /** A taxable holding with a gain is written a third of its lots at a time (rounded up),
  *  per the account holder: calls on those shares, but never all at once. */
-const KEEP_BATCH_FRACTION = 1 / 3;
+export const KEEP_BATCH_FRACTION = 1 / 3;
 /** Sheltered accounts: a call-away there realizes no tax. Matched on the label. */
-const SHELTERED = /\b(IRA|HSA|401\s?k?|Roth)\b/i;
+export const SHELTERED = /\b(IRA|HSA|401\s?k?|Roth)\b/i;
 
 export interface UncoveredLot {
   accountId: string;
@@ -81,7 +81,7 @@ function label(a: Account): string {
 
 /** True when a report on `earnings` lands on or before the rung's expiration. A rung
  *  stored before expirations were recorded can't be checked and passes. */
-function spansEarnings(c: CoveredCallQuote, earnings: string | undefined): boolean {
+export function spansEarnings(c: CoveredCallQuote, earnings: string | undefined): boolean {
   return Boolean(earnings && c.expiration && earnings <= c.expiration);
 }
 
