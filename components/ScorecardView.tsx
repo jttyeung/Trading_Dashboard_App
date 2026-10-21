@@ -180,7 +180,7 @@ export function ScorecardView({
 
       <p className="mt-3 px-1 text-[11px] leading-relaxed text-muted">
         {origin === "real"
-          ? "Every closed option trade across Schwab, Fidelity and E*TRADE, whether or not the app suggested it — one row per traded contract, grouped by what you traded. Delta is the one frozen when the position was first seen, so trades opened before 9/14 sit outside the delta drill-down. A mirror for spotting your own patterns; nothing here changes what the app suggests."
+          ? "Every closed option trade across Schwab, Fidelity and E*TRADE, whether or not the app suggested it — one row per traded contract, grouped by what you traded; a spread counts as one trade, both legs together. Delta is the one frozen when the position was first seen, so trades opened before 9/14 sit outside the delta drill-down. A mirror for spotting your own patterns; nothing here changes what the app suggests."
           : "The bots' own simulated outcomes — a much bigger sample than your real trades, but a simplified P&L (no rolls or partial closes). Win means the pick expired worthless or closed profitable."}
       </p>
     </div>
