@@ -12,7 +12,7 @@
 import { ScorecardView } from "@/components/ScorecardView";
 import { FactorScorecard } from "@/components/FactorScorecard";
 import { MyTradesReport } from "@/components/MyTradesReport";
-import type { MyLeapTrade, MyTrade, MyTradesFile, PerformanceRow, ScoreFactorsFile } from "@/lib/types";
+import type { MyLeapTrade, MySpread, MyTrade, MyTradesFile, PerformanceRow, ScoreFactorsFile } from "@/lib/types";
 
 // myTradeRows reshapes my-trades.json into the drill-down's rows, grouped
 // by what was actually traded rather than by the app's strategy labels —
@@ -20,12 +20,12 @@ import type { MyLeapTrade, MyTrade, MyTradesFile, PerformanceRow, ScoreFactorsFi
 // hide them. A short call is labelled covered because the brokers'
 // covered-call tables are where every one of them lands.
 function myTradeRows(file: MyTradesFile): PerformanceRow[] {
-  const row = (t: MyTrade | MyLeapTrade, strategy: string, annualized: number | null): PerformanceRow => ({
+  const row = (t: MyTrade | MyLeapTrade | MySpread, strategy: string, annualized: number | null): PerformanceRow => ({
     origin: "real",
     ticker: t.ticker,
     strategy,
-    contractSymbol: t.contractSymbol,
-    delta: t.deltaAtOpen,
+    contractSymbol: "contractSymbol" in t ? t.contractSymbol : `${t.shortSymbol}/${t.longSymbol}`,
+    delta: "deltaAtOpen" in t ? t.deltaAtOpen : null,
     dte: t.dteAtOpen,
     rorPercent: t.returnPct,
     annualizedRorPercent: annualized,
@@ -33,11 +33,13 @@ function myTradeRows(file: MyTradesFile): PerformanceRow[] {
     win: t.win,
     openDate: t.openDate,
     closeDate: t.closeDate,
-    deltaAtOpen: t.deltaAtOpen,
+    deltaAtOpen: "deltaAtOpen" in t ? t.deltaAtOpen : null,
     dteAtOpen: t.dteAtOpen,
   });
   return [
     ...file.trades.map((t) => row(t, t.putCall === "CALL" ? "Covered calls" : "Cash-secured puts", t.annualizedRorAtOpen)),
+    // Every vertical (bull put, bear call, debit) is one trade, one group.
+    ...(file.spreads ?? []).map((t) => row(t, "Spreads", null)),
     ...(file.leaps?.trades ?? []).map((t) => row(t, "LEAPs", null)),
   ];
 }
