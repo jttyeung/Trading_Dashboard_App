@@ -208,6 +208,14 @@ function spotOf(q: SourcedOption): number | null {
   return q.underlyingPrice ?? q.underlyingLive ?? q.underlyingClose ?? null;
 }
 
+// Short legs: red when in the money (assignment risk), green when out.
+// Long legs and an exactly-at-the-money gap stay neutral.
+function gapColor(o: SourcedOption, gap: number | null): string {
+  if (gap == null || gap === 0 || o.side !== "short") return "text-text";
+  const itm = o.optionType === "call" ? gap > 0 : gap < 0;
+  return itm ? "text-neg" : "text-pos";
+}
+
 function buildRow(o: SourcedOption, alertBySymbol: Map<string, Alert>, quote: SourcedOption): Row {
   const marketValue = optionNetValue(o); // long +, short − (the buy-back liability)
   const todayPl = o.dayValueChange ?? null;
@@ -242,9 +250,9 @@ function buildRow(o: SourcedOption, alertBySymbol: Map<string, Alert>, quote: So
     // picks the extended-hours print only when its trade time is newer
     // (OptionsEvaluator internal/export/underlying_price.go).
     // Underlying minus strike, so the sign reads as where the stock sits
-    // relative to the strike (+ above, - below). Deliberately uncolored:
-    // "above" is safe for a put but ITM for a call, so a red/green sign
-    // would mislead on half the rows.
+    // relative to the strike (+ above, - below). The color is by risk, not
+    // sign (see gapColor): "above" is safe for a short put but ITM for a
+    // short call.
     gap: spotOf(quote) != null ? spotOf(quote)! - o.strike : null,
     spotPct: spotPercentChange(quote),
     theta: positionDailyTheta(o),
@@ -763,7 +771,7 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                       </td>
                       <td className="px-3 py-2 text-right tabular text-text">{fmtMoney(r.o.strike)}</td>
                       <td className="px-3 py-2 text-right tabular text-text">{r.spot != null ? fmtMoney(r.spot) : "-"}</td>
-                      <td className="px-3 py-2 text-right tabular text-text">{r.gap != null ? fmtMoney(r.gap, { sign: true }) : "-"}</td>
+                      <td className={`px-3 py-2 text-right tabular ${gapColor(r.o, r.gap)}`}>{r.gap != null ? fmtMoney(r.gap, { sign: true }) : "-"}</td>
                       <td className={`px-3 py-2 text-right tabular ${r.spotPct != null ? pnlColor(r.spotPct) : "text-text"}`}>
                         {r.spotPct != null ? fmtPct(r.spotPct) : "-"}
                       </td>
