@@ -60,7 +60,7 @@ const STRATEGY_STYLE: Record<OptionKind, string> = {
 export type SourcedOption = OptionPosition & { sourceLabel: string };
 
 type GroupBy = "none" | "strategy" | "dte" | "ticker" | "account";
-type SortKey = "ticker" | "strategy" | "qty" | "dit" | "dte" | "strike" | "spot" | "spotPct" | "theta" | "arr" | "ror" | "unrealized" | "remArr" | "todayPl" | "marketValue" | "manage" | "source";
+type SortKey = "ticker" | "strategy" | "qty" | "dit" | "dte" | "strike" | "spot" | "gap" | "spotPct" | "theta" | "arr" | "ror" | "unrealized" | "remArr" | "todayPl" | "marketValue" | "manage" | "source";
 
 // A row's identity is account + contract, not the contract alone: the same
 // OCC symbol can be held in two brokerages at once (e.g. an INTC put in both
@@ -76,6 +76,7 @@ interface Row {
   dit: number | null;
   dte: number;
   spot: number | null;
+  gap: number | null;
   spotPct: number | null;
   theta: number;
   unrealized: number;
@@ -203,6 +204,18 @@ function freshestUnderlying(options: SourcedOption[]): Map<string, SourcedOption
   return best;
 }
 
+function spotOf(q: SourcedOption): number | null {
+  return q.underlyingPrice ?? q.underlyingLive ?? q.underlyingClose ?? null;
+}
+
+// Short legs: red when in the money (assignment risk), green when out.
+// Long legs and an exactly-at-the-money gap stay neutral.
+function gapColor(o: SourcedOption, gap: number | null): string {
+  if (gap == null || gap === 0 || o.side !== "short") return "text-text";
+  const itm = o.optionType === "call" ? gap > 0 : gap < 0;
+  return itm ? "text-neg" : "text-pos";
+}
+
 function buildRow(o: SourcedOption, alertBySymbol: Map<string, Alert>, quote: SourcedOption): Row {
   const marketValue = optionNetValue(o); // long +, short − (the buy-back liability)
   const todayPl = o.dayValueChange ?? null;
@@ -230,12 +243,17 @@ function buildRow(o: SourcedOption, alertBySymbol: Map<string, Alert>, quote: So
     strategyCode: STRATEGY_CODE[o.kind] ?? "OTH",
     dit: o.openedAt ? daysBetween(o.openedAt) : null,
     dte: daysToExpiry(o.expiration),
-    spot: quote.underlyingPrice ?? quote.underlyingLive ?? quote.underlyingClose ?? null,
+    spot: spotOf(quote),
     // The underlying's own move today, measured against the SAME price
     // shown in the cell so the two can never disagree. underlyingPrice
     // and underlyingLive are the same value for every broker: the daemon
     // picks the extended-hours print only when its trade time is newer
     // (OptionsEvaluator internal/export/underlying_price.go).
+    // Underlying minus strike, so the sign reads as where the stock sits
+    // relative to the strike (+ above, - below). The color is by risk, not
+    // sign (see gapColor): "above" is safe for a short put but ITM for a
+    // short call.
+    gap: spotOf(quote) != null ? spotOf(quote)! - o.strike : null,
     spotPct: spotPercentChange(quote),
     theta: positionDailyTheta(o),
     unrealized: optionPnl(o),
@@ -455,6 +473,8 @@ function sortValue(r: Row, key: SortKey): number | string {
       return r.o.strike;
     case "spot":
       return r.spot ?? -Infinity;
+    case "gap":
+      return r.gap ?? -Infinity;
     case "spotPct":
       return r.spotPct ?? -Infinity;
     case "theta":
@@ -517,6 +537,7 @@ const COLUMNS: { key: SortKey; label: string; align?: "right" }[] = [
   { key: "dte", label: "DTE", align: "right" },
   { key: "strike", label: "Strike", align: "right" },
   { key: "spot", label: "Mark", align: "right" },
+  { key: "gap", label: "Gap $", align: "right" },
   { key: "spotPct", label: "Chg %", align: "right" },
   { key: "theta", label: "Theta $", align: "right" },
   { key: "ror", label: "RoR %", align: "right" },
@@ -750,6 +771,7 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                       </td>
                       <td className="px-3 py-2 text-right tabular text-text">{fmtMoney(r.o.strike)}</td>
                       <td className="px-3 py-2 text-right tabular text-text">{r.spot != null ? fmtMoney(r.spot) : "-"}</td>
+                      <td className={`px-3 py-2 text-right tabular ${gapColor(r.o, r.gap)}`}>{r.gap != null ? fmtMoney(r.gap, { sign: true }) : "-"}</td>
                       <td className={`px-3 py-2 text-right tabular ${r.spotPct != null ? pnlColor(r.spotPct) : "text-text"}`}>
                         {r.spotPct != null ? fmtPct(r.spotPct) : "-"}
                       </td>
