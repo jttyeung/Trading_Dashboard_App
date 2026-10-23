@@ -771,7 +771,12 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                       </td>
                       <td className="px-3 py-2 text-right tabular text-text">{fmtMoney(r.o.strike)}</td>
                       <td className="px-3 py-2 text-right tabular text-text">{r.spot != null ? fmtMoney(r.spot) : "-"}</td>
-                      <td className={`px-3 py-2 text-right tabular ${gapColor(r.o, r.gap)}`}>{r.gap != null ? fmtMoney(r.gap, { sign: true }) : "-"}</td>
+                      <td className={`px-3 py-2 text-right tabular whitespace-nowrap ${gapColor(r.o, r.gap)}`}>
+                        {r.gap != null ? fmtMoney(r.gap, { sign: true }) : "-"}
+                        {r.gap != null && r.o.strike > 0 && (
+                          <span className="ml-1 text-[10px] opacity-70">{fmtPct(r.gap / r.o.strike)}</span>
+                        )}
+                      </td>
                       <td className={`px-3 py-2 text-right tabular ${r.spotPct != null ? pnlColor(r.spotPct) : "text-text"}`}>
                         {r.spotPct != null ? fmtPct(r.spotPct) : "-"}
                       </td>
