@@ -85,11 +85,20 @@ export function spansEarnings(c: CoveredCallQuote, earnings: string | undefined)
   return Boolean(earnings && c.expiration && earnings <= c.expiration);
 }
 
+/** Never a covered call struck below what the shares cost: being called away there
+ *  locks in a loss. A holding with no known cost (0) can't be checked and passes.
+ *  Mirrors the daemon's RULE-037. */
+export function clearsCost(c: CoveredCallQuote, avgCost: number): boolean {
+  return !(avgCost > 0) || c.strike >= avgCost;
+}
+
 /** Lots with no call against them, per account. A short call on a symbol covers 100
  *  shares per contract; an already-expired contract (a weekend snapshot still lists
  *  Friday's) no longer covers anything. A taxable holding with a gain is valued with its
  *  far-OTM rungs and a partial batch; everything else with the ~30Δ ladder. Either way a
- *  rung that spans the next earnings report is skipped. */
+ *  rung below the shares' cost is never offered (a lot with none above cost is left out:
+ *  waiting for earnings wouldn't help it), and one that spans the next earnings report is
+ *  skipped. */
 export function uncoveredLots(inputs: AccountInput[], earnings: Record<string, string> = {}, today?: string): UncoveredLot[] {
   const out: UncoveredLot[] = [];
   for (const { account, data } of inputs) {
@@ -108,8 +117,10 @@ export function uncoveredLots(inputs: AccountInput[], earnings: Record<string, s
       const all = (keep ? e.farCalls : e.coveredCalls) ?? [];
       const rungs = all.filter((c) => c.dte > 0 && c.mark > 0);
       if (rungs.length === 0) continue; // nothing quoted (a far rung list fills in at the next open)
+      const aboveCost = rungs.filter((c) => clearsCost(c, e.avgCost));
+      if (aboveCost.length === 0) continue;
       const report = earnings[e.symbol.toUpperCase()];
-      const clear = rungs.filter((c) => !spansEarnings(c, report));
+      const clear = aboveCost.filter((c) => !spansEarnings(c, report));
       const contracts = keep ? Math.ceil(lotsOpen * KEEP_BATCH_FRACTION) : lotsOpen;
       const base = { accountId: account.id, accountLabel: label(account), symbol: e.symbol, mode: keep ? "keep" : "near", lotsOpen, contracts } as const;
       if (clear.length === 0) {
