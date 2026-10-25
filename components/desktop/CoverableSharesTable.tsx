@@ -3,7 +3,7 @@
 import { Fragment, useMemo, useState } from "react";
 import type { CoveredCallQuote, Equity } from "@/lib/types";
 import { daysToExpiry, fmtMoney, fmtPct } from "@/lib/calc";
-import { KEEP_BATCH_FRACTION, SHELTERED, spansEarnings } from "@/lib/theta-goal";
+import { KEEP_BATCH_FRACTION, SHELTERED, clearsCost, spansEarnings } from "@/lib/theta-goal";
 import type { SourcedOption } from "@/components/desktop/PositionsTable";
 
 // A holding tagged with its real account, built the same way the page builds
@@ -24,6 +24,7 @@ interface Row {
   near: CoveredCallQuote[];
   far: CoveredCallQuote[];
   best: CoveredCallQuote | null;
+  belowCost: boolean; // every quoted rung is struck under the shares' cost
   report: string | undefined; // next earnings date, if known
 }
 
@@ -55,9 +56,11 @@ function buildRows(equities: SourcedEquity[], options: SourcedOption[], earnings
     const near = liveRungs(e.coveredCalls);
     const far = liveRungs(e.farCalls);
     const report = earnings[sym];
-    // Best theta per day among rungs that don't span earnings — same pick as
-    // uncoveredLots in lib/theta-goal.ts, so the Brief and this table agree.
-    const clear = (keep ? far : near).filter((q) => !spansEarnings(q, report));
+    // Best theta per day among rungs at or above cost that don't span earnings —
+    // same pick as uncoveredLots in lib/theta-goal.ts, so the Brief and this table agree.
+    const rungs = keep ? far : near;
+    const aboveCost = rungs.filter((q) => clearsCost(q, e.avgCost));
+    const clear = aboveCost.filter((q) => !spansEarnings(q, report));
     const best = clear.length ? clear.reduce((b, q) => (q.mark / q.dte > b.mark / b.dte ? q : b)) : null;
     rows.push({
       key: `${e.sourceLabel}|${sym}`,
@@ -70,6 +73,7 @@ function buildRows(equities: SourcedEquity[], options: SourcedOption[], earnings
       near,
       far,
       best,
+      belowCost: rungs.length > 0 && aboveCost.length === 0,
       report,
     });
   }
@@ -205,6 +209,7 @@ const FAR_TITLE = "Keep the shares · ~10Δ, 4–6 weeks";
 function SuggestedCell({ r }: { r: Row }) {
   if (r.open === 0) return <span className="text-muted">Fully covered</span>;
   if (!r.best) {
+    if (r.belowCost) return <span className="text-muted">No call at or above your {fmtMoney(r.e.avgCost, { cents: true })} cost</span>;
     if (r.report) return <span className="text-warn">Wait for earnings {fmtExp(r.report)}</span>;
     return <span className="text-muted">No quote yet</span>;
   }

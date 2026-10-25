@@ -58,8 +58,10 @@ built-in demo dataset, so you can explore the whole UI immediately.
 - **Shares to Cover** (desktop `/overview` Positions tab, under Open Positions) — every holding of
   100+ shares per account, its lots already written against vs still open, and an expandable
   covered-call ladder: ~30Δ 1–4 weeks, or for a taxable holding with a gain the ~10Δ 4–6 week
-  rungs a third of the open lots at a time (the Brief's theta-goal rule). Flags strikes below
-  cost and rungs that span earnings. Reads the snapshot's existing ladders; ideas only
+  rungs a third of the open lots at a time (the Brief's theta-goal rule). Never suggests a strike
+  below the shares' cost (the ladder still lists those rungs, flagged); a holding with none above
+  cost reads "No call at or above your cost" and stays out of the Brief's plan. Rungs that span
+  earnings are skipped. Reads the snapshot's existing ladders; ideas only
 - **My Trades** (desktop `/overview` tab) — the account holder's own broker-confirmed trades that
   matched a suggestion, by strategy and delta bucket — kept separate from the bots. The guideline,
   management and entry-condition sections cover every closed short option trade across Schwab,
