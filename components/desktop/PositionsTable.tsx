@@ -23,16 +23,16 @@ import { fmtWeekdayShort } from "@/lib/dates";
 import { spreadDirections } from "@/lib/spread";
 
 // Upstream (OptionsEvaluator tagVerticalSpreads) tags every vertical, credit or
-// debit, as plain call-spread / put-spread; the direction (bull call, bear call,
-// bull put, bear put) comes from the paired legs, see spreadDirections. The
+// debit, as plain call-spread / put-spread; the direction (Bull-C, Bear-C,
+// Bull-P, Bear-P) comes from the paired legs, see spreadDirections. The
 // spread entries here are only the fallback for a leg whose partner isn't held.
 const STRATEGY_CODE: Record<OptionKind, string> = {
   csp: "CSP",
   "covered-call": "CC",
   "leap-call": "LEAPS",
   "leap-put-hedge": "HDG",
-  "put-spread": "Put spread",
-  "call-spread": "Call spread",
+  "put-spread": "P-SPR",
+  "call-spread": "C-SPR",
   other: "OTH",
 };
 
