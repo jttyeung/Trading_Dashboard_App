@@ -20,16 +20,19 @@ import { positionDailyTheta } from "@/lib/theta";
 import { MarketCountdown } from "@/components/desktop/MarketCountdown";
 import { RollAnalysisPanel } from "@/components/desktop/RollAnalysisPanel";
 import { fmtWeekdayShort } from "@/lib/dates";
+import { spreadDirections } from "@/lib/spread";
 
-// Only credit spreads are tagged upstream (OptionsEvaluator tagCreditSpreads):
-// call-spread = bear call (BCS), put-spread = bull put (BPS).
+// Upstream (OptionsEvaluator tagVerticalSpreads) tags every vertical, credit or
+// debit, as plain call-spread / put-spread; the direction (bull call, bear call,
+// bull put, bear put) comes from the paired legs, see spreadDirections. The
+// spread entries here are only the fallback for a leg whose partner isn't held.
 const STRATEGY_CODE: Record<OptionKind, string> = {
   csp: "CSP",
   "covered-call": "CC",
   "leap-call": "LEAPS",
   "leap-put-hedge": "HDG",
-  "put-spread": "BPS",
-  "call-spread": "BCS",
+  "put-spread": "Put spread",
+  "call-spread": "Call spread",
   other: "OTH",
 };
 
@@ -216,7 +219,7 @@ function gapColor(o: SourcedOption, gap: number | null): string {
   return itm ? "text-neg" : "text-pos";
 }
 
-function buildRow(o: SourcedOption, alertBySymbol: Map<string, Alert>, quote: SourcedOption): Row {
+function buildRow(o: SourcedOption, alertBySymbol: Map<string, Alert>, quote: SourcedOption, directions: Map<string, string>): Row {
   const marketValue = optionNetValue(o); // long +, short − (the buy-back liability)
   const todayPl = o.dayValueChange ?? null;
   // Back out yesterday's value (today's value minus today's change) to get a
@@ -240,7 +243,7 @@ function buildRow(o: SourcedOption, alertBySymbol: Map<string, Alert>, quote: So
 
   return {
     o,
-    strategyCode: STRATEGY_CODE[o.kind] ?? "OTH",
+    strategyCode: directions.get(o.id) ?? STRATEGY_CODE[o.kind] ?? "OTH",
     dit: o.openedAt ? daysBetween(o.openedAt) : null,
     dte: daysToExpiry(o.expiration),
     spot: spotOf(quote),
@@ -575,7 +578,8 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
 
   const rows = useMemo(() => {
     const quotes = freshestUnderlying(options);
-    return options.map((o) => buildRow(o, alertBySymbol, quotes.get(o.symbol) ?? o));
+    const directions = spreadDirections(options);
+    return options.map((o) => buildRow(o, alertBySymbol, quotes.get(o.symbol) ?? o, directions));
   }, [options, alertBySymbol]);
 
   // Which rows have their Manage rationale open, keyed by rowKey.

@@ -138,3 +138,44 @@ export function spreadInsight(sp: Spread): SpreadInsight {
     detail: `${Math.round(sp.pnlPct * 100)}% captured · ${sp.dte} DTE — below the 50% / 21-DTE triggers, let it work.`,
   };
 }
+
+export type SpreadDirection = "Bull call" | "Bear call" | "Bull put" | "Bear put";
+
+// Names each tagged spread leg by its direction, keyed by the leg's id. The
+// export tags every vertical as plain call-spread / put-spread (credit or
+// debit), so a single leg can't tell a bull call from a bear call: it takes the
+// partner leg's strike. Legs pair within one account + underlying + expiration
+// + kind, each short with the nearest-strike long. A call spread is bull when
+// the long strike is the lower one (a debit), bear when it's the higher (a
+// credit); a put spread is the mirror image. An unpaired leg is left out so the
+// caller falls back to a generic label.
+export function spreadDirections(legs: (OptionPosition & { sourceLabel?: string })[]): Map<string, SpreadDirection> {
+  const groups = new Map<string, (OptionPosition & { sourceLabel?: string })[]>();
+  for (const l of legs) {
+    if (l.kind !== "call-spread" && l.kind !== "put-spread") continue;
+    const k = `${l.sourceLabel ?? ""}|${l.symbol}|${l.expiration}|${l.kind}`;
+    const arr = groups.get(k);
+    if (arr) arr.push(l);
+    else groups.set(k, [l]);
+  }
+  const out = new Map<string, SpreadDirection>();
+  for (const gl of groups.values()) {
+    const longs = gl.filter((x) => x.side === "long");
+    const used = new Set<string>();
+    for (const s of gl.filter((x) => x.side === "short")) {
+      let best: OptionPosition | undefined;
+      for (const l of longs) {
+        if (used.has(l.id) || l.strike === s.strike) continue;
+        if (!best || Math.abs(l.strike - s.strike) < Math.abs(best.strike - s.strike)) best = l;
+      }
+      if (!best) continue;
+      used.add(best.id);
+      const longBelow = best.strike < s.strike;
+      const dir: SpreadDirection =
+        s.optionType === "call" ? (longBelow ? "Bull call" : "Bear call") : longBelow ? "Bear put" : "Bull put";
+      out.set(s.id, dir);
+      out.set(best.id, dir);
+    }
+  }
+  return out;
+}
