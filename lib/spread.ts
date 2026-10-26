@@ -139,7 +139,9 @@ export function spreadInsight(sp: Spread): SpreadInsight {
   };
 }
 
-export type SpreadDirection = "Bull call" | "Bear call" | "Bull put" | "Bear put";
+// Short chip text ("Bull-C" = bull call spread) so it fits the desktop table's
+// strategy column.
+export type SpreadDirection = "Bull-C" | "Bear-C" | "Bull-P" | "Bear-P";
 
 // Names each tagged spread leg by its direction, keyed by the leg's id. The
 // export tags every vertical as plain call-spread / put-spread (credit or
@@ -172,7 +174,7 @@ export function spreadDirections(legs: (OptionPosition & { sourceLabel?: string 
       used.add(best.id);
       const longBelow = best.strike < s.strike;
       const dir: SpreadDirection =
-        s.optionType === "call" ? (longBelow ? "Bull call" : "Bear call") : longBelow ? "Bear put" : "Bull put";
+        s.optionType === "call" ? (longBelow ? "Bull-C" : "Bear-C") : longBelow ? "Bear-P" : "Bull-P";
       out.set(s.id, dir);
       out.set(best.id, dir);
     }
