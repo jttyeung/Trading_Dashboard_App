@@ -24,7 +24,12 @@ const nextConfig: NextConfig = {
     // Tailscale (the page renders from the initial HTML/CSS fine, but
     // the dev server blocks the JS chunks that attach onClick handlers,
     // since the request's Origin doesn't match any allowed pattern).
-    "100.x.y.z", // this machine's own Tailscale IP
+    // Raw IPs (this machine's own Tailscale IP) come from .env.local, so
+    // no real address is ever committed: DEV_ALLOWED_ORIGINS=100.x.y.z,...
+    ...(process.env.DEV_ALLOWED_ORIGINS ?? "")
+      .split(",")
+      .map((o) => o.trim())
+      .filter(Boolean),
   ],
 };
 
