@@ -38,6 +38,10 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
   // dark as explicit overrides on top of it.
   const [mode, setModeState] = useState<ThemeMode>("light");
   const [resolved, setResolved] = useState<Resolved>("light");
+  // The first render's light defaults are placeholders. Until the saved mode
+  // is read, leave the body class to the pre-paint script in app/layout.tsx
+  // instead of resetting it to light.
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     let initial: ThemeMode = "auto";
@@ -48,9 +52,11 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
       /* ignore */
     }
     setModeState(initial);
+    setReady(true);
   }, []);
 
   useEffect(() => {
+    if (!ready) return;
     function apply() {
       setResolved(mode === "auto" ? (systemPrefersDark() ? "dark" : "light") : mode);
     }
@@ -64,12 +70,13 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
     }
     mql.addEventListener("change", apply);
     return () => mql.removeEventListener("change", apply);
-  }, [mode]);
+  }, [mode, ready]);
 
   useEffect(() => {
+    if (!ready) return;
     document.body.classList.toggle("theme-light", resolved === "light");
     document.body.classList.toggle("theme-dark", resolved === "dark");
-  }, [resolved]);
+  }, [resolved, ready]);
 
   const setMode = (m: ThemeMode) => {
     setModeState(m);

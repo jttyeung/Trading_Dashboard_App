@@ -80,7 +80,16 @@ export default async function RootLayout({
             holder's own light/dark/auto toggle (ThemeToggle, fixed top-right,
             every wide-surface page). font-(--font-inter) swaps the interface
             font the same way, scoped to just this branch. */}
-        <body className="theme-light h-full bg-bg font-[family-name:var(--font-inter)]">
+        <body suppressHydrationWarning className="theme-light h-full bg-bg font-[family-name:var(--font-inter)]">
+          {/* Runs before first paint: the server can't know the saved or OS
+              theme, so without this every refresh painted theme-light until
+              ThemeModeProvider's effects ran. Same key and rules as
+              components/theme-mode.tsx. */}
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `try{var m=localStorage.getItem("wideSurfaceThemeMode");var d=m==="dark"||(m!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);document.body.classList.toggle("theme-dark",d);document.body.classList.toggle("theme-light",!d)}catch(e){}`,
+            }}
+          />
           <ThemeModeProvider>
             <ThemeToggle />
             {!pathname.startsWith("/overview") && <AllAppsLink variant="fixed" />}
