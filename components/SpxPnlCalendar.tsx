@@ -81,9 +81,6 @@ export function SpxPnlCalendar({ days }: { days: SpxPnlDay[] }) {
           {stat("Green / red days", `${green} / ${red}`)}
         </div>
       </div>
-      <p className="mt-3 text-xs text-muted">
-        0DTE SPX, by the day each trade <strong className="text-text">closed</strong>, net of fees. The small figure is winning spreads out of spreads closed that day.
-      </p>
 
       <div className="mt-4 grid grid-cols-[repeat(5,minmax(0,1fr))_minmax(0,0.65fr)] gap-1.5">
         {[...DOW, "WEEK"].map((h) => (
