@@ -95,6 +95,7 @@ export function SpxPnlCalendar({ days }: { days: SpxPnlDay[] }) {
           ["Net", usd(ytdNet), tone(ytdNet)],
           ["Gross", usd(ytdGross), tone(ytdGross)],
           ["Fees", ytdFees ? `-${usd(ytdFees)}` : "$0", "text-text"],
+          ["Per day traded", yearDays.length ? usd(ytdNet / yearDays.length) : "—", tone(ytdNet)],
         ].map(([label, value, cls]) => (
           <div key={label} className="flex items-baseline gap-2">
             <span className="text-[10px] uppercase tracking-wider text-muted">{label}</span>
