@@ -1,0 +1,45 @@
+// Desktop shell for a genuinely different surface: a wide, sortable/groupable
+// positions table, not the mobile phone-frame app. app/layout.tsx already
+// skips the phone-frame chrome for any /desktop path (see proxy.ts) — this
+// page just needs to render its own content, full width.
+import { notFound } from "next/navigation";
+import { BRIDGE } from "@/lib/features";
+import { getSnapshot } from "@/lib/snapshot";
+import { getAlerts } from "@/lib/alerts";
+import { accountLabel, realAccounts } from "@/lib/account-shared";
+import { PositionsTable } from "@/components/desktop/PositionsTable";
+import { CoverableSharesTable } from "@/components/desktop/CoverableSharesTable";
+import { getEarnings } from "@/lib/earnings";
+import { isCashEquivalent } from "@/lib/calc";
+
+export const dynamic = "force-dynamic";
+
+export default async function DesktopPage() {
+  if (BRIDGE) notFound(); // OptionsEvaluator-only; see lib/features.ts
+  const snap = await getSnapshot();
+  const alerts = (await getAlerts()).alerts;
+  // Built from every REAL account (never the "combined" bucket) and tagged
+  // with its own source label — neither Schwab's own combinedEquities/
+  // Options nor the SnapTrade fold-in carry per-account attribution, so
+  // there's no way to recover "which account is this from" once a position
+  // is already inside "combined." Summing the real accounts ourselves here
+  // gives the same overall picture plus a real Source column, no backend change.
+  // Auto Trader paper accounts stay out: they're simulated, and have their
+  // own tab on /overview and their own /autotrader page.
+  const options = realAccounts(snap.accounts).flatMap((a) =>
+    snap.data[a.id].options.map((o) => ({ ...o, sourceLabel: accountLabel(a) })),
+  );
+
+  const equities = realAccounts(snap.accounts).flatMap((a) =>
+    snap.data[a.id].equities
+      .filter((e) => e.qty >= 100 && !isCashEquivalent(e.symbol))
+      .map((e) => ({ ...e, sourceLabel: accountLabel(a) })),
+  );
+
+  return (
+    <main className="min-h-screen w-full bg-bg px-6 py-6 text-text">
+      <PositionsTable options={options} alerts={alerts} />
+      <CoverableSharesTable equities={equities} options={options} earnings={getEarnings(snap.meta.source === "example")} />
+    </main>
+  );
+}
