@@ -51,8 +51,6 @@ export function SpxPnlCalendar({ days }: { days: SpxPnlDay[] }) {
 
   const monthDays = days.filter((d) => d.date.startsWith(prefix));
   const net = monthDays.reduce((s, d) => s + d.net, 0);
-  const gross = monthDays.reduce((s, d) => s + d.gross, 0);
-  const fees = monthDays.reduce((s, d) => s + d.fees, 0);
   const green = monthDays.filter((d) => d.net > 0).length;
   const red = monthDays.filter((d) => d.net < 0).length;
   const maxAbs = Math.max(0, ...monthDays.map((d) => Math.abs(d.net)));
@@ -76,13 +74,11 @@ export function SpxPnlCalendar({ days }: { days: SpxPnlDay[] }) {
         <div className="flex items-end gap-6">
           {stat("Net this month", usd(net), tone(net), true)}
           {stat("Per day traded", monthDays.length ? usd(net / monthDays.length) : "—", tone(net), true)}
-          {stat("Gross", usd(gross))}
-          {stat("Fees", fees ? `-${usd(fees)}` : "$0")}
           {stat("Green / red days", `${green} / ${red}`)}
         </div>
       </div>
       <p className="mt-3 text-xs text-muted">
-        SPX and SPXW, by the day each trade <strong className="text-text">closed</strong>, after fees. The small figure is winners out of trades that day.
+        SPX and SPXW, by the day each trade <strong className="text-text">closed</strong>. The small figure is winners out of trades that day.
       </p>
 
       <div className="mt-4 grid grid-cols-[repeat(5,minmax(0,1fr))_minmax(0,1fr)] gap-1.5">
