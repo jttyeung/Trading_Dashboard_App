@@ -74,8 +74,11 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!ready) return;
-    document.body.classList.toggle("theme-light", resolved === "light");
-    document.body.classList.toggle("theme-dark", resolved === "dark");
+    // html too, so the canvas behind the body follows the theme (globals.css).
+    for (const el of [document.documentElement, document.body]) {
+      el.classList.toggle("theme-light", resolved === "light");
+      el.classList.toggle("theme-dark", resolved === "dark");
+    }
   }, [resolved, ready]);
 
   const setMode = (m: ThemeMode) => {

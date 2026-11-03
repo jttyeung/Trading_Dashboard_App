@@ -6,6 +6,8 @@
 // as the rest of this app, so switching tabs client-side is instant
 // with no re-fetch.
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
+import { TAB_KEY, parseTab } from "@/components/overview/tabs";
 import { BRIDGE } from "@/lib/features";
 import { getSnapshot } from "@/lib/snapshot";
 import { getAlerts } from "@/lib/alerts";
@@ -25,7 +27,7 @@ import { OverviewShell } from "@/components/overview/OverviewShell";
 
 export const dynamic = "force-dynamic";
 
-export default async function OverviewPage() {
+export default async function OverviewPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   if (BRIDGE) notFound(); // OptionsEvaluator-only; see lib/features.ts
   const snap = await getSnapshot();
   const alerts = (await getAlerts()).alerts;
@@ -60,6 +62,10 @@ export default async function OverviewPage() {
     (snap.data[a.id]?.options ?? []).map((o) => ({ ...o, sourceLabel: accountLabel(a) })),
   );
   const hasAutotrader = readAutotraderReport() !== null;
+  // ?tab= (a bookmarkable deep link) wins over the saved tab. Rendering it
+  // here means the first paint is already the right screen.
+  const wanted = parseTab((await searchParams).tab) ?? parseTab((await cookies()).get(TAB_KEY)?.value) ?? "trades";
+  const initialTab = wanted === "autotrader" && !hasAutotrader ? "trades" : wanted;
 
   return (
     <OverviewShell
@@ -68,6 +74,7 @@ export default async function OverviewPage() {
       earnings={getEarnings(exampleMode)}
       paperOptions={paperOptions}
       hasAutotrader={hasAutotrader}
+      initialTab={initialTab}
       spxDays={spxPnl.days}
       alerts={alerts}
       generalBot={generalBot}

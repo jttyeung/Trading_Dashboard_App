@@ -69,6 +69,7 @@ export default async function RootLayout({
   if (isWideSurface) {
     return (
       <html
+        suppressHydrationWarning
         lang="en"
         className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} h-full antialiased`}
       >
@@ -86,7 +87,7 @@ export default async function RootLayout({
               components/theme-mode.tsx. */}
           <script
             dangerouslySetInnerHTML={{
-              __html: `try{var m=localStorage.getItem("wideSurfaceThemeMode");var d=m==="dark"||(m!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);document.body.classList.toggle("theme-dark",d);document.body.classList.toggle("theme-light",!d)}catch(e){}`,
+              __html: `try{var m=localStorage.getItem("wideSurfaceThemeMode");var d=m==="dark"||(m!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);for(var e of [document.documentElement,document.body]){e.classList.toggle("theme-dark",d);e.classList.toggle("theme-light",!d)}}catch(e){}`,
             }}
           />
           <ThemeModeProvider>
