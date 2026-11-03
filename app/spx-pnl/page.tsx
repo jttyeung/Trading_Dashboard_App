@@ -13,7 +13,9 @@ export default async function SpxPnlPage() {
   if (BRIDGE) notFound(); // OptionsEvaluator-only; see lib/features.ts
   const file = await getSpxPnl();
   return (
-    <main className="min-h-screen w-full bg-bg px-6 py-6 text-text">
+    <main className="min-h-screen w-full bg-bg pb-6 pl-20 pr-6 pt-16 text-text">
+      {/* pl-20/pt-16 clear the fixed All-apps and Home buttons (top-left) and the
+          theme toggle (top-right) that every wide page carries. */}
       <Link href="/overview" className="mb-4 inline-block text-xs text-muted hover:text-text">
         ← Overview
       </Link>
