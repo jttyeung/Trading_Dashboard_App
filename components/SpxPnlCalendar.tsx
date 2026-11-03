@@ -113,8 +113,7 @@ export function SpxPnlCalendar({ days }: { days: SpxPnlDay[] }) {
                 </div>
               );
             }),
-            <div key={`w${wi}`} className="h-16 rounded-md border border-border bg-surface-2/40 px-2 py-1.5">
-              <div className="text-[10px] font-semibold tracking-wider text-accent">WEEK</div>
+            <div key={`w${wi}`} className="flex h-16 flex-col items-center justify-center rounded-md border border-border bg-surface-2/40 px-2 py-1.5 text-center">
               {wd.length > 0 && (
                 <>
                   <div className={`tabular text-sm font-semibold ${tone(wNet)}`}>{usd(wNet)}</div>
