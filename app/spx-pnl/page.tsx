@@ -7,6 +7,8 @@ import { BRIDGE } from "@/lib/features";
 import { getSpxPnl } from "@/lib/spx-pnl";
 import { SpxPnlCalendar } from "@/components/SpxPnlCalendar";
 
+export const metadata = { title: "0DTE SPX P/L Calendar" };
+
 export const dynamic = "force-dynamic";
 
 export default async function SpxPnlPage() {
@@ -19,6 +21,7 @@ export default async function SpxPnlPage() {
       <Link href="/overview" className="mb-4 inline-block text-xs text-muted hover:text-text">
         ← Overview
       </Link>
+      <h1 className="mb-4 text-xl font-semibold">0DTE SPX P/L Calendar</h1>
       <SpxPnlCalendar days={file.days} />
     </main>
   );
