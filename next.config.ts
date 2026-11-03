@@ -1,6 +1,17 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // The wide views moved under /desktop (2026-11-03). Old URLs still land in
+  // the right place, so bookmarks and old notification taps keep working.
+  // Temporary, not permanent: a browser must not cache them forever.
+  async redirects() {
+    return [
+      { source: "/overview", destination: "/desktop", permanent: false },
+      { source: "/bot", destination: "/desktop/bot", permanent: false },
+      { source: "/bot-20-delta-safe", destination: "/desktop/bot-20-delta-safe", permanent: false },
+      { source: "/bot-aggressive", destination: "/desktop/bot-aggressive", permanent: false },
+    ];
+  },
   // Standalone output ONLY for the Pi build, which runs `node server.js`
   // out of the rsynced .next/standalone tree (OptionsEvaluator's
   // `just deploy-pi-dashboard` sets this; deploy/optionsdashboard.service

@@ -1,45 +1,84 @@
-// Desktop shell for a genuinely different surface: a wide, sortable/groupable
-// positions table, not the mobile phone-frame app. app/layout.tsx already
-// skips the phone-frame chrome for any /desktop path (see proxy.ts) — this
-// page just needs to render its own content, full width.
+// /overview combines the desktop positions table and all three paper-bot
+// review tables behind one icon rail, instead of four separately-typed
+// URLs (/desktop, /bot, /bot-20-delta-safe, /bot-aggressive — all four
+// still work on their own too, nothing here removes them). Fetches
+// everything once server-side, same "fetch once, pass down" convention
+// as the rest of this app, so switching tabs client-side is instant
+// with no re-fetch.
 import { notFound } from "next/navigation";
 import { BRIDGE } from "@/lib/features";
 import { getSnapshot } from "@/lib/snapshot";
 import { getAlerts } from "@/lib/alerts";
-import { accountLabel, realAccounts } from "@/lib/account-shared";
-import { PositionsTable } from "@/components/desktop/PositionsTable";
-import { CoverableSharesTable } from "@/components/desktop/CoverableSharesTable";
+import { getGeneralBot, get20DeltaSafeBot, getAggressiveBot } from "@/lib/bot";
+import { getStrategyPerformance } from "@/lib/strategy-performance";
+import { getScoreFactors } from "@/lib/score-factors";
+import { getMyTrades } from "@/lib/my-trades";
+import { getSpxPnl } from "@/lib/spx-pnl";
+import { getCspPicks } from "@/lib/csp-picks";
+import { getPortfolioRisk } from "@/lib/portfolio-risk";
 import { getEarnings } from "@/lib/earnings";
 import { isCashEquivalent } from "@/lib/calc";
+import { accountLabel, paperAccounts, realAccounts } from "@/lib/account-shared";
+import { readAutotraderReport } from "@/lib/autotrader";
+import { isExampleMode } from "@/lib/example-mode";
+import { OverviewShell } from "@/components/overview/OverviewShell";
 
 export const dynamic = "force-dynamic";
 
-export default async function DesktopPage() {
+export default async function OverviewPage() {
   if (BRIDGE) notFound(); // OptionsEvaluator-only; see lib/features.ts
   const snap = await getSnapshot();
   const alerts = (await getAlerts()).alerts;
-  // Built from every REAL account (never the "combined" bucket) and tagged
-  // with its own source label — neither Schwab's own combinedEquities/
-  // Options nor the SnapTrade fold-in carry per-account attribution, so
-  // there's no way to recover "which account is this from" once a position
-  // is already inside "combined." Summing the real accounts ourselves here
-  // gives the same overall picture plus a real Source column, no backend change.
-  // Auto Trader paper accounts stay out: they're simulated, and have their
-  // own tab on /overview and their own /autotrader page.
+  const [generalBot, safeBot, aggressiveBot, strategyPerf, scoreFactors, myTrades, cspPicks, risk, exampleMode, spxPnl] =
+    await Promise.all([
+      getGeneralBot(),
+      get20DeltaSafeBot(),
+      getAggressiveBot(),
+      getStrategyPerformance(),
+      getScoreFactors(),
+      getMyTrades(),
+      getCspPicks(),
+      getPortfolioRisk(),
+      isExampleMode(),
+      getSpxPnl(),
+    ]);
+
+  // Same per-account flatten app/desktop/page.tsx uses — see its own
+  // comment for why this can't just read the pre-merged "combined" bucket.
   const options = realAccounts(snap.accounts).flatMap((a) =>
     snap.data[a.id].options.map((o) => ({ ...o, sourceLabel: accountLabel(a) })),
   );
-
+  // Stock of 100+ shares, per real account, for the Shares to Cover table.
   const equities = realAccounts(snap.accounts).flatMap((a) =>
     snap.data[a.id].equities
       .filter((e) => e.qty >= 100 && !isCashEquivalent(e.symbol))
       .map((e) => ({ ...e, sourceLabel: accountLabel(a) })),
   );
+  // The Auto Trader paper accounts' positions, for their own tab — never
+  // mixed into the Positions tab above.
+  const paperOptions = paperAccounts(snap.accounts).flatMap((a) =>
+    (snap.data[a.id]?.options ?? []).map((o) => ({ ...o, sourceLabel: accountLabel(a) })),
+  );
+  const hasAutotrader = readAutotraderReport() !== null;
 
   return (
-    <main className="min-h-screen w-full bg-bg px-6 py-6 text-text">
-      <PositionsTable options={options} alerts={alerts} />
-      <CoverableSharesTable equities={equities} options={options} earnings={getEarnings(snap.meta.source === "example")} />
-    </main>
+    <OverviewShell
+      options={options}
+      equities={equities}
+      earnings={getEarnings(exampleMode)}
+      paperOptions={paperOptions}
+      hasAutotrader={hasAutotrader}
+      spxDays={spxPnl.days}
+      alerts={alerts}
+      generalBot={generalBot}
+      safeBot={safeBot}
+      aggressiveBot={aggressiveBot}
+      scoreRows={strategyPerf.rows}
+      scoreFactors={scoreFactors}
+      myTrades={myTrades}
+      cspPicks={cspPicks}
+      risk={risk}
+      exampleMode={exampleMode}
+    />
   );
 }

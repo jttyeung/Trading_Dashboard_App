@@ -55,21 +55,21 @@ built-in demo dataset, so you can explore the whole UI immediately.
   QQQ, and an open-P&L floor, all across every account. Sector buckets (with the tickers behind
   each) come from the daemon's `data/portfolio-risk.json`; sectors are the wheel watchlist
   sheet's own, so a name not on the sheet shows under "Unclassified"
-- **Shares to Cover** (desktop `/overview` Positions tab, under Open Positions) — every holding of
+- **Shares to Cover** (desktop `/desktop` Positions tab, under Open Positions) — every holding of
   100+ shares per account, its lots already written against vs still open, and an expandable
   covered-call ladder: ~30Δ 1–4 weeks, or for a taxable holding with a gain the ~10Δ 4–6 week
   rungs a third of the open lots at a time (the Brief's theta-goal rule). Never suggests a strike
   below the shares' cost (the ladder still lists those rungs, flagged); a holding with none above
   cost reads "No call at or above your cost" and stays out of the Brief's plan. Rungs that span
   earnings are skipped. Reads the snapshot's existing ladders; ideas only
-- **My Trades** (desktop `/overview` tab) — the account holder's own broker-confirmed trades that
+- **My Trades** (desktop `/desktop` tab) — the account holder's own broker-confirmed trades that
   matched a suggestion, by strategy and delta bucket — kept separate from the bots. The guideline,
   management and entry-condition sections cover every closed short option trade across Schwab,
   Fidelity and E*TRADE (roll chains and alert response stay Schwab-only). A separate
   "LEAPs you bought" block grades closed long options (Schwab and Fidelity) against the LEAPs entry window
   only (365+ DTE, 0.70+ delta at entry), with return on cost rather than collateral, so a bought
   call never averages into the premium-selling stats
-- **Bot Scorecard** (desktop `/overview` tab) — the paper bots' resolved picks by strategy, plus a score-factor section
+- **Bot Scorecard** (desktop `/desktop` tab) — the paper bots' resolved picks by strategy, plus a score-factor section
   (`data/score-factors.json`): for each term in the paper bots' own score (VRP, IV rank,
   indicator signals, walls, gamma, entry timing) the win rate and mean return with vs without
   it, the correlation between the term and the trade's return, and that correlation replayed

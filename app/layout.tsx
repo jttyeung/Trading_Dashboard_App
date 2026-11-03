@@ -57,15 +57,14 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // /desktop, the /bot* paper-bot review tables, and /overview (which
-  // combines them behind one icon rail) are all genuinely different
+  // Everything under /desktop (the tabbed landing page, /desktop/positions
+  // and the /desktop/bot* paper-bot review tables) are genuinely different
   // surfaces (wide sortable tables, not a phone-shaped app) — pathname is
   // set by proxy.ts, since a Server Component root layout has no
   // useRouter/usePathname of its own. Every other route is unaffected:
   // same phone-frame chrome as always.
   const pathname = (await headers()).get("x-pathname") ?? "";
-  const isWideSurface =
-    pathname.startsWith("/desktop") || pathname.startsWith("/bot") || pathname.startsWith("/overview");
+  const isWideSurface = pathname.startsWith("/desktop");
 
   if (isWideSurface) {
     return (
@@ -92,9 +91,9 @@ export default async function RootLayout({
           />
           <ThemeModeProvider>
             <ThemeToggle />
-            {!pathname.startsWith("/overview") && <AllAppsLink variant="fixed" />}
-            {/* /overview's own icon rail carries Home and Positions links. */}
-            {!pathname.startsWith("/overview") && <HomeLink />}
+            {pathname !== "/desktop" && <AllAppsLink variant="fixed" />}
+            {/* The /desktop landing page's own icon rail carries Home and Positions links. */}
+            {pathname !== "/desktop" && <HomeLink />}
             {/* globals.css caps html/body at 100vh with overflow:hidden — written
                 for the phone-frame shell's own inner ScrollArea below, which the
                 phone-frame branch further down in this file provides but this
