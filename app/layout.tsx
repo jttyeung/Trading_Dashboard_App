@@ -65,7 +65,7 @@ export default async function RootLayout({
   // same phone-frame chrome as always.
   const pathname = (await headers()).get("x-pathname") ?? "";
   const isWideSurface =
-    pathname.startsWith("/desktop") || pathname.startsWith("/bot") || pathname.startsWith("/overview") || pathname.startsWith("/spx-pnl");
+    pathname.startsWith("/desktop") || pathname.startsWith("/bot") || pathname.startsWith("/overview");
 
   if (isWideSurface) {
     return (
