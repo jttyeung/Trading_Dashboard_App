@@ -18,7 +18,7 @@ import { SpxPnlCalendar } from "@/components/SpxPnlCalendar";
 import type { SpxPnlDay } from "@/lib/spx-pnl";
 import { ThetaTurnoverPanel } from "@/components/desktop/ThetaTurnoverPanel";
 
-type Tab = "desktop" | "trades" | "bot-safe" | "bot" | "bot-aggressive" | "scorecard" | "autotrader" | "calculator" | "chart" | "watchlist" | "spx" | "connections";
+import { TAB_KEY, type Tab } from "@/components/overview/tabs";
 
 // Order: Desktop, 20 Delta Safe, Wheel Bot, Aggressive Bot, Watchlist,
 // Chart — Watchlist moved just above Chart per the account holder's own
@@ -150,34 +150,6 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
   },
 ];
 
-const TAB_KEY = "overviewActiveTab";
-
-// "desktop" (Open Positions) is reached from the rail's Home icon, not a tab
-// button, but it is still a tab that gets saved, so it must be restorable —
-// leaving it out sent a reload on Home back to My Trades.
-const ALL_TABS: Tab[] = ["desktop", "trades", "bot", "bot-safe", "bot-aggressive", "scorecard", "autotrader", "calculator", "chart", "watchlist", "spx", "connections"];
-
-// loadTab: a ?tab= query param wins (a bookmarkable deep link to one tab),
-// else the last tab used on this device.
-function loadTab(): Tab {
-  try {
-    const fromURL = new URLSearchParams(window.location.search).get("tab");
-    if (fromURL && (ALL_TABS as string[]).includes(fromURL)) return fromURL as Tab;
-  } catch {
-    /* ignore */
-  }
-  try {
-    // Same ALL_TABS list as the ?tab= branch above. A hand-written copy of it
-    // here had drifted: "autotrader" was missing, so a reload on that tab fell
-    // back to the default.
-    const raw = localStorage.getItem(TAB_KEY);
-    if (raw && (ALL_TABS as string[]).includes(raw)) return raw as Tab;
-  } catch {
-    /* ignore */
-  }
-  return "trades";
-}
-
 const HEADINGS: Record<Tab, { title: string; subtitle: string }> = {
   desktop: { title: "Open Positions", subtitle: "Every live option position across every linked account." },
   bot: {
@@ -238,6 +210,7 @@ export function OverviewShell({
   earnings,
   paperOptions,
   hasAutotrader,
+  initialTab,
   spxDays,
   alerts,
   generalBot,
@@ -255,6 +228,7 @@ export function OverviewShell({
   earnings: Record<string, string>;
   paperOptions: SourcedOption[];
   hasAutotrader: boolean;
+  initialTab: Tab;
   spxDays: SpxPnlDay[];
   alerts: Alert[];
   generalBot: BotSnapshot;
@@ -268,19 +242,27 @@ export function OverviewShell({
   exampleMode: boolean;
 }) {
   const anyConnectionDown = useAnyConnectionDown();
-  const [tab, setTab] = useState<Tab>("trades");
-  // The Auto Trader tab is only offered when there's a report (hasAutotrader),
-  // so a saved or linked ?tab=autotrader with no report falls back to Desktop
-  // rather than rendering an empty tab.
+  // The server already resolved the saved tab (cookie, or ?tab=), so the first
+  // paint is the right screen. Starting at a default and switching in an effect
+  // flashed the wrong tab on every refresh.
+  const [tab, setTab] = useState<Tab>(initialTab);
+
+  // One-time carry-over for a device that saved its tab in localStorage before
+  // the cookie existed: write the cookie so the NEXT load renders it directly.
   useEffect(() => {
-    const t = loadTab();
-    setTab(t === "autotrader" && !hasAutotrader ? "trades" : t);
-  }, [hasAutotrader]);
+    try {
+      const saved = localStorage.getItem(TAB_KEY);
+      if (saved && !document.cookie.includes(`${TAB_KEY}=`)) document.cookie = `${TAB_KEY}=${saved}; path=/; max-age=31536000; samesite=lax`;
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   function selectTab(next: Tab) {
     setTab(next);
     try {
       localStorage.setItem(TAB_KEY, next);
+      document.cookie = `${TAB_KEY}=${next}; path=/; max-age=31536000; samesite=lax`;
     } catch {
       /* ignore */
     }

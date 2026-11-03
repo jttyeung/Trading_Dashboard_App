@@ -144,6 +144,14 @@
    the near-black #0a0e14 the phone-frame app's own dark theme (:root
    above) uses. Text is a softened warm cream, not stark white, for the
    same reason. */
+/* The wide-surface script also puts the theme class on <html>, so the canvas
+   (what shows before and around the body) is the theme's own background, not
+   the browser's white. */
+html.theme-light,
+html.theme-dark {
+  background: var(--bg);
+}
+
 .theme-dark {
   /* Update: "still pretty brown" even after the first gray nudge — same
      lesson learned fixing light mode's bg: a small saturation trim
