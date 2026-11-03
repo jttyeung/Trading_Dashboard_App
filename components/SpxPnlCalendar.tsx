@@ -69,7 +69,7 @@ export function SpxPnlCalendar({ days }: { days: SpxPnlDay[] }) {
     <section className="rounded-xl border border-border bg-surface p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <h1 className="text-lg font-semibold">{MONTHS[month]} {year}</h1>
+          <h2 className="text-lg font-semibold">{MONTHS[month]} {year}</h2>
           <button onClick={() => shift(-1)} disabled={!canPrev} aria-label="Previous month" className="rounded-md border border-border px-2 py-1 text-xs disabled:opacity-30">◀</button>
           <button onClick={() => shift(1)} disabled={!canNext} aria-label="Next month" className="rounded-md border border-border px-2 py-1 text-xs disabled:opacity-30">▶</button>
         </div>
