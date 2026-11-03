@@ -71,6 +71,23 @@ export function SpxPnlCalendar({ days }: { days: SpxPnlDay[] }) {
   );
 
   return (
+    <>
+    <div className="mb-4 flex flex-wrap items-center gap-x-8 gap-y-2 rounded-md border border-border bg-surface-2/40 px-4 py-2.5">
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-accent">
+        {year === new Date().getFullYear() ? "YTD" : year}
+      </span>
+      {[
+        ["Net", usd(ytdNet), tone(ytdNet)],
+        ["Gross", usd(ytdGross), tone(ytdGross)],
+        ["Fees", ytdFees ? `-${usd(ytdFees)}` : "$0", "text-text"],
+        ["Per day traded", yearDays.length ? usd(ytdNet / yearDays.length) : "—", tone(ytdNet)],
+      ].map(([label, value, cls]) => (
+        <div key={label} className="flex items-baseline gap-2">
+          <span className="text-[10px] uppercase tracking-wider text-muted">{label}</span>
+          <span className={`tabular text-sm font-semibold ${cls}`}>{value}</span>
+        </div>
+      ))}
+    </div>
     <section className="rounded-xl border border-border bg-surface p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -85,23 +102,6 @@ export function SpxPnlCalendar({ days }: { days: SpxPnlDay[] }) {
           {stat("Fees", fees ? `-${usd(fees)}` : "$0")}
           {stat("Green / red days", `${green} / ${red}`)}
         </div>
-      </div>
-
-      <div className="mt-4 flex flex-wrap items-center gap-x-8 gap-y-2 rounded-md border border-border bg-surface-2/40 px-4 py-2.5">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-accent">
-          {year === new Date().getFullYear() ? "YTD" : year}
-        </span>
-        {[
-          ["Net", usd(ytdNet), tone(ytdNet)],
-          ["Gross", usd(ytdGross), tone(ytdGross)],
-          ["Fees", ytdFees ? `-${usd(ytdFees)}` : "$0", "text-text"],
-          ["Per day traded", yearDays.length ? usd(ytdNet / yearDays.length) : "—", tone(ytdNet)],
-        ].map(([label, value, cls]) => (
-          <div key={label} className="flex items-baseline gap-2">
-            <span className="text-[10px] uppercase tracking-wider text-muted">{label}</span>
-            <span className={`tabular text-sm font-semibold ${cls}`}>{value}</span>
-          </div>
-        ))}
       </div>
 
       <div className="mt-4 grid grid-cols-[repeat(5,minmax(0,1fr))_minmax(0,0.65fr)] gap-1.5">
@@ -145,5 +145,6 @@ export function SpxPnlCalendar({ days }: { days: SpxPnlDay[] }) {
       </div>
       {!days.length && <p className="mt-4 text-xs text-muted">No SPX trades exported yet. Run an export to populate this.</p>}
     </section>
+    </>
   );
 }
