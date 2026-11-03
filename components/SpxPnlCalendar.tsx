@@ -53,6 +53,11 @@ export function SpxPnlCalendar({ days }: { days: SpxPnlDay[] }) {
   const net = monthDays.reduce((s, d) => s + d.net, 0);
   const gross = monthDays.reduce((s, d) => s + d.gross, 0);
   const fees = monthDays.reduce((s, d) => s + d.fees, 0);
+  // Year-to-date for the viewed month's year (the current year reads as YTD).
+  const yearDays = days.filter((d) => d.date.startsWith(`${year}-`));
+  const ytdNet = yearDays.reduce((s, d) => s + d.net, 0);
+  const ytdGross = yearDays.reduce((s, d) => s + d.gross, 0);
+  const ytdFees = yearDays.reduce((s, d) => s + d.fees, 0);
   const green = monthDays.filter((d) => d.net > 0).length;
   const red = monthDays.filter((d) => d.net < 0).length;
   const maxAbs = Math.max(0, ...monthDays.map((d) => Math.abs(d.net)));
@@ -80,6 +85,22 @@ export function SpxPnlCalendar({ days }: { days: SpxPnlDay[] }) {
           {stat("Fees", fees ? `-${usd(fees)}` : "$0")}
           {stat("Green / red days", `${green} / ${red}`)}
         </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-x-8 gap-y-2 rounded-md border border-border bg-surface-2/40 px-4 py-2.5">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-accent">
+          {year === new Date().getFullYear() ? "YTD" : year}
+        </span>
+        {[
+          ["Net", usd(ytdNet), tone(ytdNet)],
+          ["Gross", usd(ytdGross), tone(ytdGross)],
+          ["Fees", ytdFees ? `-${usd(ytdFees)}` : "$0", "text-text"],
+        ].map(([label, value, cls]) => (
+          <div key={label} className="flex items-baseline gap-2">
+            <span className="text-[10px] uppercase tracking-wider text-muted">{label}</span>
+            <span className={`tabular text-sm font-semibold ${cls}`}>{value}</span>
+          </div>
+        ))}
       </div>
 
       <div className="mt-4 grid grid-cols-[repeat(5,minmax(0,1fr))_minmax(0,0.65fr)] gap-1.5">
