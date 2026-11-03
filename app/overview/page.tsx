@@ -13,6 +13,7 @@ import { getGeneralBot, get20DeltaSafeBot, getAggressiveBot } from "@/lib/bot";
 import { getStrategyPerformance } from "@/lib/strategy-performance";
 import { getScoreFactors } from "@/lib/score-factors";
 import { getMyTrades } from "@/lib/my-trades";
+import { getSpxPnl } from "@/lib/spx-pnl";
 import { getCspPicks } from "@/lib/csp-picks";
 import { getPortfolioRisk } from "@/lib/portfolio-risk";
 import { getEarnings } from "@/lib/earnings";
@@ -28,7 +29,7 @@ export default async function OverviewPage() {
   if (BRIDGE) notFound(); // OptionsEvaluator-only; see lib/features.ts
   const snap = await getSnapshot();
   const alerts = (await getAlerts()).alerts;
-  const [generalBot, safeBot, aggressiveBot, strategyPerf, scoreFactors, myTrades, cspPicks, risk, exampleMode] =
+  const [generalBot, safeBot, aggressiveBot, strategyPerf, scoreFactors, myTrades, cspPicks, risk, exampleMode, spxPnl] =
     await Promise.all([
       getGeneralBot(),
       get20DeltaSafeBot(),
@@ -39,6 +40,7 @@ export default async function OverviewPage() {
       getCspPicks(),
       getPortfolioRisk(),
       isExampleMode(),
+      getSpxPnl(),
     ]);
 
   // Same per-account flatten app/desktop/page.tsx uses — see its own
@@ -66,6 +68,7 @@ export default async function OverviewPage() {
       earnings={getEarnings(exampleMode)}
       paperOptions={paperOptions}
       hasAutotrader={hasAutotrader}
+      spxDays={spxPnl.days}
       alerts={alerts}
       generalBot={generalBot}
       safeBot={safeBot}
