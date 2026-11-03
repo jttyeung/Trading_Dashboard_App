@@ -360,7 +360,9 @@ export function PnlView({
     const route = STRATEGY_ROUTE[stratKey];
     if (!route) return null;
     const params = new URLSearchParams({ symbol: sym, view: isRealized ? "closed" : "open" });
-    if (isRealized) {
+    // The closed pages know all/ytd/months/week/today; a single picked month
+    // isn't one of those, so they open on their own default instead.
+    if (isRealized && tf.mode !== "month") {
       params.set("range", tf.mode);
       params.set("months", String(tf.months));
     }
@@ -531,7 +533,7 @@ export function PnlView({
             const isOpen = stratOpen(b.key);
             const drill = strategyTickers[b.key] ?? { top: [], total: 0 };
             const allHref = route
-              ? `${route}?view=${isRealized ? "closed" : "open"}${isRealized ? `&range=${tf.mode}&months=${tf.months}` : ""}`
+              ? `${route}?view=${isRealized ? "closed" : "open"}${isRealized && tf.mode !== "month" ? `&range=${tf.mode}&months=${tf.months}` : ""}`
               : null;
             return (
               <div key={b.key}>

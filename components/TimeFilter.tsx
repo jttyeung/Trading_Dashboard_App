@@ -1,12 +1,17 @@
 "use client";
 
 // Shared time-range filter used across the closed views and the P&L page:
-// All · YTD · a 6→1 calendar-month slider (fills from the right) · Today.
+// All · YTD · a 6→1 calendar-month slider (fills from the right) · one specific
+// calendar month (stepper) · Week · Today.
 import { useMemo, useState } from "react";
 import { etCalendarDate } from "@/lib/market-hours";
 import { type Range } from "@/lib/date-range";
 
-export type TimeMode = "all" | "ytd" | "months" | "week" | "today";
+export type TimeMode = "all" | "ytd" | "months" | "month" | "week" | "today";
+
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+/** How far back the single-month stepper goes. */
+const MAX_MONTHS_BACK = 36;
 
 /** Monday of the week `d` falls in, as a local calendar date. */
 export function weekStart(d: Date): Date {
@@ -17,6 +22,8 @@ export function weekStart(d: Date): Date {
 export function useTimeFilter(defaultMode: TimeMode = "months", defaultMonths = 1) {
   const [mode, setMode] = useState<TimeMode>(defaultMode);
   const [months, setMonths] = useState(defaultMonths);
+  // Single-month mode: 0 = this calendar month, 1 = last month, ...
+  const [monthBack, setMonthBack] = useState(0);
   const [now] = useState(() => Date.now());
 
   const range = useMemo<Range>(() => {
@@ -29,13 +36,25 @@ export function useTimeFilter(defaultMode: TimeMode = "months", defaultMonths = 
       const t = ymd(d);
       return { start: t, end: t };
     }
+    if (mode === "month") {
+      // One whole calendar month, first day to last (unlike "months", which
+      // always runs to today).
+      return {
+        start: ymd(new Date(d.getFullYear(), d.getMonth() - monthBack, 1)),
+        end: ymd(new Date(d.getFullYear(), d.getMonth() - monthBack + 1, 0)),
+      };
+    }
     if (mode === "week") return { start: ymd(weekStart(d)), end: null }; // Monday → today
     // N calendar months including the current one: 1 = month-to-date,
     // 2 = all of last month + MTD, … 6 = 1st of the month five months back → now.
     return { start: ymd(new Date(d.getFullYear(), d.getMonth() - (months - 1), 1)), end: null };
-  }, [mode, months, now]);
+  }, [mode, months, monthBack, now]);
 
-  return { mode, setMode, months, setMonths, now, range };
+  const shown = etCalendarDate(now);
+  const target = new Date(shown.getFullYear(), shown.getMonth() - monthBack, 1);
+  const monthLabel = `${MONTH_NAMES[target.getMonth()]} ${target.getFullYear()}`;
+
+  return { mode, setMode, months, setMonths, monthBack, setMonthBack, monthLabel, now, range };
 }
 
 export type TimeFilterState = ReturnType<typeof useTimeFilter>;
@@ -46,8 +65,9 @@ const chip = (active: boolean) =>
   }`;
 
 export function TimeFilter({ state }: { state: TimeFilterState }) {
-  const { mode, setMode, months, setMonths } = state;
+  const { mode, setMode, months, setMonths, monthBack, setMonthBack, monthLabel } = state;
   return (
+    <div className="space-y-2">
     <div className="flex items-center gap-2">
       <button onClick={() => setMode("all")} className={chip(mode === "all")}>
         All
@@ -80,12 +100,37 @@ export function TimeFilter({ state }: { state: TimeFilterState }) {
           aria-label="Months to show"
         />
       </div>
+      <button onClick={() => setMode("month")} className={chip(mode === "month")} title="Pick one calendar month">
+        Month
+      </button>
       <button onClick={() => setMode("week")} className={chip(mode === "week")} title="This week, Monday to today">
         Week
       </button>
       <button onClick={() => setMode("today")} className={chip(mode === "today")}>
         Today
       </button>
+    </div>
+    {mode === "month" && (
+      <div className="flex items-center justify-center gap-3">
+        <button
+          onClick={() => setMonthBack(Math.min(MAX_MONTHS_BACK, monthBack + 1))}
+          disabled={monthBack >= MAX_MONTHS_BACK}
+          aria-label="Previous month"
+          className={`${chip(false)} disabled:opacity-30`}
+        >
+          ◀
+        </button>
+        <span className="min-w-32 text-center text-sm font-semibold">{monthLabel}</span>
+        <button
+          onClick={() => setMonthBack(Math.max(0, monthBack - 1))}
+          disabled={monthBack <= 0}
+          aria-label="Next month"
+          className={`${chip(false)} disabled:opacity-30`}
+        >
+          ▶
+        </button>
+      </div>
+    )}
     </div>
   );
 }
