@@ -4,6 +4,7 @@ import { useAnyConnectionDown } from "@/lib/use-connections-down";
 
 import { useEffect, useState } from "react";
 import type { Alert, BotSnapshot } from "@/lib/types";
+import Link from "next/link";
 import { AllAppsLink } from "@/components/AllAppsLink";
 import { PositionsTable, type SourcedOption } from "@/components/desktop/PositionsTable";
 import { CoverableSharesTable, type SourcedEquity } from "@/components/desktop/CoverableSharesTable";
@@ -331,6 +332,20 @@ export function OverviewShell({
             {t.icon}
           </button>
         ))}
+
+        {/* SPX P/L calendar: its own route (/spx-pnl), not a tab, so it is a link. */}
+        <Link
+          href="/spx-pnl"
+          title="SPX P/L"
+          aria-label="SPX P/L"
+          className="flex w-12 flex-col items-center gap-1 rounded-xl py-2.5 text-muted transition-colors hover:bg-surface-2 hover:text-text"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="5" width="18" height="16" rx="2" />
+            <path d="M8 3v4M16 3v4M3 10h18" />
+            <path d="M7 17l3-3 2 2 4-4" />
+          </svg>
+        </Link>
 
         {/* Pinned to the bottom, below the tab buttons, but a real tab
             like the rest — the nav rail stays visible and switching to
