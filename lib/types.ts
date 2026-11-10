@@ -28,6 +28,7 @@ export interface Equity {
   qty: number;
   avgCost: number; // average cost per share
   price: number; // latest close per share
+  assignedStrike?: number; // strike of the latest short put assigned on this name in this account (what the shares were bought at); absent for shares bought outright
   account?: string; // Combined View only: the account(s) these shares sit in (label; "A + B" when merged)
   accountIndex?: number; // Combined View only: the account's position in the combined set, which picks its marker colour
   dayChange?: number | null; // per-share $ move today (vs prior close), for Top Movers

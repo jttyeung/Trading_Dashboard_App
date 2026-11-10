@@ -139,7 +139,7 @@ export function CoverableSharesTable({
             <th className="px-3 py-2 text-right font-medium">Lots</th>
             <th className="px-3 py-2 text-right font-medium">Covered</th>
             <th className="px-3 py-2 text-right font-medium">Open</th>
-            <th className="px-3 py-2 text-right font-medium">Avg cost</th>
+            <th className="px-3 py-2 text-right font-medium">Bought at</th>
             <th className="px-3 py-2 text-right font-medium">Price</th>
             <th className="px-3 py-2 text-right font-medium">Gain</th>
             <th className="px-3 py-2 font-medium">Suggested call</th>
@@ -164,7 +164,7 @@ export function CoverableSharesTable({
                   <td className="px-3 py-2 text-right tabular text-text">{r.lots}</td>
                   <td className="px-3 py-2 text-right tabular text-text">{r.covered}</td>
                   <td className={`px-3 py-2 text-right tabular font-semibold ${r.open > 0 ? "text-pos" : "text-muted"}`}>{r.open}</td>
-                  <td className="px-3 py-2 text-right tabular text-text">{fmtMoney(r.e.avgCost, { cents: true })}</td>
+                  <td className="px-3 py-2 text-right tabular text-text">{fmtMoney(r.e.assignedStrike ?? r.e.avgCost, { cents: true })}</td>
                   <td className="px-3 py-2 text-right tabular text-text">{fmtMoney(r.e.price, { cents: true })}</td>
                   <td className={`px-3 py-2 text-right tabular ${gain == null ? "text-muted" : gain >= 0 ? "text-pos" : "text-neg"}`}>
                     {gain == null ? "-" : fmtPct(gain, 1)}
