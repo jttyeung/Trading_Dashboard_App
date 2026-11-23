@@ -376,7 +376,7 @@ export function OverviewShell({
 
         {tab === "desktop" && (
           <>
-            <PositionsTable options={options} alerts={alerts} />
+            <PositionsTable options={options} alerts={alerts} equities={equities} />
             <CoverableSharesTable equities={equities} options={options} earnings={earnings} />
           </>
         )}

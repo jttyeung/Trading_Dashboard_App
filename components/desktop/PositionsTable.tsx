@@ -15,12 +15,14 @@ import {
   positionRemainingAnnualizedReturn,
   positionReturnOnCapital,
   spotPercentChange,
+  strikeBelowCost,
 } from "@/lib/calc";
 import { positionDailyTheta } from "@/lib/theta";
 import { MarketCountdown } from "@/components/desktop/MarketCountdown";
 import { RollAnalysisPanel } from "@/components/desktop/RollAnalysisPanel";
 import { fmtWeekdayShort } from "@/lib/dates";
 import { spreadDirections } from "@/lib/spread";
+import type { SourcedEquity } from "@/components/desktop/CoverableSharesTable";
 
 // Upstream (OptionsEvaluator tagVerticalSpreads) tags every vertical, credit or
 // debit, as plain call-spread / put-spread; the direction (Bull-C, Bear-C,
@@ -553,7 +555,23 @@ const COLUMNS: { key: SortKey; label: string; align?: "right" }[] = [
   { key: "source", label: "Source" },
 ];
 
-export function PositionsTable({ options, alerts = [] }: { options: SourcedOption[]; alerts?: Alert[] }) {
+// What the shares behind each covered call cost, keyed by account + ticker
+// since the same name can sit in two accounts at different prices. Same
+// "Bought at" the Shares to Cover table shows: the assigned put's strike when
+// the shares came from an assignment, else the broker's average cost.
+function costByAccountSymbol(equities: SourcedEquity[]): Map<string, number> {
+  return new Map(equities.map((e) => [`${e.sourceLabel}|${e.symbol.toUpperCase()}`, e.assignedStrike ?? e.avgCost]));
+}
+
+export function PositionsTable({
+  options,
+  alerts = [],
+  equities = [],
+}: {
+  options: SourcedOption[];
+  alerts?: Alert[];
+  equities?: SourcedEquity[];
+}) {
   const [groupBy, setGroupBy] = useState<GroupBy>("dte");
   const [sortKey, setSortKey] = useState<SortKey>("dte");
   const [sortDir, setSortDir] = useState<1 | -1>(1);
@@ -575,6 +593,7 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
   // One lookup for both kinds of alert: a contract alert is keyed by its
   // OCC symbol (the row's id), a whole-name alert by the bare ticker.
   const alertBySymbol = useMemo(() => new Map(alerts.map((a) => [a.contractSymbol, a])), [alerts]);
+  const costBySource = useMemo(() => costByAccountSymbol(equities), [equities]);
 
   const rows = useMemo(() => {
     const quotes = freshestUnderlying(options);
@@ -746,9 +765,16 @@ export function PositionsTable({ options, alerts = [] }: { options: SourcedOptio
                   g.rows.map((r) => {
                     const isShortCSP = r.o.kind === "csp" && r.o.side === "short";
                     const rollOpen = rollAnalysisOpen.has(rowKey(r.o));
+                    // A call written under what the shares cost: assignment
+                    // would sell them at a loss, so it's one to manage early.
+                    const cost = costBySource.get(`${r.o.sourceLabel}|${r.o.symbol.toUpperCase()}`);
+                    const belowCost = r.o.kind === "covered-call" && r.o.side === "short" && strikeBelowCost(r.o.strike, cost);
                     return (
                   <Fragment key={rowKey(r.o)}>
-                    <tr className="border-b border-border/60 hover:bg-surface-2/40">
+                    <tr
+                      className={`border-b border-border/60 ${belowCost ? "bg-amber-500/10 hover:bg-amber-500/15" : "hover:bg-surface-2/40"}`}
+                      title={belowCost ? `Strike ${fmtMoney(r.o.strike)} is below the ${fmtMoney(cost!, { cents: true })} you paid for the shares — assignment sells them at a loss` : undefined}
+                    >
                       <td className="whitespace-nowrap px-3 py-2 font-medium text-text">
                         {r.o.symbol}
                         {isShortCSP && (
