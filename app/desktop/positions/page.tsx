@@ -38,7 +38,7 @@ export default async function DesktopPage() {
 
   return (
     <main className="min-h-screen w-full bg-bg px-6 py-6 text-text">
-      <PositionsTable options={options} alerts={alerts} />
+      <PositionsTable options={options} alerts={alerts} equities={equities} />
       <CoverableSharesTable equities={equities} options={options} earnings={getEarnings(snap.meta.source === "example")} />
     </main>
   );
