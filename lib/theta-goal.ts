@@ -88,8 +88,15 @@ export function spansEarnings(c: CoveredCallQuote, earnings: string | undefined)
 /** Never a covered call struck below what the shares cost: being called away there
  *  locks in a loss. A holding with no known cost (0) can't be checked and passes.
  *  Mirrors the daemon's RULE-037. */
-export function clearsCost(c: CoveredCallQuote, avgCost: number): boolean {
-  return !(avgCost > 0) || c.strike >= avgCost;
+export function clearsCost(c: CoveredCallQuote, cost: number): boolean {
+  return !(cost > 0) || c.strike >= cost;
+}
+
+/** What the shares were bought at: the assigned put's strike when known (avg cost nets the
+ *  put premium, so a call between the two still sells the shares for less than was paid),
+ *  else avg cost. */
+export function boughtAt(e: { assignedStrike?: number; avgCost: number }): number {
+  return e.assignedStrike ?? e.avgCost;
 }
 
 /** Lots with no call against them, per account. A short call on a symbol covers 100
@@ -117,7 +124,7 @@ export function uncoveredLots(inputs: AccountInput[], earnings: Record<string, s
       const all = (keep ? e.farCalls : e.coveredCalls) ?? [];
       const rungs = all.filter((c) => c.dte > 0 && c.mark > 0);
       if (rungs.length === 0) continue; // nothing quoted (a far rung list fills in at the next open)
-      const aboveCost = rungs.filter((c) => clearsCost(c, e.avgCost));
+      const aboveCost = rungs.filter((c) => clearsCost(c, boughtAt(e)));
       if (aboveCost.length === 0) continue;
       const report = earnings[e.symbol.toUpperCase()];
       const clear = aboveCost.filter((c) => !spansEarnings(c, report));
